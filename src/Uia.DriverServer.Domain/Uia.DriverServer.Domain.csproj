@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<!-- Assembly -->
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<AssemblyVersion>8.0.0.0</AssemblyVersion>
+		<FileVersion>8.0.0.0</FileVersion>
+		<IsPackable>false</IsPackable>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+		<SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+		<LangVersion>latest</LangVersion>
+
+		<!-- https://learn.microsoft.com/en-us/dotnet/fundamentals/syslib-diagnostics/syslib1040-1049 -->
+		<NoWarn>$(NoWarn);SYSLIB1045</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<COMReference Include="UIAutomationClient">
+			<WrapperTool>tlbimp</WrapperTool>
+			<VersionMinor>0</VersionMinor>
+			<VersionMajor>1</VersionMajor>
+			<Guid>944de083-8fb8-45cf-bcb7-c477acb2f897</Guid>
+			<Lcid>0</Lcid>
+			<Isolated>false</Isolated>
+			<EmbedInteropTypes>False</EmbedInteropTypes>
+		</COMReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Uia.DriverServer.Converters\Uia.DriverServer.Converters.csproj" />
+		<ProjectReference Include="..\Uia.DriverServer.Extensions\Uia.DriverServer.Extensions.csproj" />
+		<ProjectReference Include="..\Uia.DriverServer.Formatters\Uia.DriverServer.Formatters.csproj" />
+		<ProjectReference Include="..\Uia.DriverServer.Marshals\Uia.DriverServer.Marshals.csproj" />
+		<ProjectReference Include="..\Uia.DriverServer.Models\Uia.DriverServer.Models.csproj" />
+	</ItemGroup>
+
+</Project>
