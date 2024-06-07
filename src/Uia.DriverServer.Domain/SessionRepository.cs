@@ -17,7 +17,7 @@ namespace Uia.DriverServer.Domain
             throw new NotImplementedException();
         }
 
-        public (int StatusCode, XDocument ElementsXml) CreateSessionXml(string id)
+        public (int StatusCode, XDocument ElementsXml) NewDocumentObjectModel(string id)
         {
             throw new NotImplementedException();
         }

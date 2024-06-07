@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Net.Mime;
 
 using Uia.DriverServer.Domain;
+using Uia.DriverServer.Extensions;
 using Uia.DriverServer.Models;
 
 namespace Uia.DriverServer.Controllers
@@ -39,8 +40,8 @@ namespace Uia.DriverServer.Controllers
         [SwaggerOperation(
             Summary = "Finds an element in the specified session using the provided locator strategy.",
             Description = "Uses the locator strategy to find an element in the session identified by the given session ID.",
-            Tags = ["Elements"])]
-        [SwaggerResponse(200, "Element found successfully.", typeof(Dictionary<string, string>))]
+            Tags = ["Elements", "Retrieval"])]
+        [SwaggerResponse(200, "Element found successfully.", typeof(object))]
         [SwaggerResponse(400, "Invalid request. The locator strategy model is not valid.")]
         [SwaggerResponse(404, "Element not found. The session ID or locator strategy provided does not match any element.")]
         [SwaggerResponse(500, "Internal server error. An unexpected error occurred while attempting to find the element.")]
@@ -75,28 +76,27 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // GET /wd/hub/session/{session}/element/{element}/text
-        // GET /session/{session}/element/{element}/text
+        // POST /wd/hub/session/{session}/element/{element}/click
+        // POST /session/{session}/element/{element}/click
         [HttpGet]
-        [Route("session/{session}/element/{element}/text")]
+        [Route("session/{session}/element/{element}/attribute/{name}")]
         [SwaggerOperation(
-            Summary = "Gets the text of the specified element in the given session.",
-            Description = "Retrieves the text content of the element identified by the given session and element IDs.",
-            Tags = ["Elements"])]
-        [SwaggerResponse(200, "Element text retrieved successfully.", typeof(object))]
-        [SwaggerResponse(404, "Element or session not found. The session ID or element ID provided does not exist.")]
-        [SwaggerResponse(500, "Internal server error. An error occurred while retrieving the element text.")]
-        public IActionResult GetElementText(
-            [SwaggerParameter(Description = "The unique identifier for the session in which the element's text will be retrieved.")] string session,
-            [SwaggerParameter(Description = "The unique identifier for the element whose text will be retrieved.")] string element)
+            Summary = "Gets the specified attribute of the specified element in the given session.",
+            Description = "Retrieves the value of the attribute identified by the given session, element, and attribute name.",
+            Tags = ["Elements", "State"])]
+        [SwaggerResponse(200, "Element attribute retrieved successfully.", typeof(WebDriverResponseModel))]
+        [SwaggerResponse(404, "Element, session, or attribute not found. The session ID, element ID, or attribute name provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while retrieving the element attribute.")]
+        public IActionResult GetElementAttribute(
+            [SwaggerParameter(Description = "The unique identifier for the session in which the element's attribute will be retrieved.")] string session,
+            [SwaggerParameter(Description = "The unique identifier for the element whose attribute will be retrieved.")] string element,
+            [SwaggerParameter(Description = "The name of the attribute to retrieve.")] string name)
         {
-            // Retrieve the element text using the domain's elements repository
-            var (statusCode, text) = _domain
-                .ElementsRepository
-                .GetElementText(session: session, element: element);
+            // Retrieve the element attribute using the domain's elements repository
+            var (statusCode, text) = _domain.ElementsRepository.GetElementAttribute(session, element, name);
 
-            // Prepare the response value containing the element's text
-            var value = new
+            // Prepare the response value containing the element's attribute
+            var value = new WebDriverResponseModel
             {
                 Value = text
             };
@@ -106,6 +106,134 @@ namespace Uia.DriverServer.Controllers
             {
                 StatusCode = statusCode
             };
+        }
+
+        // GET /wd/hub/session/{session}/element/{element}/text
+        // GET /session/{session}/element/{element}/text
+        [HttpGet]
+        [Route("session/{session}/element/{element}/text")]
+        [SwaggerOperation(
+            Summary = "Gets the text of the specified element in the given session.",
+            Description = "Retrieves the text content of the element identified by the given session and element IDs.",
+            Tags = ["Elements", "State"])]
+        [SwaggerResponse(200, "Element text retrieved successfully.", typeof(WebDriverResponseModel))]
+        [SwaggerResponse(404, "Element or session not found. The session ID or element ID provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while retrieving the element text.")]
+        public IActionResult GetElementText(
+            [SwaggerParameter(Description = "The unique identifier for the session in which the element's text will be retrieved.")] string session,
+            [SwaggerParameter(Description = "The unique identifier for the element whose text will be retrieved.")] string element)
+        {
+            // Retrieve the element text using the domain's elements repository
+            var (statusCode, text) = _domain
+                .ElementsRepository
+                .GetElementText(session, element);
+
+            // Prepare the response value containing the element's text
+            var value = new WebDriverResponseModel
+            {
+                Value = text
+            };
+
+            // Return the result as JSON with the appropriate status code
+            return new JsonResult(value)
+            {
+                StatusCode = statusCode
+            };
+        }
+
+        // POST /wd/hub/session/{session}/element/{element}/click
+        // POST /session/{session}/element/{element}/click
+        [HttpPost]
+        [Route("session/{session}/element/{element}/click")]
+        [SwaggerOperation(
+            Summary = "Invokes a click action on the specified element in the given session.",
+            Description = "Performs a click action on the element identified by the given session and element IDs.",
+            Tags = ["Elements", "Interaction"])]
+        [SwaggerResponse(200, "Click action invoked successfully.")]
+        [SwaggerResponse(404, "Element or session not found. The session ID or element ID provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to click the element.")]
+        public IActionResult InvokeClick(
+            [SwaggerParameter(Description = "The unique identifier for the session in which the element will be clicked.")] string session,
+            [SwaggerParameter(Description = "The unique identifier for the element to be clicked.")] string element)
+        {
+            // Get the session status code
+            var statusCode = _domain.SessionsRepository.GetSession(id: session).StatusCode;
+
+            // Check if the session status code is not OK
+            if (statusCode != StatusCodes.Status200OK)
+            {
+                // Return the status code result if the session is not found
+                return new StatusCodeResult(statusCode);
+            }
+
+            // Retrieve the element using the domain's elements repository
+            var elementModel = _domain.ElementsRepository.GetElement(session, element);
+
+            // Check if the element was not found
+            if (elementModel == null)
+            {
+                // Return a not found response if the element was not found
+                return NotFound();
+            }
+
+            // Invoke the click action on the element
+            elementModel.UIAutomationElement.Invoke();
+
+            // Return an OK response indicating the click action was successful
+            return Ok();
+        }
+
+        // POST /wd/hub/session/{session}/element/{element}/value
+        // POST /session/{session}/element/{element}/value
+        [HttpPost]
+        [Route("session/{session}/element/{element}/value")]
+        [SwaggerOperation(
+            Summary = "Sets the value of the specified element in the given session.",
+            Description = "Updates the value of the element identified by the given session and element IDs with the provided data.",
+            Tags = ["Elements", "Interaction"])]
+        [SwaggerResponse(200, "Element value set successfully.")]
+        [SwaggerResponse(400, "Invalid request. The data does not contain a valid 'text' key.")]
+        [SwaggerResponse(404, "Element or session not found. The session ID or element ID provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to set the element value.")]
+        public IActionResult SetValue(
+            [SwaggerParameter(Description = "The unique identifier for the session in which the element's value will be set.")] string session,
+            [SwaggerParameter(Description = "The unique identifier for the element whose value will be set.")] string element,
+            [SwaggerRequestBody(Description = "The data containing the value to set, including the 'text' key with the value to be set.")] IDictionary<string, object> data)
+        {
+            // Get the session status code
+            var statusCode = _domain.SessionsRepository.GetSession(id: session).StatusCode;
+
+            // Check if the session status code is not OK
+            if (statusCode != StatusCodes.Status200OK)
+            {
+                // Return the status code result if the session is not found
+                return new StatusCodeResult(statusCode);
+            }
+
+            // Retrieve the element using the domain's elements repository
+            var elementModel = _domain.ElementsRepository.GetElement(session, element);
+
+            // Check if the element was not found
+            if (elementModel.UIAutomationElement == null)
+            {
+                // Return a not found response if the element was not found
+                return NotFound();
+            }
+
+            // Check if the data contains the "text" key
+            var isText = data.TryGetValue(key: "text", out object textValue);
+
+            // Return a bad request response if the "text" key is not present
+            if (!isText)
+            {
+                return BadRequest();
+            }
+
+            // Set the value of the element
+            elementModel.UIAutomationElement.SendKeys($"{textValue}");
+
+            // Return an OK response indicating the value was set successfully
+            return Ok();
         }
     }
 }

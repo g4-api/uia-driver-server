@@ -42,7 +42,7 @@ namespace Uia.DriverServer.Domain
         /// - StatusCode: An HTTP status code indicating the result of the operation.
         /// - ElementsXml: The XML document representing the session elements.
         /// </returns>
-        (int StatusCode, XDocument ElementsXml) CreateSessionXml(string id);
+        (int StatusCode, XDocument ElementsXml) NewDocumentObjectModel(string id);
 
         /// <summary>
         /// Deletes the session with the specified ID.

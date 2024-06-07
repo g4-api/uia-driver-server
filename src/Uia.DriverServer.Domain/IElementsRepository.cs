@@ -50,13 +50,13 @@ namespace Uia.DriverServer.Domain
         /// </summary>
         /// <param name="session">The unique identifier for the automation session.</param>
         /// <param name="element">The identifier of the element to get the attribute from.</param>
-        /// <param name="attribute">The name of the attribute to retrieve.</param>
+        /// <param name="name">The name of the attribute to retrieve.</param>
         /// <returns>
         /// A tuple containing:
         /// - StatusCode: An HTTP status code indicating the result of the operation.
         /// - Value: The value of the specified attribute.
         /// </returns>
-        (int StatusCode, string Value) GetElementAttribute(string session, string element, string attribute);
+        (int StatusCode, string Value) GetElementAttribute(string session, string element, string name);
 
         /// <summary>
         /// Gets the text content of the specified element within a session.

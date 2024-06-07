@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Net.Mime;
 
 using Uia.DriverServer.Domain;
+using Uia.DriverServer.Models;
 
 namespace Uia.DriverServer.Controllers
 {
@@ -38,7 +39,7 @@ namespace Uia.DriverServer.Controllers
             Summary = "Executes a script in the context of the specified session.",
             Description = "Invokes a script in the session identified by the given session id.",
             Tags = ["Document"])]
-        [SwaggerResponse(200, "Script executed successfully.", typeof(object))]
+        [SwaggerResponse(200, "Script executed successfully.", typeof(WebDriverResponseModel))]
         [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
         [SwaggerResponse(500, "Internal server error. An error occurred while executing the script.")]
         public IActionResult InvokeScript(
@@ -56,8 +57,14 @@ namespace Uia.DriverServer.Controllers
                 .DocumentRepository
                 .InvokeScript(session.SessionId, src);
 
+            // Prepare the response model with the result of the script execution
+            var value = new WebDriverResponseModel
+            {
+                Value = result
+            };
+
             // Return the result as JSON with the appropriate status code
-            return new JsonResult(result)
+            return new JsonResult(value)
             {
                 StatusCode = statusCode
             };
