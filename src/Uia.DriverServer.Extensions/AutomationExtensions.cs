@@ -474,12 +474,104 @@ namespace Uia.DriverServer.Extensions
         /// <summary>
         /// Gets the default clickable point on the UI Automation element.
         /// </summary>
+        /// <param name="element">The <see cref="UiaElementModel"/> to get the clickable point of.</param>
+        /// <returns>A <see cref="PointModel"/> representing the clickable point on the element.</returns>
+        public static PointModel GetClickablePoint(this UiaElementModel element)
+        {
+            // Call the main GetClickablePoint method with default parameters.
+            return ExportClickablePoint(
+                boundingRectangle: element.Rectangle,
+                align: "TopLeft",
+                topOffset: 1,
+                leftOffset: 1,
+                scaleRatio: 1.0D);
+        }
+
+        /// <summary>
+        /// Gets the clickable point on the UI Automation element with the specified scale ratio.
+        /// </summary>
+        /// <param name="element">The <see cref="UiaElementModel"/> to get the clickable point of.</param>
+        /// <param name="scaleRatio">The scale ratio to apply to the coordinates.</param>
+        /// <returns>A <see cref="PointModel"/> representing the clickable point on the element.</returns>
+        public static PointModel GetClickablePoint(this UiaElementModel element, double scaleRatio)
+        {
+            // Call the main GetClickablePoint method with the specified scale ratio and default other parameters.
+            return ExportClickablePoint(
+                boundingRectangle: element.Rectangle,
+                align: "TopLeft",
+                topOffset: 1,
+                leftOffset: 1,
+                scaleRatio);
+        }
+
+        /// <summary>
+        /// Gets the clickable point on the UI Automation element with the specified alignment.
+        /// </summary>
+        /// <param name="element">The <see cref="UiaElementModel"/> to get the clickable point of.</param>
+        /// <param name="align">The alignment for the clickable point (e.g., TOPLEFT, TOPCENTER, etc.).</param>
+        /// <returns>A <see cref="PointModel"/> representing the clickable point on the element.</returns>
+        public static PointModel GetClickablePoint(this UiaElementModel element, string align)
+        {
+            // Call the main GetClickablePoint method with the specified alignment and default other parameters.
+            return ExportClickablePoint(
+                boundingRectangle: element.Rectangle,
+                align,
+                topOffset: 1,
+                leftOffset: 1,
+                scaleRatio: 1.0D);
+        }
+
+        /// <summary>
+        /// Gets the clickable point on the UI Automation element with the specified alignment and scale ratio.
+        /// </summary>
+        /// <param name="element">The <see cref="UiaElementModel"/> to get the clickable point of.</param>
+        /// <param name="align">The alignment for the clickable point (e.g., TOPLEFT, TOPCENTER, etc.).</param>
+        /// <param name="scaleRatio">The scale ratio to apply to the coordinates.</param>
+        /// <returns>A <see cref="PointModel"/> representing the clickable point on the element.</returns>
+        public static PointModel GetClickablePoint(this UiaElementModel element, string align, double scaleRatio)
+        {
+            // Call the main ExportClickablePoint method with the specified alignment, scale ratio, and default offsets.
+            return ExportClickablePoint(
+                boundingRectangle: element.Rectangle,
+                align,
+                topOffset: 1,
+                leftOffset: 1,
+                scaleRatio);
+        }
+
+        /// <summary>
+        /// Gets a clickable point on the UI Automation element based on the specified alignment, offsets, and scale ratio.
+        /// </summary>
+        /// <param name="element">The <see cref="UiaElementModel"/> to get the clickable point of.</param>
+        /// <param name="align">The alignment for the clickable point (e.g., TOPLEFT, TOPCENTER, etc.).</param>
+        /// <param name="topOffset">The vertical offset to apply to the clickable point.</param>
+        /// <param name="leftOffset">The horizontal offset to apply to the clickable point.</param>
+        /// <param name="scaleRatio">The scale ratio to apply to the clickable point calculation.</param>
+        /// <returns>A <see cref="PointModel"/> representing the clickable point on the element.</returns>
+        public static PointModel GetClickablePoint(
+            this UiaElementModel element, string align, int topOffset, int leftOffset, double scaleRatio)
+        {
+            // Call the main ExportClickablePoint method with the specified alignment, scale ratio, and default offsets.
+            return ExportClickablePoint(boundingRectangle: element.Rectangle, align, topOffset, leftOffset, scaleRatio);
+        }
+
+        /// <summary>
+        /// Gets the default clickable point on the UI Automation element.
+        /// </summary>
         /// <param name="element">The <see cref="IUIAutomationElement"/> to get the clickable point of.</param>
         /// <returns>A <see cref="PointModel"/> representing the clickable point on the element.</returns>
         public static PointModel GetClickablePoint(this IUIAutomationElement element)
         {
+            // Create a new RectangleModel from the element's current bounding rectangle.
+            var boundingRectangle = NewRectangleModel(element.CurrentBoundingRectangle);
+
             // Call the main GetClickablePoint method with default parameters.
-            return ExportClickablePoint(element, align: "TopLeft", topOffset: 1, leftOffset: 1, scaleRatio: 1.0D);
+            return ExportClickablePoint(
+                boundingRectangle,
+                align: "TopLeft",
+                topOffset: 1,
+                leftOffset: 1,
+                scaleRatio: 1.0D);
         }
 
         /// <summary>
@@ -490,8 +582,16 @@ namespace Uia.DriverServer.Extensions
         /// <returns>A <see cref="PointModel"/> representing the clickable point on the element.</returns>
         public static PointModel GetClickablePoint(this IUIAutomationElement element, double scaleRatio)
         {
+            // Create a new RectangleModel from the element's current bounding rectangle.
+            var boundingRectangle = NewRectangleModel(element.CurrentBoundingRectangle);
+
             // Call the main GetClickablePoint method with the specified scale ratio and default other parameters.
-            return ExportClickablePoint(element, align: "TopLeft", topOffset: 1, leftOffset: 1, scaleRatio);
+            return ExportClickablePoint(
+                boundingRectangle,
+                align: "TopLeft",
+                topOffset: 1,
+                leftOffset: 1,
+                scaleRatio);
         }
 
         /// <summary>
@@ -502,8 +602,11 @@ namespace Uia.DriverServer.Extensions
         /// <returns>A <see cref="PointModel"/> representing the clickable point on the element.</returns>
         public static PointModel GetClickablePoint(this IUIAutomationElement element, string align)
         {
+            // Create a new RectangleModel from the element's current bounding rectangle.
+            var boundingRectangle = NewRectangleModel(element.CurrentBoundingRectangle);
+
             // Call the main GetClickablePoint method with the specified alignment and default other parameters.
-            return ExportClickablePoint(element, align, topOffset: 1, leftOffset: 1, scaleRatio: 1.0D);
+            return ExportClickablePoint(boundingRectangle, align, topOffset: 1, leftOffset: 1, scaleRatio: 1.0D);
         }
 
         /// <summary>
@@ -515,8 +618,11 @@ namespace Uia.DriverServer.Extensions
         /// <returns>A <see cref="PointModel"/> representing the clickable point on the element.</returns>
         public static PointModel GetClickablePoint(this IUIAutomationElement element, string align, double scaleRatio)
         {
+            // Create a new RectangleModel from the element's current bounding rectangle.
+            var boundingRectangle = NewRectangleModel(element.CurrentBoundingRectangle);
+
             // Call the main ExportClickablePoint method with the specified alignment, scale ratio, and default offsets.
-            return ExportClickablePoint(element, align, topOffset: 1, leftOffset: 1, scaleRatio);
+            return ExportClickablePoint(boundingRectangle, align, topOffset: 1, leftOffset: 1, scaleRatio);
         }
 
         /// <summary>
@@ -531,8 +637,11 @@ namespace Uia.DriverServer.Extensions
         public static PointModel GetClickablePoint(
             this IUIAutomationElement element, string align, int topOffset, int leftOffset, double scaleRatio)
         {
+            // Create a new RectangleModel from the element's current bounding rectangle.
+            var boundingRectangle = NewRectangleModel(element.CurrentBoundingRectangle);
+
             // Call the main ExportClickablePoint method with the specified alignment, scale ratio, and default offsets.
-            return ExportClickablePoint(element, align, topOffset, leftOffset, scaleRatio);
+            return ExportClickablePoint(boundingRectangle, align, topOffset, leftOffset, scaleRatio);
         }
 
         /// <summary>
@@ -793,8 +902,11 @@ namespace Uia.DriverServer.Extensions
             }
             else if (isCords)
             {
+                // Create a new RectangleModel from the element's current bounding rectangle.
+                var boundingRectangle = NewRectangleModel(element.CurrentBoundingRectangle);
+
                 // Click the element based on its coordinates if it does not support any specific pattern.
-                var point = ExportClickablePoint(element, align, topOffset: 0, leftOffset: 0, scaleRatio);
+                var point = ExportClickablePoint(boundingRectangle, align, topOffset: 1, leftOffset: 1, scaleRatio);
                 User32.SetPhysicalCursorPosition(point.X, point.Y);
                 User32.SendMouseEvent(0x02, point.X, point.Y);
             }
@@ -939,8 +1051,16 @@ namespace Uia.DriverServer.Extensions
         /// <param name="element">The <see cref="IUIAutomationElement"/> to click.</param>
         public static void SendNativeClick(this IUIAutomationElement element)
         {
+            // Create a new RectangleModel from the element's current bounding rectangle.
+            var boundingRectangle = NewRectangleModel(element.CurrentBoundingRectangle);
+
             // Get the clickable point of the element.
-            var point = ExportClickablePoint(element, align: default, topOffset: 1, leftOffset: 1, scaleRatio: 1.0D);
+            var point = ExportClickablePoint(
+                boundingRectangle,
+                align: default,
+                topOffset: 1,
+                leftOffset: 1,
+                scaleRatio: 1.0D);
 
             // Send a native click to the clickable point.
             SendNativeClick(null, point.X, point.Y);
@@ -963,14 +1083,82 @@ namespace Uia.DriverServer.Extensions
         }
 
         /// <summary>
+        /// Sends a native click at the specified coordinates.
+        /// </summary>
+        /// <param name="_">An instance of <see cref="CUIAutomation8"/> (unused).</param>
+        /// <param name="x">The x-coordinate to click.</param>
+        /// <param name="y">The y-coordinate to click.</param>
+        public static void SendNativeClick(this CUIAutomation8 _, int x, int y)
+        {
+            // Set the cursor position to the specified coordinates.
+            User32.SetPhysicalCursorPosition(x, y);
+
+            // Send a native click at the current cursor position.
+            SendNativeClick(_);
+        }
+
+        /// <summary>
+        /// Sends a native click to the specified point on the screen a given number of times.
+        /// </summary>
+        /// <param name="_">The CUIAutomation8 instance.</param>
+        /// <param name="point">The coordinates where the click should occur.</param>
+        /// <param name="repeat">The number of times to repeat the click.</param>
+        public static void SendNativeClick(this CUIAutomation8 _, PointModel point, int repeat)
+        {
+            // Repeat the click the specified number of times.
+            for (int i = 0; i < repeat; i++)
+            {
+                SendNativeClick(_, point);
+            }
+        }
+
+        /// <summary>
+        /// Sends a native click to the specified point on the screen.
+        /// </summary>
+        /// <param name="_">The CUIAutomation8 instance.</param>
+        /// <param name="point">The coordinates where the click should occur.</param>
+        public static void SendNativeClick(this CUIAutomation8 _, PointModel point)
+        {
+            // Set the cursor position to the specified coordinates.
+            User32.SetPhysicalCursorPosition(x: point.X, y: point.Y);
+
+            // Send the native click.
+            SendNativeClick(_);
+        }
+
+        /// <summary>
+        /// Sends a native click at the current cursor position.
+        /// </summary>
+        /// <param name="_">An instance of <see cref="CUIAutomation8"/> (unused).</param>
+        public static void SendNativeClick(this CUIAutomation8 _)
+        {
+            // Get the current cursor position.
+            var point = User32.GetPhysicalCursorPosition();
+
+            // Perform a mouse left button down event at the current cursor position.
+            User32.SendMouseEvent(eventCode: 0x02, point.x, point.y);
+
+            // Perform a mouse left button up event at the current cursor position.
+            User32.SendMouseEvent(eventCode: 0x04, point.x, point.y);
+        }
+
+        /// <summary>
         /// Sends a native click at the clickable point of the specified UI Automation element, adjusted by the scale ratio.
         /// </summary>
         /// <param name="element">The <see cref="IUIAutomationElement"/> to click.</param>
         /// <param name="scaleRatio">The scale ratio to apply to the coordinates.</param>
         public static void SendNativeClick(this IUIAutomationElement element, double scaleRatio)
         {
+            // Create a new RectangleModel from the element's current bounding rectangle.
+            var boundingRectangle = NewRectangleModel(element.CurrentBoundingRectangle);
+
             // Get the clickable point of the element adjusted by the scale ratio.
-            var point = ExportClickablePoint(element, align: default, topOffset: 1, leftOffset: 1, scaleRatio);
+            var point = ExportClickablePoint(
+                boundingRectangle,
+                align: default,
+                topOffset: 1,
+                leftOffset: 1,
+                scaleRatio);
 
             // Send a native click to the clickable point.
             SendNativeClick(null, point.X, point.Y);
@@ -983,8 +1171,11 @@ namespace Uia.DriverServer.Extensions
         /// <param name="align">The alignment for the clickable point (e.g., TOPLEFT, TOPCENTER, etc.).</param>
         public static void SendNativeClick(this IUIAutomationElement element, string align)
         {
+            // Create a new RectangleModel from the element's current bounding rectangle.
+            var boundingRectangle = NewRectangleModel(element.CurrentBoundingRectangle);
+
             // Get the clickable point of the element with the specified alignment.
-            var point = ExportClickablePoint(element, align, topOffset: 1, leftOffset: 1, scaleRatio: 1.0D);
+            var point = ExportClickablePoint(boundingRectangle, align, topOffset: 1, leftOffset: 1, scaleRatio: 1.0D);
 
             // Send a native click to the clickable point.
             SendNativeClick(null, point.X, point.Y);
@@ -998,8 +1189,11 @@ namespace Uia.DriverServer.Extensions
         /// <param name="repeat">The number of times to repeat the click.</param>
         public static void SendNativeClick(this IUIAutomationElement element, string align, int repeat)
         {
+            // Create a new RectangleModel from the element's current bounding rectangle.
+            var boundingRectangle = NewRectangleModel(element.CurrentBoundingRectangle);
+
             // Get the clickable point of the element with the specified alignment.
-            var point = ExportClickablePoint(element, align, topOffset: 1, leftOffset: 1, scaleRatio: 1.0D);
+            var point = ExportClickablePoint(boundingRectangle, align, topOffset: 1, leftOffset: 1, scaleRatio: 1.0D);
 
             // Set the cursor position to the clickable point.
             User32.SetPhysicalCursorPosition(point.X, point.Y);
@@ -1020,8 +1214,11 @@ namespace Uia.DriverServer.Extensions
         /// <param name="scaleRatio">The scale ratio to apply to the coordinates.</param>
         public static void SendNativeClick(this IUIAutomationElement element, string align, int repeat, double scaleRatio)
         {
+            // Create a new RectangleModel from the element's current bounding rectangle.
+            var boundingRectangle = NewRectangleModel(element.CurrentBoundingRectangle);
+
             // Get the clickable point of the element with the specified alignment and scale ratio.
-            var point = ExportClickablePoint(element, align, topOffset: 1, leftOffset: 1, scaleRatio);
+            var point = ExportClickablePoint(boundingRectangle, align, topOffset: 1, leftOffset: 1, scaleRatio);
 
             // Set the cursor position to the clickable point.
             User32.SetPhysicalCursorPosition(point.X, point.Y);
@@ -1031,37 +1228,6 @@ namespace Uia.DriverServer.Extensions
             {
                 SendNativeClick(_: null);
             }
-        }
-
-        /// <summary>
-        /// Sends a native click at the specified coordinates.
-        /// </summary>
-        /// <param name="_">An instance of <see cref="CUIAutomation8"/> (unused).</param>
-        /// <param name="x">The x-coordinate to click.</param>
-        /// <param name="y">The y-coordinate to click.</param>
-        public static void SendNativeClick(this CUIAutomation8 _, int x, int y)
-        {
-            // Set the cursor position to the specified coordinates.
-            User32.SetPhysicalCursorPosition(x, y);
-
-            // Send a native click at the current cursor position.
-            SendNativeClick(_);
-        }
-
-        /// <summary>
-        /// Sends a native click at the current cursor position.
-        /// </summary>
-        /// <param name="_">An instance of <see cref="CUIAutomation8"/> (unused).</param>
-        public static void SendNativeClick(this CUIAutomation8 _)
-        {
-            // Get the current cursor position.
-            var point = User32.GetPhysicalCursorPosition();
-
-            // Perform a mouse left button down event at the current cursor position.
-            User32.SendMouseEvent(eventCode: 0x02, point.x, point.y);
-
-            // Perform a mouse left button up event at the current cursor position.
-            User32.SendMouseEvent(eventCode: 0x04, point.x, point.y);
         }
 
         /// <summary>
@@ -1157,47 +1323,41 @@ namespace Uia.DriverServer.Extensions
 
         // Gets a clickable point on the UI Automation element based on the specified alignment, offsets, and scale ratio.
         private static PointModel ExportClickablePoint(
-            IUIAutomationElement element, string align, int topOffset, int leftOffset, double scaleRatio)
+            RectangleModel boundingRectangle, string align, int topOffset, int leftOffset, double scaleRatio)
         {
             // Local function to get the center point of the element, adjusted by the scale ratio.
-            static PointModel GetPoint(double scaleRatio, IUIAutomationElement element)
+            static PointModel GetPoint(double scaleRatio, RectangleModel boundingRectangle)
             {
-                // Get the bounding rectangle of the UI Automation element.
-                var boundingRectangle = element.CurrentBoundingRectangle;
-
                 // Ensure the scale ratio is valid.
                 scaleRatio = scaleRatio <= 0 ? 1 : scaleRatio;
 
                 // Calculate the horizontal delta (half the width of the bounding rectangle).
-                var hDelta = (boundingRectangle.right - boundingRectangle.left) / 2;
+                var hDelta = (boundingRectangle.Right - boundingRectangle.Left) / 2;
 
                 // Calculate the vertical delta (half the height of the bounding rectangle).
-                var vDelta = (boundingRectangle.bottom - boundingRectangle.top) / 2;
+                var vDelta = (boundingRectangle.Bottom - boundingRectangle.Top) / 2;
 
                 // Calculate the x-coordinate of the center point, adjusted by the scale ratio.
-                var x = (int)((boundingRectangle.left + hDelta) / scaleRatio);
+                var x = (int)((boundingRectangle.Left + hDelta) / scaleRatio);
 
                 // Calculate the y-coordinate of the center point, adjusted by the scale ratio.
-                var y = (int)((boundingRectangle.top + vDelta) / scaleRatio);
+                var y = (int)((boundingRectangle.Top + vDelta) / scaleRatio);
 
                 // Return the center point as a PointModel object.
                 return new PointModel(xpos: x, ypos: y);
             }
 
-            // Get the bounding rectangle of the UI Automation element.
-            var boundingRectangle = element.CurrentBoundingRectangle;
-
             // Extract the bottom edge of the bounding rectangle.
-            var bottom = boundingRectangle.bottom;
+            var bottom = boundingRectangle.Bottom;
 
             // Extract the left edge of the bounding rectangle.
-            var left = boundingRectangle.left;
+            var left = boundingRectangle.Left;
 
             // Extract the right edge of the bounding rectangle.
-            var right = boundingRectangle.right;
+            var right = boundingRectangle.Right;
 
             // Extract the top edge of the bounding rectangle.
-            var top = boundingRectangle.top;
+            var top = boundingRectangle.Top;
 
             // Ensure the scale ratio is valid.
             scaleRatio = scaleRatio <= 0 ? 1 : scaleRatio;
@@ -1275,7 +1435,7 @@ namespace Uia.DriverServer.Extensions
 
                 default:
                     // Return the center point of the element if the alignment is not recognized.
-                    return GetPoint(scaleRatio, element);
+                    return GetPoint(scaleRatio, boundingRectangle);
             }
         }
 
@@ -1507,6 +1667,15 @@ namespace Uia.DriverServer.Extensions
                     dwExtraInfo = User32.GetMessageExtraInformation() // Additional information associated with the event.
                 }
             }
+        };
+
+        // Create a bounding rectangle model from the element's current bounding rectangle.
+        private static RectangleModel NewRectangleModel(this tagRECT tagRECT) => new()
+        {
+            Bottom = tagRECT.bottom,
+            Left = tagRECT.left,
+            Right = tagRECT.right,
+            Top = tagRECT.top
         };
 
         // Selects the specified element using the SelectionItem pattern.

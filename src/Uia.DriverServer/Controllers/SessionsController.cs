@@ -34,7 +34,6 @@ namespace Uia.DriverServer.Controllers
         // DELETE wd/hub/session/{id}
         // DELETE session/{id}
         [HttpDelete]
-        [Route("wd/hub/session/{id}")]
         [Route("session/{id}")]
         [SwaggerOperation(
             Summary = "Deletes the specified session.",
@@ -44,7 +43,7 @@ namespace Uia.DriverServer.Controllers
         [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
         [SwaggerResponse(500, "Internal server error. An error occurred while attempting to delete the session.")]
         public IActionResult DeleteSession(
-            [SwaggerParameter(Description = "The unique identifier for the session to be deleted.")] string id)
+            [FromRoute][SwaggerParameter(Description = "The unique identifier for the session to be deleted.")] string id)
         {
             // Delete the session using the domain's sessions repository
             var statusCode = _domain.SessionsRepository.DeleteSession(id);

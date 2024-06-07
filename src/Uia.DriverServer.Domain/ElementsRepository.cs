@@ -6,6 +6,8 @@ namespace Uia.DriverServer.Domain
 {
     public class ElementsRepository : IElementsRepository
     {
+        // use 'coords(100,200)' for coords based element
+        // use 'ocr(a|b|c|d|f)' for ocr based element
         public (int Status, UiaElementModel Element) FindElement(string session, LocationStrategyModel locationStrategy)
         {
             throw new NotImplementedException();

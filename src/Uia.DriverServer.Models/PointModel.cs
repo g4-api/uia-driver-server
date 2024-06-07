@@ -3,6 +3,8 @@
  * 
  * RESOURCES
  */
+using System.ComponentModel.DataAnnotations;
+
 namespace Uia.DriverServer.Models
 {
     /// <summary>
@@ -22,11 +24,13 @@ namespace Uia.DriverServer.Models
         /// <summary>
         /// Gets or sets the x-coordinate of the point.
         /// </summary>
+        [Required]
         public int X { get; set; } = xpos;
 
         /// <summary>
         /// Gets or sets the y-coordinate of the point.
         /// </summary>
+        [Required]
         public int Y { get; set; } = ypos;
     }
 }
