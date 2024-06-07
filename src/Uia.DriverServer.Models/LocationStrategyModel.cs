@@ -4,6 +4,7 @@
  * RESOURCES
  * https://www.w3.org/TR/webdriver1/#locator-strategies
  */
+using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace Uia.DriverServer.Models
@@ -47,13 +48,13 @@ namespace Uia.DriverServer.Models
         /// <summary>
         /// Gets or sets the strategy used for locating elements.
         /// </summary>
-        [DataMember]
+        [DataMember, Required]
         public string Using { get; set; }
 
         /// <summary>
         /// Gets or sets the value associated with the location strategy.
         /// </summary>
-        [DataMember]
+        [DataMember, Required]
         public string Value { get; set; }
     }
 }
