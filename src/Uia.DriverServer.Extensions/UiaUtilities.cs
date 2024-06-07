@@ -155,6 +155,7 @@ namespace Uia.DriverServer.Extensions
             Console.WriteLine("  Project:           https://github.com/g4-api/uia-driver                                ");
             Console.WriteLine("  W3C Documentation: https://www.w3.org/TR/webdriver/                                    ");
             Console.WriteLine("  Documentation:     https://docs.microsoft.com/en-us/windows/win32/api/_winauto/        ");
+            Console.WriteLine("  Open API:          /swagger                                                            ");
 
             // Write blank lines to the console for spacing
             Console.WriteLine("                                                                                         ");
