@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 using Swashbuckle.AspNetCore.Annotations;
 
+using System;
 using System.Collections.Generic;
 using System.Net.Mime;
 
@@ -49,13 +50,6 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the session in which the element will be found.")] string session,
             [SwaggerRequestBody(Description = "The locator strategy model containing the strategy to find the element.")] LocationStrategyModel locator)
         {
-            // Validate the model state
-            if (!ModelState.IsValid)
-            {
-                // Return a bad request response if the model state is not valid
-                return BadRequest(ModelState);
-            }
-
             // Find the element using the domain's elements repository
             var (statusCode, element) = _domain.ElementsRepository.FindElement(session, locator);
 
@@ -192,48 +186,49 @@ namespace Uia.DriverServer.Controllers
             Description = "Updates the value of the element identified by the given session and element IDs with the provided data.",
             Tags = ["Elements", "Interaction"])]
         [SwaggerResponse(200, "Element value set successfully.")]
-        [SwaggerResponse(400, "Invalid request. The data does not contain a valid 'text' key.")]
+        [SwaggerResponse(400, "Invalid request. The data does not contain a valid 'text' property.")]
         [SwaggerResponse(404, "Element or session not found. The session ID or element ID provided does not exist.")]
         [SwaggerResponse(500, "Internal server error. An error occurred while attempting to set the element value.")]
         public IActionResult SetValue(
             [SwaggerParameter(Description = "The unique identifier for the session in which the element's value will be set.")] string session,
             [SwaggerParameter(Description = "The unique identifier for the element whose value will be set.")] string element,
-            [SwaggerRequestBody(Description = "The data containing the value to set, including the 'text' key with the value to be set.")] IDictionary<string, object> data)
+            [SwaggerRequestBody(Description = "The data containing the value to set, including the 'text' key with the value to be set.")] TextInputModel textData)
         {
-            // Get the session status code
-            var statusCode = _domain.SessionsRepository.GetSession(id: session).StatusCode;
-
-            // Check if the session status code is not OK
-            if (statusCode != StatusCodes.Status200OK)
+            try
             {
-                // Return the status code result if the session is not found
-                return new StatusCodeResult(statusCode);
+                // Get the session status code
+                var statusCode = _domain.SessionsRepository.GetSession(id: session).StatusCode;
+
+                // Check if the session status code is not OK
+                if (statusCode != StatusCodes.Status200OK)
+                {
+                    // Return the status code result if the session is not found
+                    return new StatusCodeResult(statusCode);
+                }
+
+                // Retrieve the element using the domain's elements repository
+                var elementModel = _domain.ElementsRepository.GetElement(session, element);
+
+                // Check if the element was not found
+                if (elementModel == null || elementModel.UIAutomationElement == null)
+                {
+                    // Return a not found response if the element was not found
+                    return NotFound("Element or session not found.");
+                }
+
+                // Set the value of the element
+                elementModel.UIAutomationElement.SendKeys($"{textData.Text}");
+
+                // Return an OK response indicating the value was set successfully
+                return Ok();
             }
-
-            // Retrieve the element using the domain's elements repository
-            var elementModel = _domain.ElementsRepository.GetElement(session, element);
-
-            // Check if the element was not found
-            if (elementModel.UIAutomationElement == null)
+            catch (Exception e)
             {
-                // Return a not found response if the element was not found
-                return NotFound();
+                // Log the exception (not shown here) and return a 500 error response
+                return StatusCode(
+                    statusCode: StatusCodes.Status500InternalServerError,
+                    value: $"An error occurred while attempting to set the element value: {e.Message}");
             }
-
-            // Check if the data contains the "text" key
-            var isText = data.TryGetValue(key: "text", out object textValue);
-
-            // Return a bad request response if the "text" key is not present
-            if (!isText)
-            {
-                return BadRequest();
-            }
-
-            // Set the value of the element
-            elementModel.UIAutomationElement.SendKeys($"{textValue}");
-
-            // Return an OK response indicating the value was set successfully
-            return Ok();
         }
     }
 }

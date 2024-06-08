@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 
 using Uia.DriverServer.Domain;
@@ -119,7 +118,7 @@ namespace Uia.DriverServer.Controllers
                 // Log the exception (not shown here) and return a 500 error response
                 return StatusCode(
                     statusCode: StatusCodes.Status500InternalServerError,
-                    value: $"An error occurred while attempting to perform the native click: {e.Message}");
+                    value: $"An error occurred while attempting to perform the native click: {e}");
             }
         }
 
@@ -298,7 +297,7 @@ namespace Uia.DriverServer.Controllers
             catch (Exception e)
             {
                 // Log the exception (not shown here) and return a 500 error response
-                return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred while attempting to paste: {e.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred while attempting to paste: {e}");
             }
 
             // Return an OK response indicating the paste action was successful
@@ -361,22 +360,13 @@ namespace Uia.DriverServer.Controllers
         [SwaggerResponse(500, "Internal server error. An error occurred while attempting to send the keystrokes.")]
         public IActionResult SendKeys(
             [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
-            [SwaggerRequestBody(Description = "The data containing the keystrokes to send, including the 'text' key with the keystrokes to send.")] IDictionary<string, object> data)
+            [SwaggerRequestBody(Description = "The data containing the keystrokes to send, including the 'text' key with the keystrokes to send.")] TextInputModel textData)
         {
             // Get the session model using the domain's session repository
             var sessionModel = _domain.GetSession(session);
 
-            // Check if the data contains the "text" key
-            var isText = data.TryGetValue(key: "text", out object textValue);
-
-            // Return a bad request response if the "text" key is not present
-            if (!isText)
-            {
-                return BadRequest("The data does not contain a valid 'text' key.");
-            }
-
             // Convert the text value to input commands
-            var inputs = $"{textValue}".ConvertToInputs().ToArray();
+            var inputs = $"{textData.Text}".ConvertToInputs().ToArray();
 
             try
             {
@@ -409,25 +399,10 @@ namespace Uia.DriverServer.Controllers
         [SwaggerResponse(500, "Internal server error. An error occurred while attempting to send the key scan codes.")]
         public IActionResult SendKeyScans(
             [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
-            [SwaggerRequestBody(Description = "The data containing the key scan codes to send, including the 'wScans' key with the key scan codes.")] IDictionary<string, object> data)
+            [SwaggerRequestBody(Description = "The data containing the key scan codes to send, including the 'wScans' key with the key scan codes.")] ScanCodesInputModel keyScansData)
         {
-            // Check if the data contains the "wScans" key
-            var isKeyScans = data.TryGetValue("wScans", out var keyScans);
-
-            // Return a bad request response if the "wScans" key is not present or not in the correct format
-            if (!isKeyScans)
-            {
-                return BadRequest(error: "The data does not contain a valid 'wScans' key.");
-            }
-
-            // Check if keyScans is of type IEnumerable<string>
-            if (keyScans is not IEnumerable<string>)
-            {
-                return BadRequest(error: "The 'wScans' key must be an array of strings.");
-            }
-
             // Convert the scan codes from strings to the appropriate format
-            var wScans = ((IEnumerable<string>)keyScans).Select(i => i.GetScanCode());
+            var wScans = keyScansData.ScanCodes.Select(i => i.GetScanCode());
 
             // Get the session model using the domain's session repository
             var sessionModel = _domain.GetSession(session);
@@ -447,7 +422,7 @@ namespace Uia.DriverServer.Controllers
                 // Log the exception (not shown here) and return a 500 error response
                 return StatusCode(
                     statusCode: StatusCodes.Status500InternalServerError,
-                    value: $"An error occurred while attempting to send the key scan codes: {e.Message}");
+                    value: $"An error occurred while attempting to send the key scan codes: {e}");
             }
 
             // Return an OK response indicating the key scan codes were sent successfully
@@ -463,39 +438,27 @@ namespace Uia.DriverServer.Controllers
             Description = "Performs a send modified key action in the session identified by the given session ID with the provided modifier and main key.",
             Tags = ["User32"])]
         [SwaggerResponse(200, "Modified key sent successfully.")]
-        [SwaggerResponse(400, "Invalid request. The data does not contain a valid 'modifier' or 'key' key.")]
+        [SwaggerResponse(400, "Invalid request. The data does not contain valid 'modifier' or 'key' properties.")]
         [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
         [SwaggerResponse(500, "Internal server error. An error occurred while attempting to send the modified key.")]
         public IActionResult SendModifiedKey(
             [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
-            [SwaggerRequestBody(Description = "The data containing the modifier key and the main key to send.")] IDictionary<string, object> data)
+            [SwaggerRequestBody(Description = "The data containing the modifier key and the main key to send.")] ModifiedKeyInputModel inputData)
         {
-            // Get the session model using the domain's session repository
-            var sessionModel = _domain.GetSession(session);
-
-            // Check if the data contains the "modifier" key
-            var isModifier = data.TryGetValue(key: "modifier", out var modifier);
-
-            // Check if the data contains the "key" key
-            var isKey = data.TryGetValue(key: "key", out var key);
-
-            // Return a bad request response if the "modifier" or "key" key is not present
-            if (!isModifier || !isKey)
-            {
-                return BadRequest(error: "The data must contain both 'modifier' and 'key' keys.");
-            }
-
             try
             {
+                // Get the session model using the domain's session repository
+                var sessionModel = _domain.GetSession(session);
+
                 // Send the modified key using the session's automation service
-                sessionModel.Automation.SendModifiedKey($"{modifier}", $"{key}");
+                sessionModel.Automation.SendModifiedKey($"{inputData.Modifier}", $"{inputData.Key}");
             }
             catch (Exception e)
             {
                 // Log the exception (not shown here) and return a 500 error response
                 return StatusCode(
                     statusCode: StatusCodes.Status500InternalServerError,
-                    value: $"An error occurred while attempting to send the modified key: {e.Message}");
+                    value: $"An error occurred while attempting to send the modified key: {e}");
             }
 
             // Return an OK response indicating the modified key was sent successfully
@@ -540,7 +503,7 @@ namespace Uia.DriverServer.Controllers
                 // Log the exception (not shown here) and return a 500 error response
                 return StatusCode(
                     statusCode: StatusCodes.Status500InternalServerError,
-                    value: $"An error occurred while attempting to set focus on the element: {e.Message}");
+                    value: $"An error occurred while attempting to set focus on the element: {e}");
             }
         }
 
@@ -560,12 +523,6 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the session.")] string s,
             [SwaggerRequestBody(Description = "The coordinates to set the mouse position to.")] PointModel point)
         {
-            // Validate the model state
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
             try
             {
                 // Retrieve the session based on the provided ID
@@ -582,7 +539,7 @@ namespace Uia.DriverServer.Controllers
                 // Log the exception (not shown here) and return a 500 error response
                 return StatusCode(
                     statusCode: StatusCodes.Status500InternalServerError,
-                    value: $"An error occurred while attempting to set the mouse position: {e.Message}");
+                    value: $"An error occurred while attempting to set the mouse position: {e}");
             }
         }
 
@@ -595,13 +552,13 @@ namespace Uia.DriverServer.Controllers
             Description = "Moves the mouse cursor to the specified element with alignment and offset options in the session identified by the given session ID.",
             Tags = ["User32"])]
         [SwaggerResponse(200, "Mouse position set successfully.", typeof(PointModel))]
-        [SwaggerResponse(400, "Invalid request. The provided data is not valid.")]
         [SwaggerResponse(404, "Session or element not found. The session ID or element ID provided does not exist.")]
+        [SwaggerResponse(400, "Invalid input data. The alignment value is not supported.")]
         [SwaggerResponse(500, "Internal server error. An error occurred while attempting to set the mouse position.")]
         public IActionResult SetMousePosition(
             [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
             [SwaggerParameter(Description = "The unique identifier for the element.")] string element,
-            [SwaggerRequestBody(Description = "The data containing alignment and offset information.")] IDictionary<string, object> data)
+            [SwaggerRequestBody(Description = "The data containing alignment and offset information.")] MousePositionInputModel poistionData)
         {
             try
             {
@@ -612,25 +569,23 @@ namespace Uia.DriverServer.Controllers
                 var elementModel = _domain.ElementsRepository.GetElement(session, element);
 
                 // Determine alignment of the mouse pointer (default: TopLeft)
-                var align = data.TryGetValue("align", out object alignOut)
-                    ? $"{alignOut}"
-                    : "TopLeft";
+                var alignment = string.IsNullOrEmpty(poistionData.Alignment)
+                    ? "TopLeft"
+                    : poistionData.Alignment;
 
                 // Determine top offset of the mouse pointer (default: 1)
-                var topOffset = data.TryGetValue("topOffset", out object topOffsetOut)
-                    ? int.Parse($"{topOffsetOut}")
-                    : 1;
+                var topOffset = poistionData.OffsetY;
 
                 // Determine left offset of the mouse pointer (default: 1)
-                var leftOffset = data.TryGetValue("leftOffset", out object leftOffsetOut)
-                    ? int.Parse($"{leftOffsetOut}")
-                    : 1;
+                var leftOffset = poistionData.OffsetX;
 
                 // Retrieve the scale ratio of the session
                 var scaleRatio = sessionModel.ScaleRatio;
 
                 // Get the clickable point on the element with the specified alignment and offsets
-                var point = elementModel.UIAutomationElement.GetClickablePoint(align, topOffset, leftOffset, scaleRatio);
+                var point = elementModel
+                    .UIAutomationElement
+                    .GetClickablePoint(alignment, topOffset, leftOffset, scaleRatio);
 
                 // Set the cursor position to the calculated point
                 sessionModel.Automation.SetCursorPosition(point.X, point.Y);
@@ -646,7 +601,7 @@ namespace Uia.DriverServer.Controllers
                 // Log the exception (not shown here) and return a 500 error response
                 return StatusCode(
                     statusCode: StatusCodes.Status500InternalServerError,
-                    value: $"An error occurred while attempting to set the mouse position: {e.Message}");
+                    value: $"An error occurred while attempting to set the mouse position: {e}");
             }
         }
     }
