@@ -88,6 +88,41 @@ namespace Uia.DriverServer.Controllers
             return Ok();
         }
 
+        // POST wd/hub/user32/session/{session}/click
+        // POST user32/session/{session}/click
+        [HttpPost]
+        [Route("user32/session/{session}/click")]
+        [SwaggerOperation(
+            Summary = "Performs a native click at the specified coordinates in the given session.",
+            Description = "Sends a native click action to the coordinates specified by the point parameter in the session identified by the given session ID.",
+            Tags = ["User32"])]
+        [SwaggerResponse(200, "Native click performed successfully.")]
+        [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to perform the native click.")]
+        public IActionResult NativeClick(
+            [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
+            [SwaggerRequestBody(Description = "The coordinates where the click should be performed.")] PointModel point)
+        {
+            try
+            {
+                // Retrieve the session based on the provided ID
+                var sessionModel = _domain.GetSession(session);
+
+                // Perform a native click at the specified coordinates using the session's automation
+                sessionModel.Automation.SendNativeClick(point.X, point.Y);
+
+                // Return an OK response indicating the native click was performed successfully
+                return Ok();
+            }
+            catch (Exception e)
+            {
+                // Log the exception (not shown here) and return a 500 error response
+                return StatusCode(
+                    statusCode: StatusCodes.Status500InternalServerError,
+                    value: $"An error occurred while attempting to perform the native click: {e.Message}");
+            }
+        }
+
         // POST wd/hub/user32/session/{session}/element/{element}/copy
         // POST user32/session/{session}/element/{element}/copy
         [HttpPost]
@@ -465,6 +500,154 @@ namespace Uia.DriverServer.Controllers
 
             // Return an OK response indicating the modified key was sent successfully
             return Ok();
+        }
+
+        // GET wd/hub/user32/session/{session}/element/{element}/focus
+        // GET user32/session/{session}/element/{element}/focus
+        [HttpGet]
+        [Route("user32/session/{session}/element/{element}/focus")]
+        [SwaggerOperation(
+            Summary = "Sets focus on the specified element in the given session.",
+            Description = "Sets focus on the element identified by the given session and element IDs.",
+            Tags = ["User32"])]
+        [SwaggerResponse(200, "Focus set successfully.")]
+        [SwaggerResponse(404, "Element or session not found. The session ID or element ID provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to set focus on the element.")]
+        public IActionResult SetFocus(
+            [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
+            [SwaggerParameter(Description = "The unique identifier for the element to set focus on.")] string element)
+        {
+            try
+            {
+                // Retrieve the element based on the provided session ID and element ID
+                var elementModel = _domain.ElementsRepository.GetElement(session, element);
+
+                // Check if the element was not found
+                if (elementModel == null || elementModel.UIAutomationElement == null)
+                {
+                    // Return a not found response if the element was not found
+                    return NotFound("Element or session not found.");
+                }
+
+                // Set focus on the UI automation element
+                elementModel.UIAutomationElement.SetFocus();
+
+                // Return an OK response indicating the focus action was successful
+                return Ok();
+            }
+            catch (Exception e)
+            {
+                // Log the exception (not shown here) and return a 500 error response
+                return StatusCode(
+                    statusCode: StatusCodes.Status500InternalServerError,
+                    value: $"An error occurred while attempting to set focus on the element: {e.Message}");
+            }
+        }
+
+        // POST wd/hub/user32/session/{s}/mouse/move
+        // POST user32/session/{s}/mouse/move
+        [HttpPost]
+        [Route("user32/session/{s}/mouse/move")]
+        [SwaggerOperation(
+            Summary = "Sets the mouse position to the specified coordinates in the given session.",
+            Description = "Moves the mouse cursor to the coordinates specified by the point parameter in the session identified by the given session ID.",
+            Tags = ["User32"])]
+        [SwaggerResponse(200, "Mouse position set successfully.")]
+        [SwaggerResponse(400, "Invalid request. The provided point data is not valid.")]
+        [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to set the mouse position.")]
+        public IActionResult SetMousePosition(
+            [SwaggerParameter(Description = "The unique identifier for the session.")] string s,
+            [SwaggerRequestBody(Description = "The coordinates to set the mouse position to.")] PointModel point)
+        {
+            // Validate the model state
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                // Retrieve the session based on the provided ID
+                var session = _domain.GetSession(s);
+
+                // Set the cursor position using the session's automation
+                session.Automation.SetCursorPosition(point.X, point.Y);
+
+                // Return an OK response indicating the mouse position was set successfully
+                return Ok();
+            }
+            catch (Exception e)
+            {
+                // Log the exception (not shown here) and return a 500 error response
+                return StatusCode(
+                    statusCode: StatusCodes.Status500InternalServerError,
+                    value: $"An error occurred while attempting to set the mouse position: {e.Message}");
+            }
+        }
+
+        // POST wd/hub/user32/session/{session}/element/{element}/mouse/move
+        // POST user32/session/{session}/element/{element}/mouse/move
+        [HttpPost]
+        [Route("user32/session/{session}/element/{element}/mouse/move")]
+        [SwaggerOperation(
+            Summary = "Sets the mouse position to the specified element in the given session.",
+            Description = "Moves the mouse cursor to the specified element with alignment and offset options in the session identified by the given session ID.",
+            Tags = ["User32"])]
+        [SwaggerResponse(200, "Mouse position set successfully.", typeof(PointModel))]
+        [SwaggerResponse(400, "Invalid request. The provided data is not valid.")]
+        [SwaggerResponse(404, "Session or element not found. The session ID or element ID provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to set the mouse position.")]
+        public IActionResult SetMousePosition(
+            [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
+            [SwaggerParameter(Description = "The unique identifier for the element.")] string element,
+            [SwaggerRequestBody(Description = "The data containing alignment and offset information.")] IDictionary<string, object> data)
+        {
+            try
+            {
+                // Retrieve the session based on the provided ID
+                var sessionModel = _domain.GetSession(session);
+
+                // Retrieve the element based on the provided session ID and element ID
+                var elementModel = _domain.ElementsRepository.GetElement(session, element);
+
+                // Determine alignment of the mouse pointer (default: TopLeft)
+                var align = data.TryGetValue("align", out object alignOut)
+                    ? $"{alignOut}"
+                    : "TopLeft";
+
+                // Determine top offset of the mouse pointer (default: 1)
+                var topOffset = data.TryGetValue("topOffset", out object topOffsetOut)
+                    ? int.Parse($"{topOffsetOut}")
+                    : 1;
+
+                // Determine left offset of the mouse pointer (default: 1)
+                var leftOffset = data.TryGetValue("leftOffset", out object leftOffsetOut)
+                    ? int.Parse($"{leftOffsetOut}")
+                    : 1;
+
+                // Retrieve the scale ratio of the session
+                var scaleRatio = sessionModel.ScaleRatio;
+
+                // Get the clickable point on the element with the specified alignment and offsets
+                var point = elementModel.UIAutomationElement.GetClickablePoint(align, topOffset, leftOffset, scaleRatio);
+
+                // Set the cursor position to the calculated point
+                sessionModel.Automation.SetCursorPosition(point.X, point.Y);
+
+                // Return a JSON result with the clickable point and a 200 OK status code
+                return new JsonResult(value: point)
+                {
+                    StatusCode = StatusCodes.Status200OK
+                };
+            }
+            catch (Exception e)
+            {
+                // Log the exception (not shown here) and return a 500 error response
+                return StatusCode(
+                    statusCode: StatusCodes.Status500InternalServerError,
+                    value: $"An error occurred while attempting to set the mouse position: {e.Message}");
+            }
         }
     }
 }
