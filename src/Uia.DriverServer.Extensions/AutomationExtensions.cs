@@ -198,6 +198,18 @@ namespace Uia.DriverServer.Extensions
         }
 
         /// <summary>
+        /// Converts the specified key code and keyboard event into an <see cref="Input"/> object.
+        /// </summary>
+        /// <param name="keyCode">The key code to be converted.</param>
+        /// <param name="keyboardEvents">The keyboard event associated with the key code.</param>
+        /// <returns>An <see cref="Input"/> object representing the specified key code and keyboard event.</returns>
+        public static Input ConvertToInput(this ushort keyCode, KeyEvent keyboardEvents)
+        {
+            // Create a new Input object using the specified key code and keyboard event
+            return NewKeyboardInput(keyCode, keyboardEvents);
+        }
+
+        /// <summary>
         /// Converts a string input into a sequence of keyboard input events.
         /// </summary>
         /// <param name="input">The string input to convert.</param>
@@ -232,7 +244,9 @@ namespace Uia.DriverServer.Extensions
                 }
 
                 // Get the scan code for the character.
-                var wScan = s_CodeMap.ContainsKey($"{character}") ? s_CodeMap[$"{character}"] : (ushort)0x00;
+                var wScan = s_CodeMap.ContainsKey($"{character}")
+                    ? s_CodeMap[$"{character}"]
+                    : (ushort)0x00;
 
                 // Add the key down and key up events for the character to the list.
                 inputs.AddRange(
@@ -692,6 +706,20 @@ namespace Uia.DriverServer.Extensions
 
             // Return the value of the "id" attribute of the selected element, or null if the element is not found.
             return xmlElement?.Attribute("id").Value;
+        }
+
+        /// <summary>
+        /// Retrieves the scan code associated with the specified key.
+        /// </summary>
+        /// <param name="key">The key for which to retrieve the scan code.</param>
+        /// <returns>The scan code associated with the specified key, or <see cref="ushort.MaxValue"/> if the key is not found.</returns>
+        public static ushort GetScanCode(this string key)
+        {
+            // Try to get the scan code from the code map using the provided key
+            var isCodes = s_CodeMap.TryGetValue(key, out ushort code);
+
+            // If the key is found in the map, return the associated code; otherwise, return ushort.MaxValue
+            return isCodes ? code : ushort.MaxValue;
         }
 
         /// <summary>
