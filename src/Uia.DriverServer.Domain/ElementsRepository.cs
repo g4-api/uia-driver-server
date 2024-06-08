@@ -23,7 +23,7 @@ namespace Uia.DriverServer.Domain
             throw new NotImplementedException();
         }
 
-        public (int StatusCode, string Value) GetElementAttribute(string session, string element, string attribute)
+        public (int StatusCode, string Value) GetElementAttribute(string session, string element, string name)
         {
             throw new NotImplementedException();
         }
