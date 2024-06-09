@@ -76,33 +76,35 @@ namespace Uia.DriverServer.Domain
                 rootElement = uiaElement.UIAutomationElement;
             }
 
+            var outputElement = new UiaElementModel
+            {
+                UIAutomationElement = rootElement
+            };
+
             // Iterate through the hierarchy to find the element by each segment
             foreach (var pathSegment in hierarchy)
             {
                 // Find the element by the current segment and update the root
                 // element accordingly for the next segment search iteration
-                rootElement = FindElementBySegment(new CUIAutomation8(), rootElement, pathSegment);
+                outputElement = FindElementBySegment(new CUIAutomation8(), outputElement.UIAutomationElement, pathSegment);
 
                 // If the root element is not found at any segment, return a 404 status code
-                if (rootElement == default)
+                if (outputElement.UIAutomationElement == default)
                 {
                     return (StatusCodes.Status404NotFound, default);
                 }
             }
 
-            // Convert the found root element to a UiaElementModel
-            var elementModel = rootElement.ConvertToElement();
-
             // Add or update the element in the session's elements dictionary
-            uiaSession.Elements[elementModel.Id] = elementModel;
+            uiaSession.Elements[outputElement.Id] = outputElement;
 
             // Return the status code and the found element model
-            return (StatusCodes.Status200OK, elementModel);
+            return (StatusCodes.Status200OK, outputElement);
         }
 
 #pragma warning disable IDE0051, S3011 // These methods are used via reflection to handle specific locator segment types.
         // Finds an element by a specified segment in the UI Automation tree.
-        private IUIAutomationElement FindElementBySegment(CUIAutomation8 session, IUIAutomationElement rootElement, string pathSegment)
+        private UiaElementModel FindElementBySegment(CUIAutomation8 session, IUIAutomationElement rootElement, string pathSegment)
         {
             // Get all methods from the current type that have the UiaSegmentTypeAttribute
             var segmentMethods = GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
@@ -121,12 +123,12 @@ namespace Uia.DriverServer.Domain
                 : segmentMethods["Uia"];
 
             // Invoke the method with the session, root element, and path segment as parameters
-            return (IUIAutomationElement)method.Invoke(null, [session, rootElement, pathSegment]);
+            return (UiaElementModel)method.Invoke(null, [session, rootElement, pathSegment]);
         }
 
         // Finds an element using the UI Automation (Uia) tree.
         [UiaSegmentType(type: "Uia")]
-        private static IUIAutomationElement ByUia(CUIAutomation8 session, IUIAutomationElement rootElement, string pathSegment)
+        private static UiaElementModel ByUia(CUIAutomation8 session, IUIAutomationElement rootElement, string pathSegment)
         {
             // Get the control type condition based on the path segment
             var controlTypeCondition = GetControlTypeCondition(session, pathSegment);
@@ -174,7 +176,7 @@ namespace Uia.DriverServer.Domain
             // Find the first element that matches the condition if no index is specified
             if (!isIndex)
             {
-                return rootElement.FindFirst(treeScope, condition);
+                return rootElement.FindFirst(treeScope, condition).ConvertToElement();
             }
 
             // Find all elements that match the condition
@@ -186,12 +188,12 @@ namespace Uia.DriverServer.Domain
             // Return the element at the specified index or default if none found
             return elements.Length == 0
                 ? default
-                : elements.GetElement(index);
+                : elements.GetElement(index).ConvertToElement();
         }
 
         // Finds an element using the Object Model, converting the UI Automation tree to XML and finding by XPath.
         [UiaSegmentType(type: "ObjectModel")]
-        private static IUIAutomationElement ByObjectModel(CUIAutomation8 session, IUIAutomationElement rootElement, string pathSegment)
+        private static UiaElementModel ByObjectModel(CUIAutomation8 session, IUIAutomationElement rootElement, string pathSegment)
         {
             // Remove any namespace prefixes from the XPath
             var xpath = Regex.Replace(input: pathSegment, pattern: @"(?<=^\/?)\w+:", replacement: string.Empty);
@@ -221,7 +223,12 @@ namespace Uia.DriverServer.Domain
                 : TreeScope.TreeScope_Children;
 
             // Find and return the first element that matches the condition within the specified scope
-            return rootElement.FindFirst(treeScope, condition);
+            var element = rootElement.FindFirst(treeScope, condition);
+
+            return new UiaElementModel
+            {
+                UIAutomationElement = element
+            };
         }
 
         [UiaSegmentType(type: "Ocr")]
