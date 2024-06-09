@@ -12,8 +12,6 @@ using Uia.DriverServer.Models;
 
 using UIAutomationClient;
 
-using static System.Collections.Specialized.BitVector32;
-
 namespace Uia.DriverServer.Domain
 {
     public class SessionRepository : ISessionsRepository

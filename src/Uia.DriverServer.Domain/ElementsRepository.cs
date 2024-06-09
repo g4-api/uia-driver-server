@@ -1,23 +1,24 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿/*
+ * CHANGE LOG - keep only last 5 threads
+ * 
+ * RESSOURCES
+ */
+using Microsoft.AspNetCore.Http;
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using System.Xml.XPath;
 
+using Uia.DriverServer.Attributes;
+using Uia.DriverServer.Extensions;
 using Uia.DriverServer.Models;
 
-using Uia.DriverServer.Extensions;
-using System.Reflection;
-
 using UIAutomationClient;
-
-using System.Xml.XPath;
-using Uia.DriverServer.Attributes;
-using System.IO;
 
 namespace Uia.DriverServer.Domain
 {
@@ -53,14 +54,14 @@ namespace Uia.DriverServer.Domain
 
             // If an element identifier is provided, get the element; otherwise, set it to default
             var uiaElement = !string.IsNullOrEmpty(element)
-                ? GetElement(_sessions, session, element)
+                ? GetElementBySession(_sessions, session, element)
                 : default;
 
             // Get the locator hierarchy and determine if the root is included
-            var (isRoot, hierarchy) = GetLocatorHierarchy(locationStrategy);
+            var (isRoot, hierarchy) = FormatLocatorHierarchy(locationStrategy);
 
             // If the hierarchy is empty, return a 400 status code indicating a bad request
-            if (!hierarchy.Any())
+            if (hierarchy.Length == 0)
             {
                 return (StatusCodes.Status400BadRequest, default);
             }
@@ -76,6 +77,7 @@ namespace Uia.DriverServer.Domain
                 rootElement = uiaElement.UIAutomationElement;
             }
 
+            // Setup the output element model with the root element
             var outputElement = new UiaElementModel
             {
                 UIAutomationElement = rootElement
@@ -88,8 +90,13 @@ namespace Uia.DriverServer.Domain
                 // element accordingly for the next segment search iteration
                 outputElement = FindElementBySegment(new CUIAutomation8(), outputElement.UIAutomationElement, pathSegment);
 
+                // Setup flags to check if the element is not found, the rectangle is not found, or the clickable point is not found
+                var notFound = outputElement?.UIAutomationElement == default;
+                var notFoundRectangle = outputElement?.Rectangle == default;
+                var notFoundClickablePoint = outputElement?.ClickablePoint == default;
+
                 // If the root element is not found at any segment, return a 404 status code
-                if (outputElement.UIAutomationElement == default)
+                if (notFound && notFoundRectangle && notFoundClickablePoint)
                 {
                     return (StatusCodes.Status404NotFound, default);
                 }
@@ -100,6 +107,254 @@ namespace Uia.DriverServer.Domain
 
             // Return the status code and the found element model
             return (StatusCodes.Status200OK, outputElement);
+        }
+
+        /// <inheritdoc />
+        public UiaElementModel GetElement(string session, string element)
+        {
+            return GetElementBySession(_sessions, session, element);
+        }
+
+        /// <inheritdoc />
+        public (int StatusCode, string Value) GetElementAttribute(string session, string element, string name)
+        {
+            // Retrieve the element object from the session elements dictionary based on the session and element identifiers
+            var elementModel = GetElementBySession(_sessions, session, element);
+
+            // If the element is not found, return a 404 status code
+            if (elementModel == null)
+            {
+                return (StatusCodes.Status404NotFound, string.Empty);
+            }
+
+            // Retrieve the attribute value from the element model
+            var attribute = elementModel.GetAttribute(name);
+
+            // Return the appropriate status code and attribute value
+            return string.IsNullOrEmpty(attribute)
+                ? (StatusCodes.Status404NotFound, string.Empty)
+                : (StatusCodes.Status200OK, attribute);
+        }
+
+        /// <inheritdoc />
+        public (int StatusCode, string Text) GetElementText(string session, string element)
+        {
+            // Retrieve the element object from the session elements dictionary based on the session and element identifiers
+            var elementModel = GetElementBySession(_sessions, session, element);
+
+            // If the element is not found, return a 404 status code
+            if (elementModel == null)
+            {
+                return (StatusCodes.Status404NotFound, string.Empty);
+            }
+
+            // Retrieve the text content from the element model
+            var value = elementModel.GetText();
+
+            // Return the appropriate status code and text content
+            return string.IsNullOrEmpty(value)
+                ? (StatusCodes.Status404NotFound, string.Empty)
+                : (StatusCodes.Status200OK, value);
+        }
+
+        // Parses the locator strategy to determine if it starts from the desktop and extracts the hierarchy of segments.
+        private static (bool FromDesktop, string[] Hierarchy) FormatLocatorHierarchy(LocationStrategyModel locationStrategy)
+        {
+            // Extract values enclosed in single quotes
+            var values = Regex.Matches(locationStrategy.Value, "(?<==').+?(?=')").Select(i => i.Value).ToArray();
+
+            // Determine if the locator starts from the desktop
+            var isRoot = Regex.IsMatch(locationStrategy.Value, @"(?is)^(\(+)?\/(root|desktop)");
+
+            // Remove the desktop/root prefix from the locator value if present
+            var xpath = isRoot
+                ? Regex.Replace(locationStrategy.Value, @"(?is)^(\(+)?\/(root|desktop)", string.Empty)
+                : locationStrategy.Value;
+
+            // Create a dictionary to store tokens and their corresponding values
+            var tokens = new Dictionary<string, string>();
+            for (int i = 0; i < values.Length; i++)
+            {
+                tokens[$"value_token_{i}"] = values[i];
+                xpath = xpath.Replace(values[i], $"value_token_{i}");
+            }
+
+            // Split the xpath into segments
+            var hierarchy = Regex
+                .Split(xpath, @"\/(?=\w+|\*)(?![^\[]*\])")
+                .Where(i => !string.IsNullOrEmpty(i))
+                .ToArray();
+
+            // Adjust segments if they start with a '/'
+            for (int i = 0; i < hierarchy.Length; i++)
+            {
+                var segment = hierarchy[i];
+                if (!segment.Equals("/") && !segment.EndsWith('/'))
+                {
+                    continue;
+                }
+                hierarchy[i + 1] = $"/{hierarchy[i + 1]}";
+            }
+
+            // Clean up the hierarchy by removing trailing '/' and empty segments
+            hierarchy = hierarchy
+                .Where(i => !string.IsNullOrEmpty(i) && !i.Equals("/"))
+                .Select(i => i.TrimEnd('/'))
+                .ToArray();
+
+            // Replace tokens in the hierarchy with their original values
+            for (int i = 0; i < hierarchy.Length; i++)
+            {
+                foreach (var token in tokens)
+                {
+                    hierarchy[i] = hierarchy[i].Replace(token.Key, token.Value);
+                }
+            }
+
+            // Return the flag indicating if the locator starts from the desktop and the hierarchy of segments
+            return (isRoot, hierarchy);
+        }
+
+        // Retrieves an element from the session's elements dictionary.
+        private static UiaElementModel GetElementBySession(IDictionary<string, UiaSessionModel> sessions, string session, string element)
+        {
+            // Try to retrieve the session model from the sessions dictionary
+            if (!sessions.TryGetValue(session, out UiaSessionModel sessionModel))
+            {
+                // Return default if the session is not found
+                return default;
+            }
+
+            // Check if the session model's elements dictionary contains the specified element
+            if (sessionModel.Elements?.ContainsKey(element) != true)
+            {
+                // Return default if the element is not found
+                return default;
+            }
+
+            // Return the found element
+            return sessionModel.Elements[element];
+        }
+
+        // Creates a new UI Automation condition for the control type based on the specified path segment.
+        private static IUIAutomationCondition NewControlTypeCondition(CUIAutomation8 session, string pathSegment)
+        {
+            // Define the flags, binding flags, comparison type, property ID, and condition flags
+            const PropertyConditionFlags ConditionFlags = PropertyConditionFlags.PropertyConditionFlags_None;
+            const BindingFlags BindingFlags = BindingFlags.Public | BindingFlags.Static;
+            const StringComparison Compare = StringComparison.OrdinalIgnoreCase;
+            const int propertyId = UIA_PropertyIds.UIA_ControlTypePropertyId;
+
+            // Helper method to get the control type ID from the property name
+            static int GetControlTypeId(string propertyName)
+            {
+                // Get all fields from the UIA_ControlTypeIds class
+                var fields = typeof(UIA_ControlTypeIds).GetFields(BindingFlags);
+
+                // Find the field with the specified property name and return the control type ID
+                var id = Array.Find(fields, i => i.Name.Equals($"UIA_{propertyName}ControlTypeId", Compare))?.GetValue(null);
+
+                // Return the control type ID as an integer or -1 if not found
+                return id == default ? -1 : (int)id;
+            }
+
+            // Ensure the path segment has a bracket pair
+            pathSegment = pathSegment.LastIndexOf('[') == -1 ? $"{pathSegment}[]" : pathSegment;
+
+            // Extract the type segment from the path segment using a regular expression
+            var typeSegment = Regex.Match(input: pathSegment, pattern: @"(?<=((\/)+)?)\w+(?=\)?\[)").Value;
+
+            // Determine if the condition should match a substring
+            var conditionFlag = typeSegment.StartsWith("partial", Compare)
+                ? PropertyConditionFlags.PropertyConditionFlags_MatchSubstring
+                : ConditionFlags;
+
+            // Remove "partial" from the type segment if present
+            typeSegment = typeSegment.Replace("partial", string.Empty, Compare);
+
+            // Get the control type ID from the type segment
+            var controlTypeId = GetControlTypeId(typeSegment);
+
+            // If the type segment is empty, return default
+            if (string.IsNullOrEmpty(typeSegment))
+            {
+                return default;
+            }
+
+            // Create and return the property condition with the specified flags
+            return session.CreatePropertyConditionEx(propertyId, controlTypeId, conditionFlag);
+        }
+
+        // TODO: replace with fully functional logical parser.
+        // Creates a new UI Automation condition for properties based on the specified path segment.
+        private static IUIAutomationCondition NewPropertyCondition(CUIAutomation8 session, string pathSegment)
+        {
+            const PropertyConditionFlags ConditionFlags = PropertyConditionFlags.PropertyConditionFlags_None;
+            const BindingFlags BindingFlags = BindingFlags.Public | BindingFlags.Static;
+            const StringComparison Compare = StringComparison.OrdinalIgnoreCase;
+
+            // Helper method to get the property ID from the property name
+            static int GetPropertyId(string propertyName)
+            {
+                // Get all fields from the UIA_PropertyIds class
+                var fields = typeof(UIA_PropertyIds).GetFields(BindingFlags);
+
+                // Find the field with the specified property name and return the property ID
+                var id = Array.Find(fields, i => i.Name.Equals($"UIA_{propertyName}PropertyId", Compare))?.GetValue(null);
+
+                // Return the property ID as an integer or -1 if not found
+                return id == default ? -1 : (int)id;
+            }
+
+            // List to store the conditions
+            var conditions = new List<IUIAutomationCondition>();
+
+            // Extract the segments from the path segment
+            var segments = Regex.Match(pathSegment, @"(?<=\[).*(?=\])").Value.Split(" and ").Select(i => $"[{i}]");
+
+            // Iterate through each segment to create conditions
+            foreach (var segment in segments)
+            {
+                // Extract the type segment from the segment
+                var typeSegment = Regex.Match(input: segment, pattern: @"(?<=@)\w+").Value;
+
+                // Determine if the condition should match a substring
+                var conditionFlag = typeSegment.StartsWith("partial", Compare)
+                    ? PropertyConditionFlags.PropertyConditionFlags_MatchSubstring
+                    : ConditionFlags;
+
+                // Remove "partial" from the type segment if present
+                typeSegment = typeSegment.Replace("partial", string.Empty, Compare);
+
+                // Extract the value segment from the segment
+                var valueSegment = Regex.Match(input: segment, pattern: @"(?<=\[@\w+=('|"")).*(?=('|"")])").Value;
+
+                // Get the property ID from the type segment
+                var propertyId = GetPropertyId(typeSegment);
+
+                // If the property ID is invalid, continue to the next segment
+                if (propertyId == -1)
+                {
+                    continue;
+                }
+
+                // Create the property condition with the specified flags
+                var condition = session.CreatePropertyConditionEx(propertyId, valueSegment, conditionFlag);
+
+                // Add the condition to the list
+                conditions.Add(condition);
+            }
+
+            // If no conditions were created, return default
+            if (conditions.Count == 0)
+            {
+                return default;
+            }
+
+            // If only one condition was created, return it; otherwise, create and return a combined condition
+            return conditions.Count == 1
+                ? conditions[0]
+                : session.CreateAndConditionFromArray(conditions.ToArray());
         }
 
 #pragma warning disable IDE0051, S3011 // These methods are used via reflection to handle specific locator segment types.
@@ -123,21 +378,113 @@ namespace Uia.DriverServer.Domain
                 : segmentMethods["Uia"];
 
             // Invoke the method with the session, root element, and path segment as parameters
-            return (UiaElementModel)method.Invoke(null, [session, rootElement, pathSegment]);
+            return (UiaElementModel)method.Invoke(null, [new SegmentDataModel()
+            {
+                PathSegment = pathSegment,
+                RootElement = rootElement,
+                Session = session
+            }]);
+        }
+
+        // Finds an element by the specified segment using the 'Cords' segment type.
+        [UiaSegmentType(type: "Coords")]
+        private static UiaElementModel ByCoords(SegmentDataModel segmentData)
+        {
+            // Extract the OCR segment from the path segment using a regular expression
+            var segment = Regex.Match(input: segmentData.PathSegment, pattern: @"(?is)(?<=Coords\().*?(?=\))").Value;
+            var coords = segment.Split(',').Select(int.Parse).ToArray();
+
+            // Create a clickable point from the coordinates
+            var point = new PointModel
+            {
+                X = coords[0],
+                Y = coords[1]
+            };
+
+            // Generate a new ID for the UIA element
+            var id = $"{Guid.NewGuid()}";
+
+            // Create an XML representation of the OCR element with the word and rectangle information.
+            var xml = "<PointElement " +
+                $"X=\"{point.X}\" " +
+                $"Y=\"{point.Y}\" " +
+                $"Id=\"{id}\" />";
+
+            // Return a new UIA element model with the clickable point and a generated ID
+            return new UiaElementModel
+            {
+                ClickablePoint = point,
+                Id = id,
+                Node = XDocument.Parse(xml).Root
+            };
+        }
+
+        // Finds an element using the Object Model, converting the UI Automation tree to XML and finding by XPath.
+        [UiaSegmentType(type: "ObjectModel")]
+        private static UiaElementModel ByObjectModel(SegmentDataModel segmentData)
+        {
+            // Remove any namespace prefixes from the XPath
+            var xpath = Regex.Replace(input: segmentData.PathSegment, pattern: @"(?<=^\/?)\w+:", replacement: string.Empty);
+            xpath = "/" + xpath;
+
+            // Create a new Document Object Model (DOM) from the root element
+            var objectModel = new DocumentObjectModelFactory(segmentData.RootElement).New();
+
+            // Select the element by XPath and get its 'id' attribute
+            var idAttribute = objectModel.XPathSelectElement(xpath)?.Attribute("id")?.Value;
+
+            // If the 'id' attribute is not found, return default
+            if (idAttribute == null)
+            {
+                return default;
+            }
+
+            // Deserialize the 'id' attribute to an integer array
+            var id = JsonSerializer.Deserialize<int[]>(idAttribute);
+
+            // Create a condition to find the element by its runtime ID
+            var condition = segmentData.Session.CreatePropertyCondition(UIA_PropertyIds.UIA_RuntimeIdPropertyId, id);
+
+            // Determine the tree scope based on the path segment
+            var treeScope = segmentData.PathSegment.StartsWith('/')
+                ? TreeScope.TreeScope_Descendants
+                : TreeScope.TreeScope_Children;
+
+            // Find and return the first element that matches the condition within the specified scope
+            var element = segmentData.RootElement.FindFirst(treeScope, condition);
+
+            return new UiaElementModel
+            {
+                UIAutomationElement = element
+            };
+        }
+
+        // Finds an element using OCR (Optical Character Recognition) based on the specified segment data.
+        [UiaSegmentType(type: "Ocr")]
+        private static UiaElementModel ByOcr(SegmentDataModel segmentData)
+        {
+            // Initialize the OCR repository
+            var ocr = new OcrRepository();
+
+            // Extract the OCR segment from the path segment using a regular expression
+            var segment = Regex.Match(input: segmentData.PathSegment, pattern: @"(?is)(?<=Ocr\().*?(?=\))").Value;
+
+            // Find the element using OCR and return the result
+            return ocr.FindElement(segment);
         }
 
         // Finds an element using the UI Automation (Uia) tree.
         [UiaSegmentType(type: "Uia")]
-        private static UiaElementModel ByUia(CUIAutomation8 session, IUIAutomationElement rootElement, string pathSegment)
+        private static UiaElementModel ByUia(SegmentDataModel segmentData)
         {
             // Get the control type condition based on the path segment
-            var controlTypeCondition = GetControlTypeCondition(session, pathSegment);
+            var controlTypeCondition = NewControlTypeCondition(segmentData.Session, segmentData.PathSegment);
 
             // Get the property condition based on the path segment
-            var propertyCondition = GetPropertyCondition(session, pathSegment);
+            var propertyCondition = NewPropertyCondition(segmentData.Session, segmentData.PathSegment);
 
             // Determine if the search scope is descendants or children based on the path segment
-            var isDescendants = pathSegment.StartsWith('/');
+            var isDescendants = segmentData.PathSegment.StartsWith('/');
 
             var treeScope = isDescendants
                 ? TreeScope.TreeScope_Descendants
@@ -159,7 +506,7 @@ namespace Uia.DriverServer.Domain
             // Combine control type and property conditions if both are present
             else if (controlTypeCondition != default)
             {
-                condition = session.CreateAndCondition(controlTypeCondition, propertyCondition);
+                condition = segmentData.Session.CreateAndCondition(controlTypeCondition, propertyCondition);
             }
             // Return default if no conditions are met
             else
@@ -168,7 +515,7 @@ namespace Uia.DriverServer.Domain
             }
 
             // Extract the index value from the path segment
-            var indexValue = Regex.Match(input: pathSegment, pattern: @"(?<=\[)\d+(?=])").Value;
+            var indexValue = Regex.Match(input: segmentData.PathSegment, pattern: @"(?<=\[)\d+(?=])").Value;
 
             // Try to parse the index value
             var isIndex = int.TryParse(indexValue, out int indexOut);
@@ -176,11 +523,11 @@ namespace Uia.DriverServer.Domain
             // Find the first element that matches the condition if no index is specified
             if (!isIndex)
             {
-                return rootElement.FindFirst(treeScope, condition).ConvertToElement();
+                return segmentData.RootElement.FindFirst(treeScope, condition).ConvertToElement();
             }
 
             // Find all elements that match the condition
-            var elements = rootElement.FindAll(treeScope, condition);
+            var elements = segmentData.RootElement.FindAll(treeScope, condition);
 
             // Adjust the index to be zero-based
             var index = indexOut < 1 ? 0 : indexOut - 1;
@@ -190,762 +537,30 @@ namespace Uia.DriverServer.Domain
                 ? default
                 : elements.GetElement(index).ConvertToElement();
         }
-
-        // Finds an element using the Object Model, converting the UI Automation tree to XML and finding by XPath.
-        [UiaSegmentType(type: "ObjectModel")]
-        private static UiaElementModel ByObjectModel(CUIAutomation8 session, IUIAutomationElement rootElement, string pathSegment)
-        {
-            // Remove any namespace prefixes from the XPath
-            var xpath = Regex.Replace(input: pathSegment, pattern: @"(?<=^\/?)\w+:", replacement: string.Empty);
-            xpath = "/" + xpath;
-
-            // Create a new Document Object Model (DOM) from the root element
-            var objectModel = new DocumentObjectModelFactory(rootElement).New();
-
-            // Select the element by XPath and get its 'id' attribute
-            var idAttribute = objectModel.XPathSelectElement(xpath)?.Attribute("id")?.Value;
-
-            // If the 'id' attribute is not found, return default
-            if (idAttribute == null)
-            {
-                return default;
-            }
-
-            // Deserialize the 'id' attribute to an integer array
-            var id = JsonSerializer.Deserialize<int[]>(idAttribute);
-
-            // Create a condition to find the element by its runtime ID
-            var condition = session.CreatePropertyCondition(UIA_PropertyIds.UIA_RuntimeIdPropertyId, id);
-
-            // Determine the tree scope based on the path segment
-            var treeScope = pathSegment.StartsWith('/')
-                ? TreeScope.TreeScope_Descendants
-                : TreeScope.TreeScope_Children;
-
-            // Find and return the first element that matches the condition within the specified scope
-            var element = rootElement.FindFirst(treeScope, condition);
-
-            return new UiaElementModel
-            {
-                UIAutomationElement = element
-            };
-        }
-
-        [UiaSegmentType(type: "Ocr")]
-        private static UiaElementModel ByOcr()
-        {
-            return default;
-        }
 #pragma warning restore IDE0051, S3011
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        private (int Status, UiaElementModel Element) FindElement(UiaSessionModel uiaSession, UiaElementModel uiaElement, LocationStrategyModel locationStrategy)
+        /// <summary>
+        /// Represents the data model for a segment used in UI Automation.
+        /// </summary>
+        private sealed class SegmentDataModel
         {
-            var segments = locationStrategy
-                .Value
-                .Split("|", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-
-            if (segments.Length == 0)
-            {
-                return (StatusCodes.Status400BadRequest, default);
-            }
-
-            if (locationStrategy.Value.Contains("/DOM/", StringComparison.OrdinalIgnoreCase))
-            {
-                return FindElement(uiaSession, locationStrategy);
-            }
-
-            foreach (var segment in segments)
-            {
-                var (statusCode, element) = FindElementByProperties(session: uiaSession, uiaElement, locationStrategy: new()
-                {
-                    Using = "xpath",
-                    Value = segment
-                });
-
-                if (statusCode == StatusCodes.Status200OK)
-                {
-                    return (statusCode, element);
-                }
-            }
-
-            // get
-            return (StatusCodes.Status404NotFound, default);
-        }
-
-        private static (int Status, UiaElementModel Element) FindElementByProperties(UiaSessionModel session, UiaElementModel uiaElement, LocationStrategyModel locationStrategy)
-        {
-            // not implemented
-            if (locationStrategy.Using != LocationStrategyModel.Xpath)
-            {
-                return (StatusCodes.Status501NotImplemented, default);
-            }
-
-            // not found
-            if (session == null)
-            {
-                return (StatusCodes.Status404NotFound, default);
-            }
-
-            // get by Cords
-            var elementByCords = GetByCords(session, locationStrategy);
-            if (elementByCords.Status == StatusCodes.Status200OK)
-            {
-                return elementByCords;
-            }
-
-            // get by path
-            return FindByProperty(session, uiaElement, locationStrategy);
-        }
-
-        private static (int Status, UiaElementModel Element) FindByProperty(UiaSessionModel session, UiaElementModel uiaElement, LocationStrategyModel locationStrategy)
-        {
-            // setup
-            var (isRoot, hierarchy) = GetLocatorHierarchy(locationStrategy);
-
-            // bad request
-            if (!hierarchy.Any())
-            {
-                return (StatusCodes.Status400BadRequest, default);
-            }
-
-            // find element
-            var rootElement = isRoot ? new CUIAutomation8().GetRootElement() : session.ApplicationRoot;
-
-            if (uiaElement?.UIAutomationElement != null && !isRoot)
-            {
-                rootElement = uiaElement.UIAutomationElement;
-            }
-
-            var automationElement = GetElementBySegment(new CUIAutomation8(), rootElement, hierarchy.First());
-
-            // not found
-            if (automationElement == default)
-            {
-                return (StatusCodes.Status404NotFound, default);
-            }
-
-            // iterate
-            foreach (var pathSegment in hierarchy.Skip(1))
-            {
-                automationElement = GetElementBySegment(new CUIAutomation8(), automationElement, pathSegment);
-                if (automationElement == default)
-                {
-                    return (StatusCodes.Status404NotFound, default);
-                }
-            }
-
-            // OK
-            var element = automationElement.ConvertToElement();
-            session.Elements[element.Id] = element;
-
-            // get
-            return (StatusCodes.Status200OK, element);
-        }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        private static (int Status, UiaElementModel Element) Find(UiaSessionModel uiaSession, IUIAutomationElement automationElement,  string xpath)
-        {
-            // setup
-            var (isRoot, hierarchy) = GetLocatorHierarchy(new LocationStrategyModel { Value = "xpath" });
-
-            // bad request
-            if (!hierarchy.Any())
-            {
-                return (StatusCodes.Status400BadRequest, default);
-            }
-
-            var segments = hierarchy
-                .Where(i => !string.IsNullOrEmpty(i) && !i.Equals("dom", StringComparison.OrdinalIgnoreCase))
-                .Select(i => $"/{i}")
-                .ToArray();
-
-            var uiElementSegment = segments[0];
-            var elementSegment = string.Join(string.Empty, segments.Skip(1));
-
-            return (StatusCodes.Status404NotFound, default);
-        }
-
-
-
-
-
-
-        // Linear Search
-        private (int Status, UiaElementModel Element) FindElement(LocationStrategyModel locationStrategy, string session)
-        {
-            // not found
-            if (!_sessions.ContainsKey(session))
-            {
-                return (StatusCodes.Status404NotFound, default);
-            }
-
-            // setup
-            var uiaSessionModel = _sessions[session];
-            var segments = locationStrategy.Value.Split("|", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-
-            // bad request
-            if (segments == null || segments.Length == 0)
-            {
-                return (StatusCodes.Status404NotFound, default);
-            }
-
-            // dom
-            if (locationStrategy.Value.Contains("/DOM/", StringComparison.OrdinalIgnoreCase))
-            {
-                return FindElement(uiaSessionModel, locationStrategy);
-            }
-
-            foreach (var segment in segments)
-            {
-                var (statusCode, element) = FindElement(session: uiaSessionModel, string.Empty, locationStrategy: new()
-                {
-                    Using = "xpath",
-                    Value = segment
-                });
-
-                if (statusCode == StatusCodes.Status200OK)
-                {
-                    return (statusCode, element);
-                }
-            }
-
-            // get
-            return (StatusCodes.Status404NotFound, default);
-        }
-
-        // Binary Search
-        private (int Status, UiaElementModel Element) FindElement(UiaSessionModel session, LocationStrategyModel locationStrategy)
-        {
-            // setup
-            var (isRoot, hierarchy) = GetLocatorHierarchy(locationStrategy);
-
-            // bad request
-            if (!hierarchy.Any())
-            {
-                return (StatusCodes.Status400BadRequest, default);
-            }
-
-            // setup
-            var segments = hierarchy
-                .Where(i => !string.IsNullOrEmpty(i) && !i.Equals("dom", StringComparison.OrdinalIgnoreCase))
-                .Select(i => $"/{i}")
-                .ToArray();
-
-            var uiElementSegment = segments[0];
-            var elementSegment = string.Join(string.Empty, segments.Skip(1));
-
-            // TODO: allow first element to found in the dom
-            // find element
-            var automation = new CUIAutomation8();
-            var rootElement = isRoot ? automation.GetRootElement() : session.ApplicationRoot;
-            var (statusCode, element) = FindElement(new LocationStrategyModel
-            {
-                Using = "xpath",
-                Value = (isRoot ? $"/root{uiElementSegment}" : uiElementSegment)
-            }, session.SessionId);
-
-            // not found
-            if (statusCode == StatusCodes.Status404NotFound)
-            {
-                return (statusCode, element);
-            }
-
-            // only one segment
-            if (segments.Length == 1)
-            {
-                return (StatusCodes.Status200OK, element.UIAutomationElement.ConvertToElement());
-            }
-
-            // find
-            var (status, automationElement) = GetElementFromDom(element, elementSegment);
-
-            // not found
-            if (automationElement == default)
-            {
-                return (StatusCodes.Status404NotFound, default);
-            }
-
-            // add to session state
-            session.Elements[automationElement.Id] = automationElement;
-
-            // get
-            return (status, automationElement);
-        }
-
-        private static (int Status, UiaElementModel Element) FindElement(UiaSessionModel session, string element, LocationStrategyModel locationStrategy)
-        {
-            // not implemented
-            if (locationStrategy.Using != LocationStrategyModel.Xpath)
-            {
-                return (StatusCodes.Status501NotImplemented, default);
-            }
-
-            // not found
-            if (session == null)
-            {
-                return (StatusCodes.Status404NotFound, default);
-            }
-
-            // get by Cords
-            var elementByCords = GetByCords(session, locationStrategy);
-            if (elementByCords.Status == StatusCodes.Status200OK)
-            {
-                return elementByCords;
-            }
-
-            // get by path
-            return GetByProperty(session, locationStrategy);
-        }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        private static (int Status, UiaElementModel Element) GetElementFromDom(UiaElementModel rootElement, string xpath)
-        {
-            // find
-            try
-            {
-                var automation = new CUIAutomation8();
-                var dom = new DocumentObjectModelFactory(rootElement.UIAutomationElement).New();
-                var idAttribute = dom.XPathSelectElement(xpath)?.Attribute("id")?.Value;
-                var id = JsonSerializer.Deserialize<int[]>(idAttribute);
-                var condition = automation.CreatePropertyCondition(UIA_PropertyIds.UIA_RuntimeIdPropertyId, id);
-                var treeScope = TreeScope.TreeScope_Descendants;
-
-                rootElement.UIAutomationElement = rootElement.UIAutomationElement.FindFirst(treeScope, condition);
-
-                var statusCode = rootElement.UIAutomationElement == null
-                    ? StatusCodes.Status404NotFound
-                    : StatusCodes.Status200OK;
-                rootElement = rootElement.UIAutomationElement == null
-                    ? default
-                    : rootElement.UIAutomationElement.ConvertToElement();
-
-                if (rootElement == default)
-                {
-                    return (StatusCodes.Status404NotFound, default);
-                }
-
-                return (statusCode, rootElement);
-            }
-            catch (Exception e) when (e != null)
-            {
-                return (StatusCodes.Status404NotFound, default);
-            }
-        }
-
-        private static (int Status, UiaElementModel Element) GetByProperty(UiaSessionModel session, LocationStrategyModel locationStrategy)
-        {
-            // setup
-            var (isRoot, hierarchy) = GetLocatorHierarchy(locationStrategy);
-
-            // bad request
-            if (!hierarchy.Any())
-            {
-                return (StatusCodes.Status400BadRequest, default);
-            }
-
-            // find element
-            var rootElement = isRoot ? new CUIAutomation8().GetRootElement() : session.ApplicationRoot;
-            var automationElement = GetElementBySegment(new CUIAutomation8(), rootElement, hierarchy.First());
-
-            // not found
-            if (automationElement == default)
-            {
-                return (StatusCodes.Status404NotFound, default);
-            }
-
-            // iterate
-            foreach (var pathSegment in hierarchy.Skip(1))
-            {
-                automationElement = GetElementBySegment(new CUIAutomation8(), automationElement, pathSegment);
-                if (automationElement == default)
-                {
-                    return (StatusCodes.Status404NotFound, default);
-                }
-            }
-
-            // OK
-            var element = automationElement.ConvertToElement();
-            session.Elements[element.Id] = element;
-
-            // get
-            return (StatusCodes.Status200OK, element);
-        }
-
-        [SuppressMessage("GeneratedRegex", "SYSLIB1045:Convert to 'GeneratedRegexAttribute'.", Justification = "Keep it simple.")]
-        private static (bool FromDesktop, IEnumerable<string> Hierarchy) GetLocatorHierarchy(LocationStrategyModel locationStrategy)
-        {
-            // constants
-            const RegexOptions RegexOptions = RegexOptions.IgnoreCase | RegexOptions.Singleline;
-
-            // setup conditions
-            var values = Regex.Matches(locationStrategy.Value, @"(?<==').+?(?=')").Select(i => i.Value).ToArray();
-            var fromDesktop = Regex.IsMatch(locationStrategy.Value, @"^(\(+)?\/(root|desktop)", RegexOptions);
-            var xpath = fromDesktop
-                ? Regex.Replace(locationStrategy.Value, @"^(\(+)?\/(root|desktop)", string.Empty, RegexOptions)
-                : locationStrategy.Value;
-
-            // normalize tokens
-            var tokens = new Dictionary<string, string>();
-            for (int i = 0; i < values.Length; i++)
-            {
-                tokens[$"value_token_{i}"] = values[i];
-                xpath = xpath.Replace(values[i], $"value_token_{i}");
-            }
-
-            // setup
-            var hierarchy = Regex
-                .Split(xpath, @"\/(?=\w+|\*)(?![^\[]*\])")
-                .Where(i => !string.IsNullOrEmpty(i))
-                .ToArray();
-
-            // normalize
-            for (int i = 0; i < hierarchy.Length; i++)
-            {
-                var segment = hierarchy[i];
-                if (!segment.Equals("/") && !segment.EndsWith("/"))
-                {
-                    continue;
-                }
-                hierarchy[i + 1] = $"/{hierarchy[i + 1]}";
-            }
-            hierarchy = hierarchy
-                .Where(i => !string.IsNullOrEmpty(i) && !i.Equals("/"))
-                .Select(i => i.TrimEnd('/'))
-                .ToArray();
-
-            // restore tokens
-            for (int i = 0; i < hierarchy.Length; i++)
-            {
-                foreach (var token in tokens)
-                {
-                    hierarchy[i] = hierarchy[i].Replace(token.Key, token.Value);
-                }
-            }
-
-            // get
-            return (fromDesktop, hierarchy);
-        }
-
-        private static IUIAutomationElement GetElementBySegment(
-            CUIAutomation8 session,
-            IUIAutomationElement rootElement,
-            string pathSegment)
-        {
-            // setup conditions
-            var controlTypeCondition = GetControlTypeCondition(session, pathSegment);
-            var propertyCondition = GetPropertyCondition(session, pathSegment);
-            var isDescendants = pathSegment.StartsWith("/");
-
-            // setup condition
-            var scope = isDescendants ? TreeScope.TreeScope_Descendants : TreeScope.TreeScope_Children;
-            IUIAutomationCondition condition;
-
-            if (controlTypeCondition == default && propertyCondition != default)
-            {
-                condition = propertyCondition;
-            }
-            else if (controlTypeCondition != default && propertyCondition == default)
-            {
-                condition = controlTypeCondition;
-            }
-            else if (controlTypeCondition != default && propertyCondition != default)
-            {
-                condition = session.CreateAndCondition(controlTypeCondition, propertyCondition);
-            }
-            else
-            {
-                return default;
-            }
-
-            // setup find all
-            var index = Regex.Match(input: pathSegment, pattern: @"(?<=\[)\d+(?=])").Value;
-            var isIndex = int.TryParse(index, out int indexOut);
-
-            // get single
-            if (!isIndex)
-            {
-                return rootElement.FindFirst(scope, condition);
-            }
-
-            // get by index
-            var elements = rootElement.FindAll(scope, condition);
-
-            // get
-            return elements.Length == 0
-                ? default
-                : elements.GetElement(indexOut - 1 < 0 ? 0 : indexOut - 1);
-        }
-
-
-        private static (int Status, UiaElementModel Element) GetByCords(UiaSessionModel session, LocationStrategyModel locationStrategy)
-        {
-            // find
-            var element = locationStrategy.NewPointElement();
-
-            // not found
-            if (element == null)
-            {
-                return (StatusCodes.Status404NotFound, default);
-            }
-
-            // setup
-            var id = $"{Guid.NewGuid()}";
-
-            // update
-            session.Elements[id] = element;
-
-            // get
-            return (StatusCodes.Status200OK, element);
-        }
-
-
-
-
-
-        private static IUIAutomationCondition GetControlTypeCondition(CUIAutomation8 session, string pathSegment)
-        {
-            const PropertyConditionFlags ConditionFlags = PropertyConditionFlags.PropertyConditionFlags_None;
-            const BindingFlags BindingFlags = BindingFlags.Public | BindingFlags.Static;
-            const StringComparison Compare = StringComparison.OrdinalIgnoreCase;
-
-            static int GetControlTypeId(string propertyName)
-            {
-                var fields = typeof(UIA_ControlTypeIds).GetFields(BindingFlags);
-                var id = fields
-                    .FirstOrDefault(i => i.Name.Equals($"UIA_{propertyName}ControlTypeId", Compare))?
-                    .GetValue(null);
-                return id == default ? -1 : (int)id;
-            }
-
-            pathSegment = pathSegment.LastIndexOf('[') == -1 ? $"{pathSegment}[]" : pathSegment;
-            var typeSegment = Regex.Match(input: pathSegment, pattern: @"(?<=((\/)+)?)\w+(?=\)?\[)").Value;
-
-            var conditionFlag = typeSegment.StartsWith("partial", Compare)
-                ? PropertyConditionFlags.PropertyConditionFlags_MatchSubstring
-                : ConditionFlags;
-            typeSegment = typeSegment.Replace("partial", string.Empty, Compare);
-            var controlTypeId = GetControlTypeId(typeSegment);
-
-            if (string.IsNullOrEmpty(typeSegment))
-            {
-                return default;
-            }
-
-            return session
-                .CreatePropertyConditionEx(UIA_PropertyIds.UIA_ControlTypePropertyId, controlTypeId, conditionFlag);
-        }
-
-        private static IUIAutomationCondition GetPropertyCondition(CUIAutomation8 session, string pathSegment)
-        {
-            // constants
-            const PropertyConditionFlags ConditionFlags = PropertyConditionFlags.PropertyConditionFlags_None;
-            const BindingFlags BindingFlags = BindingFlags.Public | BindingFlags.Static;
-            const StringComparison Compare = StringComparison.OrdinalIgnoreCase;
-
-            // local
-            static int GetPropertyId(string propertyName)
-            {
-                var fields = typeof(UIA_PropertyIds).GetFields(BindingFlags);
-                var id = fields
-                    .FirstOrDefault(i => i.Name.Equals($"UIA_{propertyName}PropertyId", Compare))?
-                    .GetValue(null);
-                return id == default ? -1 : (int)id;
-            }
-
-            // setup
-            // TODO: replace with fully functional logical parser.
-            var conditions = new List<IUIAutomationCondition>();
-            var segments = Regex.Match(pathSegment, @"(?<=\[).*(?=\])").Value.Split(" and ").Select(i => $"[{i}]");
-
-            // build
-            foreach (var segment in segments)
-            {
-                var typeSegment = Regex.Match(input: segment, pattern: @"(?<=@)\w+").Value;
-
-                // setup
-                var conditionFlag = typeSegment.StartsWith("partial", Compare)
-                    ? PropertyConditionFlags.PropertyConditionFlags_MatchSubstring
-                    : ConditionFlags;
-                typeSegment = typeSegment.Replace("partial", string.Empty, Compare);
-                var valueSegment = Regex.Match(input: segment, pattern: @"(?<=\[@\w+=('|"")).*(?=('|"")])").Value;
-                var propertyId = GetPropertyId(typeSegment);
-
-                // not found
-                if (propertyId == -1)
-                {
-                    continue;
-                }
-
-                // get
-                var condition = session.CreatePropertyConditionEx(propertyId, valueSegment, conditionFlag);
-
-                // set
-                conditions.Add(condition);
-            }
-
-            // not found
-            if (conditions.Count == 0)
-            {
-                return default;
-            }
-
-            // no logical operators
-            return conditions.Count == 1
-                ? conditions.First()
-                : session.CreateAndConditionFromArray(conditions.ToArray());
-        }
-
-
-
-
-
-
-
-
-
-        private static UiaElementModel GetElement(IDictionary<string, UiaSessionModel> sessions, string session, string element)
-        {
-            // notFound
-            if (!sessions.ContainsKey(session))
-            {
-                return default;
-            }
-            if (sessions[session].Elements?.ContainsKey(element) != true)
-            {
-                return default;
-            }
-
-            // get
-            return sessions[session].Elements[element];
-        }
-
-
-
-
-        public UiaElementModel GetElement(string session, string element)
-        {
-            throw new NotImplementedException();
-        }
-
-        public (int StatusCode, string Value) GetElementAttribute(string session, string element, string name)
-        {
-            throw new NotImplementedException();
-        }
-
-        public (int StatusCode, string Text) GetElementText(string session, string element)
-        {
-            throw new NotImplementedException();
+            /// <summary>
+            /// Gets or sets the path segment used to locate the element.
+            /// </summary>
+            /// <value>A <see cref="string"/> representing the path segment.</value>
+            public string PathSegment { get; set; }
+
+            /// <summary>
+            /// Gets or sets the root element to start the search from.
+            /// </summary>
+            /// <value>The <see cref="IUIAutomationElement"/> representing the root element.</value>
+            public IUIAutomationElement RootElement { get; set; }
+
+            /// <summary>
+            /// Gets or sets the UI Automation session.
+            /// </summary>
+            /// <value>The <see cref="CUIAutomation8"/> instance representing the UI Automation session.</value>
+            public CUIAutomation8 Session { get; set; }
         }
     }
 }

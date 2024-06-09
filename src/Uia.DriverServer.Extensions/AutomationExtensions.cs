@@ -171,6 +171,12 @@ namespace Uia.DriverServer.Extensions
         /// <returns>An <see cref="UiaElementModel"/> representing the UI Automation element.</returns>
         public static UiaElementModel ConvertToElement(this IUIAutomationElement automationElement)
         {
+            // Check if the automation element is null.
+            if(automationElement == default)
+            {
+                return default;
+            }
+
             // Get the automation ID of the element.
             var automationId = automationElement.CurrentAutomationId;
 
@@ -410,6 +416,50 @@ namespace Uia.DriverServer.Extensions
         {
             // Calls the GetRoot method to retrieve the root UI Automation element for the application.
             return GetApplicationRootElement(session);
+        }
+
+        /// <summary>
+        /// Retrieves the value of a specified attribute from the UI Automation element or the XML node.
+        /// </summary>
+        /// <param name="element">The <see cref="UiaElementModel"/> from which to retrieve the attribute.</param>
+        /// <param name="name">The name of the attribute to retrieve.</param>
+        /// <returns>The value of the attribute if found; otherwise, an empty string.</returns>
+        public static string GetAttribute(this UiaElementModel element, string name)
+        {
+            // Check if the UI Automation element is not null
+            if (element.UIAutomationElement != null)
+            {
+                // Retrieve the attribute value from the UI Automation element
+                return GetAttribute(element.UIAutomationElement, name);
+            }
+
+            // Check if the Node property is null
+            if (element.Node == null)
+            {
+                // Return an empty string if the Node is null
+                return string.Empty;
+            }
+
+            // Retrieve the attribute value from the Node's Document Root, or return an empty string if not found
+            return element.Node.Document.Root.Attribute(name)?.Value ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Retrieves the value of a specified attribute from the UI Automation element.
+        /// </summary>
+        /// <param name="element">The UI Automation element from which to retrieve the attribute.</param>
+        /// <param name="name">The name of the attribute to retrieve.</param>
+        /// <returns>The value of the attribute if found; otherwise, an empty string.</returns>
+        public static string GetAttribute(this IUIAutomationElement element, string name)
+        {
+            // Retrieve the attributes of the element with a timeout of 5 seconds
+            var attributes = GetAttributes(element, timeout: TimeSpan.FromSeconds(5));
+
+            // Try to get the specified attribute from the attributes dictionary
+            var isAttribute = attributes.TryGetValue(key: name, out var attribute);
+
+            // Return the attribute value if found; otherwise, return an empty string
+            return isAttribute ? attribute : string.Empty;
         }
 
         /// <summary>
@@ -794,6 +844,33 @@ namespace Uia.DriverServer.Extensions
 
             // Return an empty string if the tag name could not be retrieved within the timeout.
             return string.Empty;
+        }
+
+        /// <summary>
+        /// Retrieves the text content of the specified UI Automation element.
+        /// </summary>
+        /// <param name="element">The <see cref="UiaElementModel"/> from which to retrieve the text content.</param>
+        /// <returns>The text content of the element, or an empty string if no text is found.</returns>
+        public static string GetText(this UiaElementModel element)
+        {
+            // Check if the UI Automation element is not null
+            if (element.UIAutomationElement != null)
+            {
+                // Retrieve the text content from the UI Automation element
+                return GetText(element.UIAutomationElement);
+            }
+
+            // Check if the Node property is null
+            if (element.Node == null)
+            {
+                // Return an empty string if the Node is null
+                return string.Empty;
+            }
+
+            // Return the text content from the Node's Document Root, or an empty string if it's null or empty
+            return string.IsNullOrEmpty(element.Node.Document.Root.Value)
+                ? string.Empty
+                : element.Node.Document.Root.Value;
         }
 
         /// <summary>

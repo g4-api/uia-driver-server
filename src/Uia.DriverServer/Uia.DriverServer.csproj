@@ -42,4 +42,10 @@
 	  <ProjectReference Include="..\Uia.DriverServer.Domain\Uia.DriverServer.Domain.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <None Update="TrainData\eng.traineddata">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
+
 </Project>

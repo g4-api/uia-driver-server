@@ -50,31 +50,52 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the session in which the element will be found.")] string session,
             [SwaggerRequestBody(Description = "The locator strategy model containing the strategy to find the element.")] LocationStrategyModel locator)
         {
-            // Find the element using the domain's elements repository
-            var (statusCode, elementModel) = _domain.ElementsRepository.FindElement(session, locator);
-
-            // Check if the element was not found
-            if (statusCode == StatusCodes.Status404NotFound || elementModel == null)
+            try
             {
-                // Return a not found response if the element was not found
-                return NotFound();
-            }
+                // Find the element using the domain's elements repository
+                var (statusCode, elementModel) = _domain.ElementsRepository.FindElement(session, locator);
 
-            // Prepare the response value containing the element reference
-            var value = new WebDriverResponseModel
-            {
-                Session = session,
-                Value = new Dictionary<string, string>
+                // Check if the element was not found
+                if (statusCode == StatusCodes.Status404NotFound || elementModel == null)
                 {
-                    [ElementProperties.ElementReference] = elementModel.Id
+                    // Return a not found response if the element was not found
+                    return NotFound();
                 }
-            };
 
-            // Return the result as JSON with the appropriate status code
-            return new JsonResult(value)
+                // Prepare the response value containing the element reference
+                var value = new WebDriverResponseModel
+                {
+                    Session = session,
+                    Value = new Dictionary<string, string>
+                    {
+                        [ElementProperties.ElementReference] = elementModel.Id
+                    }
+                };
+
+                // Return the result as JSON with the appropriate status code
+                return new JsonResult(value)
+                {
+                    StatusCode = statusCode
+                };
+            }
+            catch (Exception e)
             {
-                StatusCode = statusCode
-            };
+                // Get the base exception from the error stack trace for logging purposes and error handling
+                var baseException = e.GetBaseException();
+
+                // Log the exception (not shown here) and return a 500 error response
+                var value = new WebDriverResponseModel
+                {
+                    Session = session,
+                    Value = $"{baseException}"
+                };
+
+                // Return the result as JSON with the appropriate status code
+                return new JsonResult(value)
+                {
+                    StatusCode = baseException is FormatException ? StatusCodes.Status400BadRequest : StatusCodes.Status500InternalServerError
+                };
+            }
         }
 
         // POST /wd/hub/session/{session}/element/{element}/element
@@ -84,7 +105,7 @@ namespace Uia.DriverServer.Controllers
         [SwaggerOperation(
             Summary = "Finds an element within the specified element in the given session using the provided locator strategy.",
             Description = "Uses the locator strategy to find an element within the parent element identified by the given session and element IDs.",
-            Tags = new[] { "Elements" })]
+            Tags = ["Elements"])]
         [SwaggerResponse(200, "Element found successfully.", typeof(WebDriverResponseModel))]
         [SwaggerResponse(400, "Invalid request. The locator strategy model is not valid.")]
         [SwaggerResponse(404, "Element not found. The session ID, parent element ID, or locator strategy provided does not match any element.")]
