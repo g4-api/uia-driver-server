@@ -67,10 +67,7 @@ namespace Uia.DriverServer.Extensions
         /// <returns>A new <see cref="XDocument"/> representing the UI Automation element tree.</returns>
         public static XDocument New(CUIAutomation8 automation, IUIAutomationElement element)
         {
-            //var condition = automation.CreateTrueCondition();
-            //var treeWalker = automation.CreateTreeWalker(condition);
-            //var parentElement = treeWalker.GetParentElement(element) ?? element;
-
+            // Get the tag name and attributes of the parent element.
             var parentTagName = element.GetTagName();
             var parentAttributes = GetElementAttributes(element);
 

@@ -20,6 +20,7 @@ using Uia.DriverServer.Converters;
 using Uia.DriverServer.Domain;
 using Uia.DriverServer.Extensions;
 using Uia.DriverServer.Formatters;
+using Uia.DriverServer.Marshals;
 using Uia.DriverServer.Models;
 
 // Write the application logo to the console
@@ -122,6 +123,9 @@ app.MapControllers();
 // Invoke the command from the command line arguments (if any)
 CommandBase.FindCommand(args)?.Invoke(args);
 #endregion
+
+// Set the process DPI awareness context to Per Monitor v2 (-4)
+User32.SetDpiAwareness();
 
 // Run the application asynchronously and wait for it to complete before exiting
 await app.RunAsync();

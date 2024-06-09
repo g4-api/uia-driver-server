@@ -232,9 +232,9 @@ namespace Uia.DriverServer.Domain
         }
 
         [UiaSegmentType(type: "Ocr")]
-        private static void ByOcr()
+        private static UiaElementModel ByOcr()
         {
-
+            return default;
         }
 #pragma warning restore IDE0051, S3011
 

@@ -16,6 +16,18 @@ namespace Uia.DriverServer.Marshals
 {
     public static partial class User32
     {
+        // Enumerates the display settings for the specified device.
+        [DllImport("user32.dll")]
+        [SuppressMessage(
+            category: "Interoperability",
+            checkId: "SYSLIB1054:Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+            Justification = "Using DllImport for compatibility with existing P/Invoke patterns.")]
+        [SuppressMessage(
+            category: "Globalization",
+            checkId: "CA2101:Specify marshaling for P/Invoke string arguments",
+            Justification = "Marshaling not specified for string arguments as this is consistent with existing legacy code which has been tested and is known to work correctly.")]
+        private static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DevMode devMode);
+
         // P/Invoke declaration for the GetDeviceCaps function from gdi32.dll.
         // Retrieves device-specific information for the specified device.
         [LibraryImport("gdi32.dll")]
@@ -45,6 +57,10 @@ namespace Uia.DriverServer.Marshals
             [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] in Input[] pInputs,
             int cbSize);
 
+        [LibraryImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static partial bool SetProcessDpiAwarenessContext(int value);
+
         // P/Invoke declaration for the SetPhysicalCursorPos function from user32.dll.
         // Sets the position of the mouse cursor.
         [LibraryImport("user32.dll")]
@@ -62,6 +78,25 @@ namespace Uia.DriverServer.Marshals
         {
             // Call the P/Invoke GetDeviceCaps function with the provided device context handle and index.
             return GetDeviceCaps(hdc: new IntPtr(hdc), index);
+        }
+
+        /// <summary>
+        /// Retrieves the current display settings.
+        /// </summary>
+        /// <returns>A <see cref="DevMode"/> structure containing the current display settings.</returns>
+        public static DevMode GetDisplaySettings()
+        {
+            // Initialize a DevMode structure with default values.
+            DevMode devMode = default;
+
+            // Set the size of the DevMode structure.
+            devMode.dmSize = (short)Marshal.SizeOf(devMode);
+
+            // Retrieve the current display settings.
+            EnumDisplaySettings(null, -1, ref devMode);
+
+            // Return the DevMode structure containing the display settings.
+            return devMode;
         }
 
         /// <summary>
@@ -144,6 +179,15 @@ namespace Uia.DriverServer.Marshals
         }
 
         /// <summary>
+        /// // Set the process DPI awareness context to Per Monitor v2 (-4)
+        /// </summary>
+        /// <returns><c>true</c> if the DPI awareness was successfully set; otherwise, <c>false</c>.</returns>
+        public static bool SetDpiAwareness()
+        {
+            return SetProcessDpiAwarenessContext(value: -4);
+        }
+
+        /// <summary>
         /// Wrapper method for the SetPhysicalCursorPos function.
         /// Sets the position of the mouse cursor.
         /// </summary>
@@ -180,6 +224,46 @@ namespace Uia.DriverServer.Marshals
 
 namespace Uia.DriverServer.Marshals.Models
 {
+    /// <summary>
+    /// Defines the display settings structure used by the <see cref="EnumDisplaySettings"/> function.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DevMode
+    {
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 0x20)]
+        public string dmDeviceName;
+        public short dmSpecVersion;
+        public short dmDriverVersion;
+        public short dmSize;
+        public short dmDriverExtra;
+        public int dmFields;
+        public int dmPositionX;
+        public int dmPositionY;
+        public int dmDisplayOrientation;
+        public int dmDisplayFixedOutput;
+        public short dmColor;
+        public short dmDuplex;
+        public short dmYResolution;
+        public short dmTTOption;
+        public short dmCollate;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 0x20)]
+        public string dmFormName;
+        public short dmLogPixels;
+        public int dmBitsPerPel;
+        public int dmPelsWidth;
+        public int dmPelsHeight;
+        public int dmDisplayFlags;
+        public int dmDisplayFrequency;
+        public int dmICMMethod;
+        public int dmICMIntent;
+        public int dmMediaType;
+        public int dmDitherType;
+        public int dmReserved1;
+        public int dmReserved2;
+        public int dmPanningWidth;
+        public int dmPanningHeight;
+    }
+
     /// <summary>
     /// Represents hardware input data.
     /// </summary>

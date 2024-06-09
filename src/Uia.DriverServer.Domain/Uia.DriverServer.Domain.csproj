@@ -27,11 +27,27 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <PackageReference Include="Emgu.CV" Version="4.9.0.5494" />
+	  <PackageReference Include="Emgu.CV.Bitmap" Version="4.9.0.5494" />
+	  <PackageReference Include="Emgu.CV.runtime.windows" Version="4.9.0.5494" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\Uia.DriverServer.Converters\Uia.DriverServer.Converters.csproj" />
 		<ProjectReference Include="..\Uia.DriverServer.Extensions\Uia.DriverServer.Extensions.csproj" />
 		<ProjectReference Include="..\Uia.DriverServer.Formatters\Uia.DriverServer.Formatters.csproj" />
 		<ProjectReference Include="..\Uia.DriverServer.Marshals\Uia.DriverServer.Marshals.csproj" />
 		<ProjectReference Include="..\Uia.DriverServer.Models\Uia.DriverServer.Models.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="TrainData\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update="TrainData\eng.traineddata">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
 	</ItemGroup>
 
 </Project>
