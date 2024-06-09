@@ -6,9 +6,15 @@ namespace Uia.DriverServer.Domain
 {
     public class UiaDomain : IUiaDomain
     {
-        public ISessionRepository SessionsRepository => throw new NotImplementedException();
+        public UiaDomain(ISessionsRepository sessionRepository, IElementsRepository elementsRepository)
+        {
+            ElementsRepository = elementsRepository;
+            SessionsRepository = sessionRepository;
+        }
 
-        public IElementsRepository ElementsRepository => throw new NotImplementedException();
+        public ISessionsRepository SessionsRepository { get; }
+
+        public IElementsRepository ElementsRepository { get; }
 
         public IDocumentRepository DocumentRepository => throw new NotImplementedException();
 

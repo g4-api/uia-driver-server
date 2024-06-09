@@ -67,18 +67,28 @@ namespace Uia.DriverServer.Extensions
         /// <returns>A new <see cref="XDocument"/> representing the UI Automation element tree.</returns>
         public static XDocument New(CUIAutomation8 automation, IUIAutomationElement element)
         {
+            //var condition = automation.CreateTrueCondition();
+            //var treeWalker = automation.CreateTreeWalker(condition);
+            //var parentElement = treeWalker.GetParentElement(element) ?? element;
+
+            var parentTagName = element.GetTagName();
+            var parentAttributes = GetElementAttributes(element);
+
             // Register and generate XML data for the new DOM.
             var xmlData = Register(automation, element);
 
+            // Construct the XML body with the tag name, attributes, and registered XML data.
+            var xmlBody = $"<{parentTagName} {parentAttributes}>" + string.Join("\n", xmlData) + $"</{parentTagName}>";
+
             // Combine the XML data into a single XML string.
-            var xml = "<Desktop>" + string.Join("\n", xmlData) + "</Desktop>";
+            var xml = "<Desktop>" + xmlBody + "</Desktop>";
 
             try
             {
                 // Parse and return the XML document.
                 return XDocument.Parse(xml);
             }
-            catch (Exception e) when (e != null)
+            catch (Exception e)
             {
                 // Handle any parsing exceptions and return an error XML document.
                 return XDocument.Parse($"<Desktop><Error>{e.GetBaseException().Message}</Error></Desktop>");
@@ -93,35 +103,6 @@ namespace Uia.DriverServer.Extensions
         /// <returns>A list of strings representing the XML data.</returns>
         private static List<string> Register(CUIAutomation8 automation, IUIAutomationElement element)
         {
-            // Gets the attributes of the specified UI Automation element as a string.
-            static string GetElementAttributes(IUIAutomationElement element)
-            {
-                // Get the attributes of the element.
-                var attributes = element.GetAttributes();
-
-                // Get the runtime ID of the element and serialize it to a JSON string.
-                var runtime = element.GetRuntimeId().OfType<int>();
-                var id = JsonSerializer.Serialize(runtime);
-                attributes.Add("id", id);
-
-                // Initialize a list to store attribute strings.
-                var xmlNode = new List<string>();
-                foreach (var item in attributes)
-                {
-                    // Skip attributes with empty or whitespace-only keys or values.
-                    if (string.IsNullOrEmpty(item.Key) || string.IsNullOrEmpty(item.Value))
-                    {
-                        continue;
-                    }
-
-                    // Add the attribute to the XML node list.
-                    xmlNode.Add($"{item.Key}=\"{item.Value}\"");
-                }
-
-                // Join the XML node representations into a single string and return it.
-                return string.Join(" ", xmlNode);
-            }
-
             // Initialize a list to store XML data.
             var xml = new List<string>();
 
@@ -150,6 +131,35 @@ namespace Uia.DriverServer.Extensions
 
             // Return the complete XML data list.
             return xml;
+        }
+
+        // Gets the attributes of the specified UI Automation element as a string.
+        private static string GetElementAttributes(IUIAutomationElement element)
+        {
+            // Get the attributes of the element.
+            var attributes = element.GetAttributes();
+
+            // Get the runtime ID of the element and serialize it to a JSON string.
+            var runtime = element.GetRuntimeId().OfType<int>();
+            var id = JsonSerializer.Serialize(runtime);
+            attributes.Add("id", id);
+
+            // Initialize a list to store attribute strings.
+            var xmlNode = new List<string>();
+            foreach (var item in attributes)
+            {
+                // Skip attributes with empty or whitespace-only keys or values.
+                if (string.IsNullOrEmpty(item.Key) || string.IsNullOrEmpty(item.Value))
+                {
+                    continue;
+                }
+
+                // Add the attribute to the XML node list.
+                xmlNode.Add($"{item.Key}=\"{item.Value}\"");
+            }
+
+            // Join the XML node representations into a single string and return it.
+            return string.Join(" ", xmlNode);
         }
     }
 }

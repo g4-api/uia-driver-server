@@ -15,23 +15,12 @@ namespace Uia.DriverServer.Domain
     /// <summary>
     /// Defines methods for managing sessions in a Windows desktop automation context.
     /// </summary>
-    public interface ISessionRepository
+    public interface ISessionsRepository
     {
         /// <summary>
         /// Gets the collection of active sessions.
         /// </summary>
         IDictionary<string, UiaSessionModel> Sessions { get; }
-
-        /// <summary>
-        /// Creates a new session with the specified capabilities.
-        /// </summary>
-        /// <param name="capabilities">The capabilities for the new session.</param>
-        /// <returns>
-        /// A tuple containing:
-        /// - StatusCode: An HTTP status code indicating the result of the operation.
-        /// - Entity: The created session object.
-        /// </returns>
-        (int StatusCode, object Entity) CreateSession(UiaCapabilitiesModel capabilities);
 
         /// <summary>
         /// Creates a new session XML document with the specified ID.
@@ -43,6 +32,17 @@ namespace Uia.DriverServer.Domain
         /// - ElementsXml: The XML document representing the session elements.
         /// </returns>
         (int StatusCode, XDocument ElementsXml) NewDocumentObjectModel(string id);
+
+        /// <summary>
+        /// Creates a new session with the specified capabilities.
+        /// </summary>
+        /// <param name="capabilities">The capabilities for the new session.</param>
+        /// <returns>
+        /// A tuple containing:
+        /// - StatusCode: An HTTP status code indicating the result of the operation.
+        /// - Entity: The created session object.
+        /// </returns>
+        (int StatusCode, object Entity) NewSession(UiaCapabilitiesModel capabilities);
 
         /// <summary>
         /// Deletes the session with the specified ID.

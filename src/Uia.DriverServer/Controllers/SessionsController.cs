@@ -177,7 +177,7 @@ namespace Uia.DriverServer.Controllers
             [SwaggerRequestBody(Description = "The capabilities required to create the session.")] UiaCapabilitiesModel capabilities)
         {
             // Create a new session using the domain's sessions repository
-            var (statusCode, session) = _domain.SessionsRepository.CreateSession(capabilities);
+            var (statusCode, session) = _domain.SessionsRepository.NewSession(capabilities);
 
             // Return the result as JSON with the appropriate status code
             return new JsonResult(session)

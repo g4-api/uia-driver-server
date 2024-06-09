@@ -4,7 +4,7 @@ namespace Uia.DriverServer.Domain
 {
     public interface IUiaDomain
     {
-        ISessionRepository SessionsRepository { get; }
+        ISessionsRepository SessionsRepository { get; }
 
         IElementsRepository ElementsRepository { get; }
 

@@ -22,7 +22,7 @@ namespace Uia.DriverServer.Domain
         /// - Status: An HTTP status code indicating the result of the operation.
         /// - Element: The found element model.
         /// </returns>
-        (int Status, UiaElementModel Element) FindElement(string session, LocationStrategyModel locationStrategy);
+        (int Status, UiaElementModel ElementModel) FindElement(string session, LocationStrategyModel locationStrategy);
 
         /// <summary>
         /// Finds an element based on the specified session, element identifier, and location strategy.
@@ -35,7 +35,7 @@ namespace Uia.DriverServer.Domain
         /// - Status: An HTTP status code indicating the result of the operation.
         /// - Element: The found element model.
         /// </returns>
-        (int Status, UiaElementModel Element) FindElement(string session, string element, LocationStrategyModel locationStrategy);
+        (int Status, UiaElementModel ElementModel) FindElement(string session, string element, LocationStrategyModel locationStrategy);
 
         /// <summary>
         /// Gets the element model based on the specified session and element identifier.

@@ -51,23 +51,84 @@ namespace Uia.DriverServer.Controllers
             [SwaggerRequestBody(Description = "The locator strategy model containing the strategy to find the element.")] LocationStrategyModel locator)
         {
             // Find the element using the domain's elements repository
-            var (statusCode, element) = _domain.ElementsRepository.FindElement(session, locator);
+            var (statusCode, elementModel) = _domain.ElementsRepository.FindElement(session, locator);
 
             // Check if the element was not found
-            if (statusCode == StatusCodes.Status404NotFound || element == null)
+            if (statusCode == StatusCodes.Status404NotFound || elementModel == null)
             {
                 // Return a not found response if the element was not found
                 return NotFound();
             }
 
             // Prepare the response value containing the element reference
-            var value = new Dictionary<string, string> { [ElementProperties.ElementReference] = element.Id };
+            var value = new WebDriverResponseModel
+            {
+                Session = session,
+                Value = new Dictionary<string, string>
+                {
+                    [ElementProperties.ElementReference] = elementModel.Id
+                }
+            };
 
             // Return the result as JSON with the appropriate status code
             return new JsonResult(value)
             {
                 StatusCode = statusCode
             };
+        }
+
+        // POST /wd/hub/session/{session}/element/{element}/element
+        // POST /session/{session}/element/{element}/element
+        [HttpPost]
+        [Route("session/{session}/element/{element}/element")]
+        [SwaggerOperation(
+            Summary = "Finds an element within the specified element in the given session using the provided locator strategy.",
+            Description = "Uses the locator strategy to find an element within the parent element identified by the given session and element IDs.",
+            Tags = new[] { "Elements" })]
+        [SwaggerResponse(200, "Element found successfully.", typeof(WebDriverResponseModel))]
+        [SwaggerResponse(400, "Invalid request. The locator strategy model is not valid.")]
+        [SwaggerResponse(404, "Element not found. The session ID, parent element ID, or locator strategy provided does not match any element.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to find the element.")]
+        public IActionResult FindElement(
+            [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
+            [SwaggerParameter(Description = "The unique identifier for the parent element within which to find the target element.")] string element,
+            [SwaggerRequestBody(Description = "The locator strategy model containing the strategy to find the element.")] LocationStrategyModel locator)
+        {
+            try
+            {
+                // Find the element using the domain's elements repository
+                var (statusCode, elementModel) = _domain.ElementsRepository.FindElement(session, element, locator);
+
+                // Check if the element was not found
+                if (statusCode == StatusCodes.Status404NotFound || elementModel == null)
+                {
+                    // Return a not found response if the element was not found
+                    return NotFound();
+                }
+
+                // Prepare the response value containing the element reference
+                var value = new WebDriverResponseModel
+                {
+                    Session = session,
+                    Value = new Dictionary<string, string>
+                    {
+                        [ElementProperties.ElementReference] = elementModel.Id
+                    }
+                };
+
+                // Return the result as JSON with the appropriate status code
+                return new JsonResult(value)
+                {
+                    StatusCode = statusCode
+                };
+            }
+            catch (Exception e)
+            {
+                // Log the exception (not shown here) and return a 500 error response
+                return StatusCode(
+                    statusCode: StatusCodes.Status500InternalServerError,
+                    value: $"An error occurred while attempting to find the element: {e}");
+            }
         }
 
         // POST /wd/hub/session/{session}/element/{element}/click

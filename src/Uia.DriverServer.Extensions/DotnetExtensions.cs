@@ -102,7 +102,6 @@ namespace Uia.DriverServer.Extensions
                 .Replace("'", "&apos;")    // Single quote
                 .Replace("<", "&lt;")      // Less than
                 .Replace(">", "&gt;")      // Greater than
-                .Replace(" ", "&nbsp;")    // Space
                 .Replace("\n", "&#xA;")    // Newline
                 .Replace("\r", "&#xD;");   // Carriage return
         }
