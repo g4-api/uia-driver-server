@@ -48,35 +48,25 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the session in which the script will be executed.")] string id,
             [SwaggerRequestBody(Description = "The script data to execute, containing the script code and any necessary parameters.")] ScriptInputModel scriptData)
         {
-            try
+            // Get the session by ID from the domain layer
+            var session = _domain.GetSession(id);
+
+            // Invoke the script
+            var (statusCode, result) = _domain
+                .DocumentRepository
+                .InvokeScript(session.SessionId, scriptData.Script);
+
+            // Prepare the response model with the result of the script execution
+            var value = new WebDriverResponseModel
             {
-                // Get the session by ID from the domain layer
-                var session = _domain.GetSession(id);
+                Value = result
+            };
 
-                // Invoke the script
-                var (statusCode, result) = _domain
-                    .DocumentRepository
-                    .InvokeScript(session.SessionId, scriptData.Script);
-
-                // Prepare the response model with the result of the script execution
-                var value = new WebDriverResponseModel
-                {
-                    Value = result
-                };
-
-                // Return the result as JSON with the appropriate status code
-                return new JsonResult(value)
-                {
-                    StatusCode = statusCode
-                };
-            }
-            catch (Exception e)
+            // Return the result as JSON with the appropriate status code
+            return new JsonResult(value)
             {
-                // Log the exception (not shown here) and return a 500 error response
-                return StatusCode(
-                    statusCode: StatusCodes.Status500InternalServerError,
-                    value: $"An error occurred while executing the script: {e}");
-            }
+                StatusCode = statusCode
+            };
         }
     }
 }

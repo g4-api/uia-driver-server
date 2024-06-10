@@ -132,7 +132,7 @@ namespace Uia.DriverServer.Domain
 
             // Return the appropriate status code and attribute value
             return string.IsNullOrEmpty(attribute)
-                ? (StatusCodes.Status404NotFound, string.Empty)
+                ? (StatusCodes.Status200OK, string.Empty)
                 : (StatusCodes.Status200OK, attribute);
         }
 
@@ -153,7 +153,7 @@ namespace Uia.DriverServer.Domain
 
             // Return the appropriate status code and text content
             return string.IsNullOrEmpty(value)
-                ? (StatusCodes.Status404NotFound, string.Empty)
+                ? (StatusCodes.Status200OK, string.Empty)
                 : (StatusCodes.Status200OK, value);
         }
 
