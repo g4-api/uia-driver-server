@@ -41,7 +41,7 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the session.")] string id)
         {
             // Capture the screenshot using the domain's sessions repository
-            var (statusCode, screenshot) = _domain.SessionsRepository.GetScreenshot();
+            var (statusCode, screenshot) = _domain.SessionsRepository.NewScreenshot();
 
             // Prepare the response value containing the screenshot data
             var value = new WebDriverResponseModel

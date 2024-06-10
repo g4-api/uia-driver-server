@@ -3,7 +3,10 @@
  * 
  * RESOURCES
  */
+using Microsoft.AspNetCore.Http;
+
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml.Linq;
 
 using Uia.DriverServer.Models;
@@ -52,6 +55,12 @@ namespace Uia.DriverServer.Domain
         int DeleteSession(string id);
 
         /// <summary>
+        /// Retrieves all active sessions.
+        /// </summary>
+        /// <returns>A tuple containing the status code and a collection of all session models.</returns>
+        (int StatusCode, IEnumerable<UiaSessionModel> Sessions) GetSessions();
+
+        /// <summary>
         /// Retrieves the screenshot of the current window.
         /// </summary>
         /// <returns>
@@ -59,7 +68,7 @@ namespace Uia.DriverServer.Domain
         /// - StatusCode: An HTTP status code indicating the result of the operation.
         /// - Entity: The screenshot as a base64 string.
         /// </returns>
-        (int StatusCode, string Entity) GetScreenshot();
+        (int StatusCode, string Entity) NewScreenshot();
 
         /// <summary>
         /// Gets the session with the specified ID.

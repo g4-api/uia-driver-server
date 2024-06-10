@@ -741,6 +741,26 @@ namespace Uia.DriverServer.Extensions
         }
 
         /// <summary>
+        /// Retrieves the bounding rectangle of the specified UI Automation element.
+        /// </summary>
+        /// <param name="element">The UI Automation element from which to retrieve the bounding rectangle.</param>
+        /// <returns>A <see cref="RectangleModel"/> representing the bounding rectangle of the element.</returns>
+        public static RectangleModel GetRectangle(this IUIAutomationElement element) => new()
+        {
+            // Retrieve the bottom coordinate of the bounding rectangle
+            Bottom = element.CurrentBoundingRectangle.bottom,
+
+            // Retrieve the left coordinate of the bounding rectangle
+            Left = element.CurrentBoundingRectangle.left,
+
+            // Retrieve the right coordinate of the bounding rectangle
+            Right = element.CurrentBoundingRectangle.right,
+
+            // Retrieve the top coordinate of the bounding rectangle
+            Top = element.CurrentBoundingRectangle.top
+        };
+
+        /// <summary>
         /// Retrieves the runtime ID of an element based on the specified XPath.
         /// </summary>
         /// <param name="session">The <see cref="UiaSessionModel"/> containing the document object model.</param>
@@ -1637,7 +1657,7 @@ namespace Uia.DriverServer.Extensions
                 static IUIAutomationCondition GetCondition(UiaSessionModel session)
                 {
                     // Check if the session has a runtime ID.
-                    var isRuntime = session.Runtime?.Any() == true;
+                    var isRuntime = session.Runtime?.Length > 0;
 
                     // Check if the application has a main window handle.
                     var isHandle = session.Application.MainWindowHandle != default;

@@ -89,7 +89,7 @@ builder.Services.AddSingleton<IDictionary<string, UiaSessionModel>>(new Concurre
 builder.Services.AddTransient<IDocumentRepository, DocumentRepository>();
 builder.Services.AddTransient<IElementsRepository, ElementsRepository>();
 builder.Services.AddTransient<IOcrRepository, OcrRepository>();
-builder.Services.AddTransient<ISessionsRepository, SessionRepository>();
+builder.Services.AddTransient<ISessionsRepository, SessionsRepository>();
 builder.Services.AddTransient<IUiaDomain, UiaDomain>();
 #endregion
 

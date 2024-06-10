@@ -114,7 +114,7 @@ namespace Uia.DriverServer.Models
         /// <summary>
         /// Gets or sets the runtime IDs of the session.
         /// </summary>
-        public IEnumerable<int> Runtime { get; set; }
+        public int[] Runtime { get; set; }
 
         /// <summary>
         /// Gets or sets the scale ratio of the session.
