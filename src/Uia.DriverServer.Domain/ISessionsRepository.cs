@@ -3,10 +3,7 @@
  * 
  * RESOURCES
  */
-using Microsoft.AspNetCore.Http;
-
 using System.Collections.Generic;
-using System.Linq;
 using System.Xml.Linq;
 
 using Uia.DriverServer.Models;

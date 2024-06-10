@@ -8,7 +8,9 @@ using CommandBridge;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 
 using System.Collections.Concurrent;
@@ -21,6 +23,7 @@ using Uia.DriverServer.Domain;
 using Uia.DriverServer.Extensions;
 using Uia.DriverServer.Formatters;
 using Uia.DriverServer.Marshals;
+using Uia.DriverServer.Middlewares;
 using Uia.DriverServer.Models;
 
 // Write the application logo to the console
@@ -91,14 +94,17 @@ builder.Services.AddTransient<IElementsRepository, ElementsRepository>();
 builder.Services.AddTransient<IOcrRepository, OcrRepository>();
 builder.Services.AddTransient<ISessionsRepository, SessionsRepository>();
 builder.Services.AddTransient<IUiaDomain, UiaDomain>();
+
+// Register JsonSerializerOptions as a singleton service
+builder.Services.AddSingleton(provider => provider.GetRequiredService<IOptions<JsonOptions>>().Value.JsonSerializerOptions);
 #endregion
 
 #region *** Configuration ***
 // Initialize the application builder
 var app = builder.Build();
 
-// Configure the application to use the developer exception page
-app.UseDeveloperExceptionPage();
+// Configure the application to use the exception handling middleware
+app.UseMiddleware<ErrorHandlingMiddleware>();
 
 // Add the cookie policy
 app.UseCookiePolicy();
