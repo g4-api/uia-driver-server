@@ -709,6 +709,24 @@ namespace Uia.DriverServer.Extensions
         }
 
         /// <summary>
+        /// Gets a clickable point on the UI Automation element based on the specified alignment, and offsets.
+        /// </summary>
+        /// <param name="element">The <see cref="IUIAutomationElement"/> to get the clickable point of.</param>
+        /// <param name="align">The alignment for the clickable point (e.g., TOPLEFT, TOPCENTER, etc.).</param>
+        /// <param name="topOffset">The vertical offset to apply to the clickable point.</param>
+        /// <param name="leftOffset">The horizontal offset to apply to the clickable point.</param>
+        /// <returns>A <see cref="PointModel"/> representing the clickable point on the element.</returns>
+        public static PointModel GetClickablePoint(
+            this IUIAutomationElement element, string align, int topOffset, int leftOffset)
+        {
+            // Create a new RectangleModel from the element's current bounding rectangle.
+            var boundingRectangle = NewRectangleModel(element.CurrentBoundingRectangle);
+
+            // Call the main ExportClickablePoint method with the specified alignment, offsets, and default scale ratio.
+            return ExportClickablePoint(boundingRectangle, align, topOffset, leftOffset, scaleRatio: 1.0D);
+        }
+
+        /// <summary>
         /// Retrieves an <see cref="UiaElementModel"/> from the session by its ID.
         /// </summary>
         /// <param name="session">The <see cref="UiaSessionModel"/> containing the elements.</param>

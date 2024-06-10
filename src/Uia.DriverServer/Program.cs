@@ -45,10 +45,7 @@ builder.Services.AddRouting(i => i.LowercaseUrls = true);
 
 // Add controllers and configure the JSON serialization options
 builder.Services
-    .AddControllers(i =>
-    {
-        i.InputFormatters.Add(new TextPlainInputFormatter());
-    })
+    .AddControllers(i => i.InputFormatters.Add(new TextPlainInputFormatter()))
     .AddJsonOptions(i =>
     {
         i.JsonSerializerOptions.WriteIndented = true;

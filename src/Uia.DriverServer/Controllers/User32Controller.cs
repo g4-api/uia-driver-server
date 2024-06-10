@@ -96,7 +96,7 @@ namespace Uia.DriverServer.Controllers
             [SwaggerRequestBody(Description = "The coordinates where the click should be performed.")] PointModel point)
         {
             // Retrieve the session based on the provided ID
-            var sessionModel = _domain.GetSession(session);
+            var sessionModel = _domain.SessionsRepository.GetSession(session).Session;
 
             // Perform a native click at the specified coordinates using the session's automation
             sessionModel.Automation.SendNativeClick(point.X, point.Y);
@@ -208,7 +208,7 @@ namespace Uia.DriverServer.Controllers
             if (elementModel.UIAutomationElement == null)
             {
                 // Get the clickable point of the element based on the session's scale ratio
-                var point = elementModel.GetClickablePoint(sessionModel.ScaleRatio);
+                var point = elementModel.GetClickablePoint();
 
                 // Send a native double-click to the computed point using the session's automation object
                 sessionModel.Automation.SendNativeClick(point, repeat: 2);
@@ -217,10 +217,7 @@ namespace Uia.DriverServer.Controllers
             {
                 // Send a native double-click to the element using its UIAutomationElement
                 // property and the session's scale ratio
-                elementModel.UIAutomationElement.SendNativeClick(
-                    align: default,
-                    repeat: 2,
-                    scaleRatio: sessionModel.ScaleRatio);
+                elementModel.UIAutomationElement.SendNativeClick(align: default, repeat: 2);
             }
 
             // Return an OK response indicating the double-click action was successful
@@ -308,7 +305,7 @@ namespace Uia.DriverServer.Controllers
             [SwaggerRequestBody(Description = "The data containing the keystrokes to send, including the 'text' key with the keystrokes to send.")] TextInputModel textData)
         {
             // Get the session model using the domain's session repository
-            var sessionModel = _domain.GetSession(session);
+            var sessionModel = _domain.SessionsRepository.GetSession(session).Session;
 
             // Convert the text value to input commands
             var inputs = $"{textData.Text}".ConvertToInputs().ToArray();
@@ -340,7 +337,7 @@ namespace Uia.DriverServer.Controllers
             var wScans = keyScansData.ScanCodes.Select(i => i.GetScanCode());
 
             // Get the session model using the domain's session repository
-            var sessionModel = _domain.GetSession(session);
+            var sessionModel = _domain.SessionsRepository.GetSession(session).Session;
 
             // Send the key scan codes to the session
             foreach (var wScan in wScans)
@@ -371,7 +368,7 @@ namespace Uia.DriverServer.Controllers
             [SwaggerRequestBody(Description = "The data containing the modifier key and the main key to send.")] ModifiedKeyInputModel inputData)
         {
             // Get the session model using the domain's session repository
-            var sessionModel = _domain.GetSession(session);
+            var sessionModel = _domain.SessionsRepository.GetSession(session).Session;
 
             // Send the modified key using the session's automation service
             sessionModel.Automation.SendModifiedKey($"{inputData.Modifier}", $"{inputData.Key}");
@@ -429,7 +426,7 @@ namespace Uia.DriverServer.Controllers
             [SwaggerRequestBody(Description = "The coordinates to set the mouse position to.")] PointModel point)
         {
             // Retrieve the session based on the provided ID
-            var session = _domain.GetSession(s);
+            var session = _domain.SessionsRepository.GetSession(s).Session;
 
             // Set the cursor position using the session's automation
             session.Automation.SetCursorPosition(point.X, point.Y);
@@ -456,7 +453,7 @@ namespace Uia.DriverServer.Controllers
             [SwaggerRequestBody(Description = "The data containing alignment and offset information.")] MousePositionInputModel poistionData)
         {
             // Retrieve the session based on the provided ID
-            var sessionModel = _domain.GetSession(session);
+            var sessionModel = _domain.SessionsRepository.GetSession(session).Session;
 
             // Retrieve the element based on the provided session ID and element ID
             var elementModel = _domain.ElementsRepository.GetElement(session, element);
@@ -472,13 +469,10 @@ namespace Uia.DriverServer.Controllers
             // Determine left offset of the mouse pointer (default: 1)
             var leftOffset = poistionData.OffsetX;
 
-            // Retrieve the scale ratio of the session
-            var scaleRatio = sessionModel.ScaleRatio;
-
             // Get the clickable point on the element with the specified alignment and offsets
             var point = elementModel
                 .UIAutomationElement
-                .GetClickablePoint(alignment, topOffset, leftOffset, scaleRatio);
+                .GetClickablePoint(alignment, topOffset, leftOffset);
 
             // Set the cursor position to the calculated point
             sessionModel.Automation.SetCursorPosition(point.X, point.Y);
