@@ -236,127 +236,6 @@ namespace Uia.DriverServer.Domain
             return sessionModel.Elements[element];
         }
 
-        // Creates a new UI Automation condition for the control type based on the specified path segment.
-        private static IUIAutomationCondition NewControlTypeCondition(CUIAutomation8 session, string pathSegment)
-        {
-            // Define the flags, binding flags, comparison type, property ID, and condition flags
-            const PropertyConditionFlags ConditionFlags = PropertyConditionFlags.PropertyConditionFlags_None;
-            const BindingFlags BindingFlags = BindingFlags.Public | BindingFlags.Static;
-            const StringComparison Compare = StringComparison.OrdinalIgnoreCase;
-            const int propertyId = UIA_PropertyIds.UIA_ControlTypePropertyId;
-
-            // Helper method to get the control type ID from the property name
-            static int GetControlTypeId(string propertyName)
-            {
-                // Get all fields from the UIA_ControlTypeIds class
-                var fields = typeof(UIA_ControlTypeIds).GetFields(BindingFlags);
-
-                // Find the field with the specified property name and return the control type ID
-                var id = Array.Find(fields, i => i.Name.Equals($"UIA_{propertyName}ControlTypeId", Compare))?.GetValue(null);
-
-                // Return the control type ID as an integer or -1 if not found
-                return id == default ? -1 : (int)id;
-            }
-
-            // Ensure the path segment has a bracket pair
-            pathSegment = pathSegment.LastIndexOf('[') == -1 ? $"{pathSegment}[]" : pathSegment;
-
-            // Extract the type segment from the path segment using a regular expression
-            var typeSegment = Regex.Match(input: pathSegment, pattern: @"(?<=((\/)+)?)\w+(?=\)?\[)").Value;
-
-            // Determine if the condition should match a substring
-            var conditionFlag = typeSegment.StartsWith("partial", Compare)
-                ? PropertyConditionFlags.PropertyConditionFlags_MatchSubstring
-                : ConditionFlags;
-
-            // Remove "partial" from the type segment if present
-            typeSegment = typeSegment.Replace("partial", string.Empty, Compare);
-
-            // Get the control type ID from the type segment
-            var controlTypeId = GetControlTypeId(typeSegment);
-
-            // If the type segment is empty, return default
-            if (string.IsNullOrEmpty(typeSegment))
-            {
-                return default;
-            }
-
-            // Create and return the property condition with the specified flags
-            return session.CreatePropertyConditionEx(propertyId, controlTypeId, conditionFlag);
-        }
-
-        // TODO: replace with fully functional logical parser.
-        // Creates a new UI Automation condition for properties based on the specified path segment.
-        private static IUIAutomationCondition NewPropertyCondition(CUIAutomation8 session, string pathSegment)
-        {
-            const PropertyConditionFlags ConditionFlags = PropertyConditionFlags.PropertyConditionFlags_None;
-            const BindingFlags BindingFlags = BindingFlags.Public | BindingFlags.Static;
-            const StringComparison Compare = StringComparison.OrdinalIgnoreCase;
-
-            // Helper method to get the property ID from the property name
-            static int GetPropertyId(string propertyName)
-            {
-                // Get all fields from the UIA_PropertyIds class
-                var fields = typeof(UIA_PropertyIds).GetFields(BindingFlags);
-
-                // Find the field with the specified property name and return the property ID
-                var id = Array.Find(fields, i => i.Name.Equals($"UIA_{propertyName}PropertyId", Compare))?.GetValue(null);
-
-                // Return the property ID as an integer or -1 if not found
-                return id == default ? -1 : (int)id;
-            }
-
-            // List to store the conditions
-            var conditions = new List<IUIAutomationCondition>();
-
-            // Extract the segments from the path segment
-            var segments = Regex.Match(pathSegment, @"(?<=\[).*(?=\])").Value.Split(" and ").Select(i => $"[{i}]");
-
-            // Iterate through each segment to create conditions
-            foreach (var segment in segments)
-            {
-                // Extract the type segment from the segment
-                var typeSegment = Regex.Match(input: segment, pattern: @"(?<=@)\w+").Value;
-
-                // Determine if the condition should match a substring
-                var conditionFlag = typeSegment.StartsWith("partial", Compare)
-                    ? PropertyConditionFlags.PropertyConditionFlags_MatchSubstring
-                    : ConditionFlags;
-
-                // Remove "partial" from the type segment if present
-                typeSegment = typeSegment.Replace("partial", string.Empty, Compare);
-
-                // Extract the value segment from the segment
-                var valueSegment = Regex.Match(input: segment, pattern: @"(?<=\[@\w+=('|"")).*(?=('|"")])").Value;
-
-                // Get the property ID from the type segment
-                var propertyId = GetPropertyId(typeSegment);
-
-                // If the property ID is invalid, continue to the next segment
-                if (propertyId == -1)
-                {
-                    continue;
-                }
-
-                // Create the property condition with the specified flags
-                var condition = session.CreatePropertyConditionEx(propertyId, valueSegment, conditionFlag);
-
-                // Add the condition to the list
-                conditions.Add(condition);
-            }
-
-            // If no conditions were created, return default
-            if (conditions.Count == 0)
-            {
-                return default;
-            }
-
-            // If only one condition was created, return it; otherwise, create and return a combined condition
-            return conditions.Count == 1
-                ? conditions[0]
-                : session.CreateAndConditionFromArray(conditions.ToArray());
-        }
-
 #pragma warning disable IDE0051, S3011 // These methods are used via reflection to handle specific locator segment types.
         // Finds an element by a specified segment in the UI Automation tree.
         private UiaElementModel FindElementBySegment(CUIAutomation8 session, IUIAutomationElement rootElement, string pathSegment)
@@ -477,12 +356,6 @@ namespace Uia.DriverServer.Domain
         [UiaSegmentType(type: "Uia")]
         private static UiaElementModel ByUia(SegmentDataModel segmentData)
         {
-            // Get the control type condition based on the path segment
-            var controlTypeCondition = NewControlTypeCondition(segmentData.Session, segmentData.PathSegment);
-
-            // Get the property condition based on the path segment
-            var propertyCondition = NewPropertyCondition(segmentData.Session, segmentData.PathSegment);
-
             // Determine if the search scope is descendants or children based on the path segment
             var isDescendants = segmentData.PathSegment.StartsWith('/');
 
@@ -491,28 +364,7 @@ namespace Uia.DriverServer.Domain
                 : TreeScope.TreeScope_Children;
 
             // Initialize the condition object
-            IUIAutomationCondition condition;
-
-            // Combine control type and property conditions if both are present
-            if (controlTypeCondition == default && propertyCondition != default)
-            {
-                condition = propertyCondition;
-            }
-            // Use control type condition if property condition is not present
-            else if (controlTypeCondition != default && propertyCondition == default)
-            {
-                condition = controlTypeCondition;
-            }
-            // Combine control type and property conditions if both are present
-            else if (controlTypeCondition != default)
-            {
-                condition = segmentData.Session.CreateAndCondition(controlTypeCondition, propertyCondition);
-            }
-            // Return default if no conditions are met
-            else
-            {
-                return default;
-            }
+            IUIAutomationCondition condition = XpathParser.ConvertToCondition(segmentData.PathSegment);
 
             // Extract the index value from the path segment
             var indexValue = Regex.Match(input: segmentData.PathSegment, pattern: @"(?<=\[)\d+(?=])").Value;
