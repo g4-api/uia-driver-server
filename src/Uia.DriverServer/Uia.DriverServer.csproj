@@ -17,10 +17,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Content Remove="appsettings.json" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<COMReference Include="UIAutomationClient">
 			<WrapperTool>tlbimp</WrapperTool>
 			<VersionMinor>0</VersionMinor>
@@ -30,12 +26,6 @@
 			<Isolated>false</Isolated>
 			<EmbedInteropTypes>False</EmbedInteropTypes>
 		</COMReference>
-	</ItemGroup>
-
-	<ItemGroup>
-	  <None Include="appsettings.json">
-	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	  </None>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -49,13 +39,17 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\Uia.DriverServer.Domain\Uia.DriverServer.Domain.csproj" />
+		<ProjectReference Include="..\Uia.DriverServer.Domain\Uia.DriverServer.Domain.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Update="TrainData\eng.traineddata">
-	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	  </None>
+		<None Include="appsettings.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+
+		<None Update="TrainData\eng.traineddata">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 
 </Project>
