@@ -17,7 +17,18 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uia.DriverServer.Marshals",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uia.DriverServer.Converters", "Uia.DriverServer.Converters\Uia.DriverServer.Converters.csproj", "{3203018F-EEF9-4592-A1DF-956EAB90F7A2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uia.DriverServer.Formatters", "Uia.DriverServer.Formatters\Uia.DriverServer.Formatters.csproj", "{E1D9C2C5-72AC-4FE8-BAF0-987A393F9049}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uia.DriverServer.Formatters", "Uia.DriverServer.Formatters\Uia.DriverServer.Formatters.csproj", "{E1D9C2C5-72AC-4FE8-BAF0-987A393F9049}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".git", ".git", "{0D3CEF05-77E3-4E55-8DB3-1B3E6BA1B69D}"
+	ProjectSection(SolutionItems) = preProject
+		..\.gitignore = ..\.gitignore
+		..\LICENSE = ..\LICENSE
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".documentation", ".documentation", "{F36057B2-9E42-43A2-9B2D-185D7F08E2C7}"
+	ProjectSection(SolutionItems) = preProject
+		..\README.md = ..\README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
