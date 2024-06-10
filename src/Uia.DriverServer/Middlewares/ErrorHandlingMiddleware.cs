@@ -13,15 +13,23 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
+using Uia.DriverServer.Domain;
+using Uia.DriverServer.Models;
+
 namespace Uia.DriverServer.Middlewares
 {
     /// <summary>
     /// Middleware to handle exceptions in the HTTP request pipeline.
     /// </summary>
-    /// <param name="next">The next middleware in the pipeline.</param>
+    /// <param name="uiaDomain">The UI automation domain.</param>
     /// <param name="logger">The logger instance for logging information.</param>
     /// <param name="jsonOptions">The JSON serializer options.</param>
-    public class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger, JsonSerializerOptions jsonOptions)
+    /// <param name="next">The next middleware in the pipeline.</param>
+    public class ErrorHandlingMiddleware(
+        IUiaDomain uiaDomain,
+        ILogger<ErrorHandlingMiddleware> logger,
+        JsonSerializerOptions jsonOptions,
+        RequestDelegate next)
     {
         // Initialize the next middleware in the pipeline to invoke after
         // handling exceptions in the current middleware class instance
@@ -33,6 +41,10 @@ namespace Uia.DriverServer.Middlewares
         // Initialize the JSON serializer options for the middleware to use
         // when serializing responses to JSON format
         private readonly JsonSerializerOptions _jsonOptions = jsonOptions;
+
+        // Initialize the UIA domain interface for the middleware to interact
+        // with the domain layer services and repositories
+        private readonly IUiaDomain _uiaDomain = uiaDomain;
 
         /// <summary>
         /// Middleware to handle exceptions and customize responses in the HTTP request pipeline.
@@ -66,20 +78,37 @@ namespace Uia.DriverServer.Middlewares
                 // Check if the response body contains model validation errors
                 var isModelValidation = responseBody.Contains("errors", StringComparison.OrdinalIgnoreCase);
 
+                // Retrieve session ID from the route
+                var session = context.Request.RouteValues["session"]?.ToString();
+
+                // Check if the session is invalid
+                if (session != null)
+                {
+                    // Handle invalid session errors and return an appropriate response
+                    await HandleInvalidSession(context, _uiaDomain, session, _jsonOptions);
+
+                    // Log the occurrence of an invalid session error
+                    _logger.LogError("Invalid session ID: {Session}", session);
+
+                    // Return early
+                    return;
+                }
+
                 // Check for BadRequest status and handle it
                 if (context.Response.StatusCode == (int)HttpStatusCode.BadRequest && isModelValidation)
                 {
                     // Handle the BadRequest response and return a customized response
-                    await HandleBadRequestAsync(context, _jsonOptions, responseBody);
+                    await HandleBadRequestAsync(context, responseBody, _jsonOptions);
 
                     // Log the BadRequest response handled by the middleware class instance logger instance for information purposes only
                     _logger.LogError("A BadRequest response was handled. Response Body:\n{ResponseBody}", responseBody);
+
+                    // Return early
+                    return;
                 }
-                else
-                {
-                    // Write the original response body back to the context response
-                    await context.Response.Body.WriteAsync(memoryStream.ToArray());
-                }
+
+                // Write the original response body back to the context response
+                await context.Response.Body.WriteAsync(memoryStream.ToArray());
             }
             catch (Exception e)
             {
@@ -92,7 +121,7 @@ namespace Uia.DriverServer.Middlewares
         }
 
         // Handles BadRequest responses by customizing the response body.
-        private static Task HandleBadRequestAsync(HttpContext context, JsonSerializerOptions jsonOptions, string responseBody)
+        private static Task HandleBadRequestAsync(HttpContext context, string responseBody, JsonSerializerOptions jsonOptions)
         {
             // Formats the data from the response body, attempting to parse it as JSON
             static object FormatData(string responseBody)
@@ -159,6 +188,34 @@ namespace Uia.DriverServer.Middlewares
 
             // Serialize the response object to JSON and write it to the response body
             return context.Response.WriteAsync(jsonResponse);
+        }
+
+        // Handles invalid session errors and returns an appropriate JSON response.
+        private static async Task HandleInvalidSession(HttpContext context, IUiaDomain domain, string session, JsonSerializerOptions jsonOptions)
+        {
+            // Get the session status code from the domain's session repository
+            var statusCode = domain.SessionsRepository.GetSession(session).StatusCode;
+
+            // If the session status code is not 404 (Not Found), return early
+            if (statusCode != StatusCodes.Status404NotFound)
+            {
+                return;
+            }
+
+            // Create a response indicating an invalid session error
+            var response = WebDriverResponseModel.NewInvalidSessionResponse(session);
+
+            // Set the response status code to 404 (Not Found)
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+
+            // Serialize the response object to a JSON string
+            var jsonResponse = JsonSerializer.Serialize(response, jsonOptions);
+
+            // Clear the current response
+            context.Response.Clear();
+
+            // Write the serialized JSON response to the response body
+            await context.Response.WriteAsync(jsonResponse);
         }
     }
 }

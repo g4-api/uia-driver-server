@@ -4,6 +4,7 @@
  * RESSOURCES
  * https://www.w3.org/TR/webdriver/#contexts
  */
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 using Swashbuckle.AspNetCore.Annotations;
@@ -32,10 +33,10 @@ namespace Uia.DriverServer.Controllers
         // Initialize the UIA domain interface
         private readonly IUiaDomain _domain = domain;
 
-        // POST /wd/hub/session/{id}/window/maximize
-        // POST /session/{id}/window/maximize
+        // POST /wd/hub/session/{session}/window/maximize
+        // POST /session/{session}/window/maximize
         [HttpPost]
-        [Route("session/{id}/window/maximize")]
+        [Route("session/{session}/window/maximize")]
         [SwaggerOperation(
             Summary = "Maximizes the window for the specified session.",
             Description = "Sets the window state to maximized for the given session id.",
@@ -44,18 +45,17 @@ namespace Uia.DriverServer.Controllers
         [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
         [SwaggerResponse(500, "Internal server error. An unexpected error occurred while attempting to maximize the window.")]
         public IActionResult InvokeWindowMaximize(
-            [SwaggerParameter(Description = "The unique identifier for the session in which the window will be maximized.")] string id)
+            [SwaggerParameter(Description = "The unique identifier for the session in which the window will be maximized.")] string session)
         {
             // Set the window state to maximized for the given session id.
-            var session = _domain
+            var (statusCode, rectangle) = _domain
                 .SessionsRepository
-                .SetWindowVisualState(id, WindowVisualState.WindowVisualState_Maximized);
+                .SetWindowVisualState(session, WindowVisualState.WindowVisualState_Maximized);
 
             // Return the result as JSON with the appropriate status code and content type.
-            return new JsonResult(value: session.Entity)
+            return new JsonResult(new WebDriverResponseModel(session, rectangle))
             {
-                StatusCode = session.StatusCode,
-                ContentType = MediaTypeNames.Application.Json
+                StatusCode = statusCode
             };
         }
     }

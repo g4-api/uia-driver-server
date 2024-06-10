@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 
 using Swashbuckle.AspNetCore.Annotations;
 
-using System;
 using System.Net.Mime;
 
 using Uia.DriverServer.Domain;
@@ -31,10 +30,10 @@ namespace Uia.DriverServer.Controllers
         // Initialize the UIA domain interface
         private readonly IUiaDomain _domain = domain;
 
-        // DELETE wd/hub/session/{id}
-        // DELETE session/{id}
+        // DELETE wd/hub/session/{session}
+        // DELETE session/{session}
         [HttpDelete]
-        [Route("session/{id}")]
+        [Route("session/{session}")]
         [SwaggerOperation(
             Summary = "Deletes the specified session.",
             Description = "Removes the session identified by the given session ID from the system.",
@@ -43,10 +42,10 @@ namespace Uia.DriverServer.Controllers
         [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
         [SwaggerResponse(500, "Internal server error. An error occurred while attempting to delete the session.")]
         public IActionResult DeleteSession(
-            [FromRoute][SwaggerParameter(Description = "The unique identifier for the session to be deleted.")] string id)
+            [FromRoute][SwaggerParameter(Description = "The unique identifier for the session to be deleted.")] string session)
         {
             // Delete the session using the domain's sessions repository
-            var statusCode = _domain.SessionsRepository.DeleteSession(id);
+            var statusCode = _domain.SessionsRepository.DeleteSession(session);
 
             // Return the status code result indicating the outcome of the delete operation
             return new StatusCodeResult(statusCode);
@@ -81,10 +80,10 @@ namespace Uia.DriverServer.Controllers
             return new StatusCodeResult(StatusCodes.Status204NoContent);
         }
 
-        // GET wd/hub/session/{id}
-        // GET session/{id}
+        // GET wd/hub/session/{session}
+        // GET session/{session}
         [HttpGet]
-        [Route("session/{id}")]
+        [Route("session/{session}")]
         [SwaggerOperation(
             Summary = "Gets the Document Object Model (DOM) for the specified session.",
             Description = "Retrieves the DOM for the session identified by the given session ID.",
@@ -93,31 +92,23 @@ namespace Uia.DriverServer.Controllers
         [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
         [SwaggerResponse(500, "Internal server error. An error occurred while retrieving the DOM.")]
         public IActionResult GetDocumentObjectModel(
-            [SwaggerParameter(Description = "The unique identifier for the session.")][FromRoute] string id)
+            [SwaggerParameter(Description = "The unique identifier for the session.")][FromRoute] string session)
         {
-            try
-            {
-                // Retrieve the DOM for the specified session
-                var (statusCode, objectModel) = _domain.SessionsRepository.NewDocumentObjectModel(id);
+            // Retrieve the DOM for the specified session
+            var (statusCode, objectModel) = _domain.SessionsRepository.NewDocumentObjectModel(session);
 
-                // Prepare the content based on the status code
-                var content = statusCode == StatusCodes.Status200OK
-                    ? objectModel.ToString()
-                    : $"<Desktop><Error>Session with ID {id} not found.</Error></Desktop>";
+            // Prepare the content based on the status code
+            var content = statusCode == StatusCodes.Status200OK
+                ? objectModel.ToString()
+                : $"<Desktop><Error>Session with ID {session} not found.</Error></Desktop>";
 
-                // Return the result as XML content with the appropriate status code
-                return new ContentResult
-                {
-                    Content = content,
-                    ContentType = MediaTypeNames.Application.Xml,
-                    StatusCode = statusCode
-                };
-            }
-            catch (Exception e)
+            // Return the result as XML content with the appropriate status code
+            return new ContentResult
             {
-                // Log the exception (not shown here) and return a 500 error response
-                return StatusCode(StatusCodes.Status500InternalServerError, $"{e}");
-            }
+                Content = content,
+                ContentType = MediaTypeNames.Application.Xml,
+                StatusCode = statusCode
+            };
         }
 
         // GET wd/hub/status
@@ -133,32 +124,24 @@ namespace Uia.DriverServer.Controllers
         [Produces(MediaTypeNames.Application.Json)]
         public IActionResult GetStatus()
         {
-            try
+            // Retrieve the current session keys
+            var sessions = _domain.SessionsRepository.Sessions.Keys;
+
+            // Determine if the sessions stack is full
+            var isFull = sessions.Count > 0;
+
+            // Prepare the status message based on the current session count
+            var message = isFull
+                ? "Current sessions stack is full, the maximum allowed sessions number is 1"
+                : "Sessions slots available, can create new session";
+
+            // Return the status as a JSON result
+            return new JsonResult(new SessionStatusModel
             {
-                // Retrieve the current session keys
-                var sessions = _domain.SessionsRepository.Sessions.Keys;
-
-                // Determine if the sessions stack is full
-                var isFull = sessions.Count > 0;
-
-                // Prepare the status message based on the current session count
-                var message = isFull
-                    ? "Current sessions stack is full, the maximum allowed sessions number is 1"
-                    : "Sessions slots available, can create new session";
-
-                // Return the status as a JSON result
-                return new JsonResult(new SessionStatusModel
-                {
-                    Message = message,
-                    Ready = !isFull,
-                    Sessions = sessions
-                });
-            }
-            catch (Exception e)
-            {
-                // Log the exception (not shown here) and return a 500 error response
-                return StatusCode(StatusCodes.Status500InternalServerError, $"{e}");
-            }
+                Message = message,
+                Ready = !isFull,
+                Sessions = sessions
+            });
         }
 
         // POST wd/hub/session

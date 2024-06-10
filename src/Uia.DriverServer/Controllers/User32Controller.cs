@@ -49,30 +49,23 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the element to be clicked.")] string element)
         {
             // Get the session status code
-            var (statusCode, sessionModel) = _domain.SessionsRepository.GetSession(id: session);
-
-            // Check if the session status code is not OK
-            if (statusCode != StatusCodes.Status200OK)
-            {
-                // Return the status code result if the session is not found
-                return new StatusCodeResult(statusCode);
-            }
+            var sessionModel = _domain.SessionsRepository.GetSession(id: session).Session;
 
             // Retrieve the element using the domain's elements repository
             var elementModel = _domain.ElementsRepository.GetElement(session, element);
 
-            // Check if the element was not found
-            if (elementModel == null)
+            // Check if the element is stale
+            if (elementModel == default)
             {
-                // Return a not found response if the element was not found
-                return NotFound();
+                // Return a not found response if the element is stale
+                return NotFound(WebDriverResponseModel.NewStaleReferenceResponse(session));
             }
 
             // Check if the UIAutomationElement property of the element model is null
             if (elementModel.UIAutomationElement == null)
             {
                 // Get the clickable point of the element based on the session's scale ratio
-                var point = elementModel.GetClickablePoint(sessionModel.ScaleRatio);
+                var point = elementModel.GetClickablePoint();
 
                 // Send a native click to the computed point using the session's automation object
                 sessionModel.Automation.SendNativeClick(point);
@@ -80,7 +73,7 @@ namespace Uia.DriverServer.Controllers
             else
             {
                 // Send a native click to the element using its UIAutomationElement property and the session's scale ratio
-                elementModel.UIAutomationElement.SendNativeClick(sessionModel.ScaleRatio);
+                elementModel.UIAutomationElement.SendNativeClick();
             }
 
             // Return an OK response indicating the click action was successful
@@ -98,28 +91,18 @@ namespace Uia.DriverServer.Controllers
         [SwaggerResponse(200, "Native click performed successfully.")]
         [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
         [SwaggerResponse(500, "Internal server error. An error occurred while attempting to perform the native click.")]
-        public IActionResult NativeClick(
+        public IActionResult InvokeNativeClick(
             [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
             [SwaggerRequestBody(Description = "The coordinates where the click should be performed.")] PointModel point)
         {
-            try
-            {
-                // Retrieve the session based on the provided ID
-                var sessionModel = _domain.GetSession(session);
+            // Retrieve the session based on the provided ID
+            var sessionModel = _domain.GetSession(session);
 
-                // Perform a native click at the specified coordinates using the session's automation
-                sessionModel.Automation.SendNativeClick(point.X, point.Y);
+            // Perform a native click at the specified coordinates using the session's automation
+            sessionModel.Automation.SendNativeClick(point.X, point.Y);
 
-                // Return an OK response indicating the native click was performed successfully
-                return Ok();
-            }
-            catch (Exception e)
-            {
-                // Log the exception (not shown here) and return a 500 error response
-                return StatusCode(
-                    statusCode: StatusCodes.Status500InternalServerError,
-                    value: $"An error occurred while attempting to perform the native click: {e}");
-            }
+            // Return an OK response indicating the native click was performed successfully
+            return Ok();
         }
 
         // POST wd/hub/user32/session/{session}/element/{element}/copy
@@ -138,14 +121,7 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the element to be copied.")] string element)
         {
             // Get the session status code
-            var (statusCode, sessionModel) = _domain.SessionsRepository.GetSession(id: session);
-
-            // Check if the session status code is not OK
-            if (statusCode != StatusCodes.Status200OK)
-            {
-                // Return the status code result if the session is not found
-                return new StatusCodeResult(statusCode);
-            }
+            var sessionModel = _domain.SessionsRepository.GetSession(id: session).Session;
 
             // Retrieve the element using the domain's elements repository
             var elementModel = _domain.ElementsRepository.GetElement(session, element);
@@ -191,14 +167,7 @@ namespace Uia.DriverServer.Controllers
             [SwaggerRequestBody(Description = "The coordinates where the double-click should be performed.")] PointModel point)
         {
             // Get the session status code
-            var (statusCode, sessionModel) = _domain.SessionsRepository.GetSession(id: session);
-
-            // Check if the session status code is not OK
-            if (statusCode != StatusCodes.Status200OK)
-            {
-                // Return the status code result if the session is not found
-                return new StatusCodeResult(statusCode);
-            }
+            var sessionModel = _domain.SessionsRepository.GetSession(id: session).Session;
 
             // Send a native double-click to the specified coordinates using the session's automation object
             sessionModel.Automation.SendNativeClick(point, repeat: 2);
@@ -223,14 +192,7 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the element to be double-clicked.")] string element)
         {
             // Get the session status code and model
-            var (statusCode, sessionModel) = _domain.SessionsRepository.GetSession(id: session);
-
-            // Check if the session status code is not OK
-            if (statusCode != StatusCodes.Status200OK)
-            {
-                // Return the status code result if the session is not found
-                return new StatusCodeResult(statusCode);
-            }
+            var sessionModel = _domain.SessionsRepository.GetSession(id: session).Session;
 
             // Retrieve the element using the domain's elements repository
             var elementModel = _domain.ElementsRepository.GetElement(session, element);
@@ -280,14 +242,7 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the session.")] string session)
         {
             // Get the session status code and model
-            var (statusCode, sessionModel) = _domain.SessionsRepository.GetSession(id: session);
-
-            // Check if the session status code is not OK
-            if (statusCode != StatusCodes.Status200OK)
-            {
-                // Return the status code result if the session is not found
-                return new StatusCodeResult(statusCode);
-            }
+            var sessionModel = _domain.SessionsRepository.GetSession(id: session).Session;
 
             try
             {
@@ -319,31 +274,21 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
             [SwaggerParameter(Description = "The unique identifier for the element to be selected.")] string element)
         {
-            try
+            // Retrieve the element based on the provided session ID and element ID
+            var elementModel = _domain.ElementsRepository.GetElement(session, element);
+
+            // Check if the element was not found
+            if (elementModel == null || elementModel.UIAutomationElement == null)
             {
-                // Retrieve the element based on the provided session ID and element ID
-                var elementModel = _domain.ElementsRepository.GetElement(session, element);
-
-                // Check if the element was not found
-                if (elementModel == null || elementModel.UIAutomationElement == null)
-                {
-                    // Return a not found response if the element was not found
-                    return NotFound("Element or session not found.");
-                }
-
-                // Select the UI automation element
-                elementModel.UIAutomationElement.Select();
-
-                // Return an OK response indicating the select action was successful
-                return Ok();
+                // Return a not found response if the element was not found
+                return NotFound("Element or session not found.");
             }
-            catch (Exception e)
-            {
-                // Log the exception (not shown here) and return a 500 error response
-                return StatusCode(
-                    statusCode: StatusCodes.Status500InternalServerError,
-                    value: $"An error occurred while attempting to select the element: {e}");
-            }
+
+            // Select the UI automation element
+            elementModel.UIAutomationElement.Select();
+
+            // Return an OK response indicating the select action was successful
+            return Ok();
         }
 
         // POST wd/hub/user32/session/{session}/value
@@ -368,18 +313,8 @@ namespace Uia.DriverServer.Controllers
             // Convert the text value to input commands
             var inputs = $"{textData.Text}".ConvertToInputs().ToArray();
 
-            try
-            {
-                // Send the input commands using the session's automation service
-                sessionModel.Automation.SendInputs(inputs);
-            }
-            catch (Exception e)
-            {
-                // Log the exception (not shown here) and return a 500 error response
-                return StatusCode(
-                    statusCode: StatusCodes.Status500InternalServerError,
-                    value: $"An error occurred while attempting to send the keystrokes: {e}");
-            }
+            // Send the input commands using the session's automation service
+            sessionModel.Automation.SendInputs(inputs);
 
             // Return an OK response indicating the keystrokes were sent successfully
             return Ok();
@@ -407,22 +342,12 @@ namespace Uia.DriverServer.Controllers
             // Get the session model using the domain's session repository
             var sessionModel = _domain.GetSession(session);
 
-            try
+            // Send the key scan codes to the session
+            foreach (var wScan in wScans)
             {
-                // Send the key scan codes to the session
-                foreach (var wScan in wScans)
-                {
-                    var down = wScan.ConvertToInput(KeyEvent.KeyDown | KeyEvent.Scancode);
-                    var up = wScan.ConvertToInput(KeyEvent.KeyUp | KeyEvent.Scancode);
-                    sessionModel.Automation.SendInputs(down, up);
-                }
-            }
-            catch (Exception e)
-            {
-                // Log the exception (not shown here) and return a 500 error response
-                return StatusCode(
-                    statusCode: StatusCodes.Status500InternalServerError,
-                    value: $"An error occurred while attempting to send the key scan codes: {e}");
+                var down = wScan.ConvertToInput(KeyEvent.KeyDown | KeyEvent.Scancode);
+                var up = wScan.ConvertToInput(KeyEvent.KeyUp | KeyEvent.Scancode);
+                sessionModel.Automation.SendInputs(down, up);
             }
 
             // Return an OK response indicating the key scan codes were sent successfully
@@ -445,21 +370,11 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
             [SwaggerRequestBody(Description = "The data containing the modifier key and the main key to send.")] ModifiedKeyInputModel inputData)
         {
-            try
-            {
-                // Get the session model using the domain's session repository
-                var sessionModel = _domain.GetSession(session);
+            // Get the session model using the domain's session repository
+            var sessionModel = _domain.GetSession(session);
 
-                // Send the modified key using the session's automation service
-                sessionModel.Automation.SendModifiedKey($"{inputData.Modifier}", $"{inputData.Key}");
-            }
-            catch (Exception e)
-            {
-                // Log the exception (not shown here) and return a 500 error response
-                return StatusCode(
-                    statusCode: StatusCodes.Status500InternalServerError,
-                    value: $"An error occurred while attempting to send the modified key: {e}");
-            }
+            // Send the modified key using the session's automation service
+            sessionModel.Automation.SendModifiedKey($"{inputData.Modifier}", $"{inputData.Key}");
 
             // Return an OK response indicating the modified key was sent successfully
             return Ok();
@@ -480,31 +395,21 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
             [SwaggerParameter(Description = "The unique identifier for the element to set focus on.")] string element)
         {
-            try
+            // Retrieve the element based on the provided session ID and element ID
+            var elementModel = _domain.ElementsRepository.GetElement(session, element);
+
+            // Check if the element was not found
+            if (elementModel == null || elementModel.UIAutomationElement == null)
             {
-                // Retrieve the element based on the provided session ID and element ID
-                var elementModel = _domain.ElementsRepository.GetElement(session, element);
-
-                // Check if the element was not found
-                if (elementModel == null || elementModel.UIAutomationElement == null)
-                {
-                    // Return a not found response if the element was not found
-                    return NotFound("Element or session not found.");
-                }
-
-                // Set focus on the UI automation element
-                elementModel.UIAutomationElement.SetFocus();
-
-                // Return an OK response indicating the focus action was successful
-                return Ok();
+                // Return a not found response if the element was not found
+                return NotFound("Element or session not found.");
             }
-            catch (Exception e)
-            {
-                // Log the exception (not shown here) and return a 500 error response
-                return StatusCode(
-                    statusCode: StatusCodes.Status500InternalServerError,
-                    value: $"An error occurred while attempting to set focus on the element: {e}");
-            }
+
+            // Set focus on the UI automation element
+            elementModel.UIAutomationElement.SetFocus();
+
+            // Return an OK response indicating the focus action was successful
+            return Ok();
         }
 
         // POST wd/hub/user32/session/{s}/mouse/move
@@ -523,24 +428,14 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the session.")] string s,
             [SwaggerRequestBody(Description = "The coordinates to set the mouse position to.")] PointModel point)
         {
-            try
-            {
-                // Retrieve the session based on the provided ID
-                var session = _domain.GetSession(s);
+            // Retrieve the session based on the provided ID
+            var session = _domain.GetSession(s);
 
-                // Set the cursor position using the session's automation
-                session.Automation.SetCursorPosition(point.X, point.Y);
+            // Set the cursor position using the session's automation
+            session.Automation.SetCursorPosition(point.X, point.Y);
 
-                // Return an OK response indicating the mouse position was set successfully
-                return Ok();
-            }
-            catch (Exception e)
-            {
-                // Log the exception (not shown here) and return a 500 error response
-                return StatusCode(
-                    statusCode: StatusCodes.Status500InternalServerError,
-                    value: $"An error occurred while attempting to set the mouse position: {e}");
-            }
+            // Return an OK response indicating the mouse position was set successfully
+            return Ok();
         }
 
         // POST wd/hub/user32/session/{session}/element/{element}/mouse/move
@@ -560,49 +455,39 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the element.")] string element,
             [SwaggerRequestBody(Description = "The data containing alignment and offset information.")] MousePositionInputModel poistionData)
         {
-            try
+            // Retrieve the session based on the provided ID
+            var sessionModel = _domain.GetSession(session);
+
+            // Retrieve the element based on the provided session ID and element ID
+            var elementModel = _domain.ElementsRepository.GetElement(session, element);
+
+            // Determine alignment of the mouse pointer (default: TopLeft)
+            var alignment = string.IsNullOrEmpty(poistionData.Alignment)
+                ? "TopLeft"
+                : poistionData.Alignment;
+
+            // Determine top offset of the mouse pointer (default: 1)
+            var topOffset = poistionData.OffsetY;
+
+            // Determine left offset of the mouse pointer (default: 1)
+            var leftOffset = poistionData.OffsetX;
+
+            // Retrieve the scale ratio of the session
+            var scaleRatio = sessionModel.ScaleRatio;
+
+            // Get the clickable point on the element with the specified alignment and offsets
+            var point = elementModel
+                .UIAutomationElement
+                .GetClickablePoint(alignment, topOffset, leftOffset, scaleRatio);
+
+            // Set the cursor position to the calculated point
+            sessionModel.Automation.SetCursorPosition(point.X, point.Y);
+
+            // Return a JSON result with the clickable point and a 200 OK status code
+            return new JsonResult(value: point)
             {
-                // Retrieve the session based on the provided ID
-                var sessionModel = _domain.GetSession(session);
-
-                // Retrieve the element based on the provided session ID and element ID
-                var elementModel = _domain.ElementsRepository.GetElement(session, element);
-
-                // Determine alignment of the mouse pointer (default: TopLeft)
-                var alignment = string.IsNullOrEmpty(poistionData.Alignment)
-                    ? "TopLeft"
-                    : poistionData.Alignment;
-
-                // Determine top offset of the mouse pointer (default: 1)
-                var topOffset = poistionData.OffsetY;
-
-                // Determine left offset of the mouse pointer (default: 1)
-                var leftOffset = poistionData.OffsetX;
-
-                // Retrieve the scale ratio of the session
-                var scaleRatio = sessionModel.ScaleRatio;
-
-                // Get the clickable point on the element with the specified alignment and offsets
-                var point = elementModel
-                    .UIAutomationElement
-                    .GetClickablePoint(alignment, topOffset, leftOffset, scaleRatio);
-
-                // Set the cursor position to the calculated point
-                sessionModel.Automation.SetCursorPosition(point.X, point.Y);
-
-                // Return a JSON result with the clickable point and a 200 OK status code
-                return new JsonResult(value: point)
-                {
-                    StatusCode = StatusCodes.Status200OK
-                };
-            }
-            catch (Exception e)
-            {
-                // Log the exception (not shown here) and return a 500 error response
-                return StatusCode(
-                    statusCode: StatusCodes.Status500InternalServerError,
-                    value: $"An error occurred while attempting to set the mouse position: {e}");
-            }
+                StatusCode = StatusCodes.Status200OK
+            };
         }
     }
 }

@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 
 using Swashbuckle.AspNetCore.Annotations;
 
-using System;
 using System.Net.Mime;
 
 using Uia.DriverServer.Domain;
@@ -32,10 +31,10 @@ namespace Uia.DriverServer.Controllers
         // Initialize the UIA domain interface
         private readonly IUiaDomain _domain = domain;
 
-        // POST wd/hub/session/{id}/execute/sync
-        // POST /session/{id}/execute/sync
+        // POST wd/hub/session/{session}/execute/sync
+        // POST /session/{session}/execute/sync
         [HttpPost]
-        [Route("session/{id}/execute/sync")]
+        [Route("session/{session}/execute/sync")]
         [SwaggerOperation(
             Summary = "Executes a script in the context of the specified session.",
             Description = "Invokes a script in the session identified by the given session ID.",
@@ -45,16 +44,21 @@ namespace Uia.DriverServer.Controllers
         [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
         [SwaggerResponse(500, "Internal server error. An error occurred while executing the script.")]
         public IActionResult InvokeScript(
-            [SwaggerParameter(Description = "The unique identifier for the session in which the script will be executed.")] string id,
+            [SwaggerParameter(Description = "The unique identifier for the session in which the script will be executed.")] string session,
             [SwaggerRequestBody(Description = "The script data to execute, containing the script code and any necessary parameters.")] ScriptInputModel scriptData)
         {
-            // Get the session by ID from the domain layer
-            var session = _domain.GetSession(id);
-
             // Invoke the script
-            var (statusCode, result) = _domain
-                .DocumentRepository
-                .InvokeScript(session.SessionId, scriptData.Script);
+            var (statusCode, result) = _domain.DocumentRepository.InvokeScript(scriptData.Script);
+
+            // Check if the script execution failed with an internal server error
+            if(statusCode == StatusCodes.Status500InternalServerError)
+            {
+                // Return an error response with the appropriate status code and message from the domain layer
+                return new JsonResult(WebDriverResponseModel.NewUnsupportedOperationResponse(session))
+                {
+                    StatusCode = statusCode
+                };
+            }
 
             // Prepare the response model with the result of the script execution
             var value = new WebDriverResponseModel

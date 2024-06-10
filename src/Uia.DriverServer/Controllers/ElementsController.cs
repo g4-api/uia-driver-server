@@ -13,7 +13,6 @@ using System.Net.Mime;
 
 using Uia.DriverServer.Domain;
 using Uia.DriverServer.Extensions;
-using Uia.DriverServer.Middlewares;
 using Uia.DriverServer.Models;
 
 namespace Uia.DriverServer.Controllers
@@ -56,7 +55,7 @@ namespace Uia.DriverServer.Controllers
             if (statusCode == StatusCodes.Status404NotFound || elementModel == null)
             {
                 // Return a not found response if the element was not found
-                return NotFound(WebDriverResponseModel.NewNotFoundResponse(locator, session));
+                return NotFound(WebDriverResponseModel.NewElementNotFoundResponse(locator, session));
             }
 
             // Prepare the response value containing the element reference
@@ -93,7 +92,7 @@ namespace Uia.DriverServer.Controllers
             if (statusCode == StatusCodes.Status404NotFound || elementModel == null)
             {
                 // Return a not found response if the element was not found
-                return NotFound(WebDriverResponseModel.NewNotFoundResponse(locator, session));
+                return NotFound(WebDriverResponseModel.NewElementNotFoundResponse(locator, session));
             }
 
             // Prepare the response value containing the element reference

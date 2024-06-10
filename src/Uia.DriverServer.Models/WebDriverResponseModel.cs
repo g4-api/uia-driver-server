@@ -15,6 +15,24 @@ namespace Uia.DriverServer.Models
     public class WebDriverResponseModel
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="WebDriverResponseModel"/> class.
+        /// </summary>
+        public WebDriverResponseModel()
+        { }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WebDriverResponseModel"/> class with the specified session and value.
+        /// </summary>
+        /// <param name="session">The session identifier.</param>
+        /// <param name="value">The value of the response.</param>
+        public WebDriverResponseModel(string session, object value)
+        {
+            // Set the session identifier and the response value
+            Session = session;
+            Value = value;
+        }
+
+        /// <summary>
         /// Gets or sets the session identifier.
         /// </summary>
         /// <value>The unique identifier for the session.</value>
@@ -27,6 +45,29 @@ namespace Uia.DriverServer.Models
         /// <value>The value returned by the WebDriver operation.</value>
         [DataMember]
         public object Value { get; set; }
+
+        /// <summary>
+        /// Creates a new WebDriver response model indicating that an element was not found.
+        /// </summary>
+        /// <param name="locationStrategy">The location strategy used to find the element.</param>
+        /// <param name="session">The session identifier.</param>
+        /// <returns>A <see cref="WebDriverResponseModel"/> representing the error response.</returns>
+        public static WebDriverResponseModel NewElementNotFoundResponse(LocationStrategyModel locationStrategy, string session)
+        {
+            // Create the error model indicating that the element was not found
+            var error = new WebDriverErrorModel
+            {
+                Error = "no such element",
+                Message = $"Unable to locate element: {{\"method\": \"{locationStrategy.Using}\", \"selector\":\"{locationStrategy.Value}\"}}"
+            };
+
+            // Create the response model containing the error and the session ID
+            return new WebDriverResponseModel
+            {
+                Session = session,
+                Value = error
+            };
+        }
 
         /// <summary>
         /// Creates a new WebDriver response model for a located element.
@@ -48,18 +89,17 @@ namespace Uia.DriverServer.Models
         }
 
         /// <summary>
-        /// Creates a new WebDriver response model indicating that an element was not found.
+        /// Creates a new WebDriver response model indicating an invalid session error.
         /// </summary>
-        /// <param name="locationStrategy">The location strategy used to find the element.</param>
         /// <param name="session">The session identifier.</param>
-        /// <returns>A <see cref="WebDriverResponseModel"/> representing the error response.</returns>
-        public static WebDriverResponseModel NewNotFoundResponse(LocationStrategyModel locationStrategy, string session)
+        /// <returns>A <see cref="WebDriverResponseModel"/> representing the invalid session error response.</returns>
+        public static WebDriverResponseModel NewInvalidSessionResponse(string session)
         {
-            // Create the error model indicating that the element was not found
+            // Create the error model indicating that the session ID is invalid
             var error = new WebDriverErrorModel
             {
-                Error = "no such element",
-                Message = $"Unable to locate element: {{\"method\": \"{locationStrategy.Using}\", \"selector\":\"{locationStrategy.Value}\"}}"
+                Error = "invalid session id",
+                Message = $"The session ID provided is invalid. The session might have been closed or does not exist. (Session info: UiaDriver={session})"
             };
 
             // Create the response model containing the error and the session ID
@@ -81,7 +121,7 @@ namespace Uia.DriverServer.Models
             var error = new WebDriverErrorModel
             {
                 Error = "stale element reference",
-                Message = $"stale element reference: element is not attached to the application document (Session info: UiaDriver={session})"
+                Message = $"Stale element reference: element is not attached to the application document (Session info: UiaDriver={session})"
             };
 
             // Create the response model containing the error and the session ID
@@ -92,5 +132,26 @@ namespace Uia.DriverServer.Models
             };
         }
 
+        /// <summary>
+        /// Creates a new WebDriver response model indicating an unsupported operation error.
+        /// </summary>
+        /// <param name="session">The session identifier.</param>
+        /// <returns>A <see cref="WebDriverResponseModel"/> representing the unsupported operation error response.</returns>
+        public static WebDriverResponseModel NewUnsupportedOperationResponse(string session)
+        {
+            // Create the error model indicating that the operation is unsupported
+            var error = new WebDriverErrorModel
+            {
+                Error = "unsupported operation",
+                Message = $"The requested operation is not supported. (Session info: UiaDriver={session})"
+            };
+
+            // Create the response model containing the error and the session ID
+            return new WebDriverResponseModel
+            {
+                Session = session,
+                Value = error
+            };
+        }
     }
 }

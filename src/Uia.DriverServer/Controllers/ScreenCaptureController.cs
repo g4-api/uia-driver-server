@@ -27,10 +27,10 @@ namespace Uia.DriverServer.Controllers
         // Initialize the UIA domain interface
         private readonly IUiaDomain _domain = domain;
 
-        // GET /wd/hub/session/{id}/screenshot
-        // GET /session/{id}/screenshot
+        // GET /wd/hub/session/{session}/screenshot
+        // GET /session/{session}/screenshot
         [HttpGet]
-        [Route("session/{id}/screenshot")]
+        [Route("session/{session}/screenshot")]
         [SwaggerOperation(
             Summary = "Captures a screenshot for the specified session.",
             Description = "Takes a screenshot of the screen for the session identified by the given session ID.",
@@ -38,7 +38,7 @@ namespace Uia.DriverServer.Controllers
         [SwaggerResponse(200, "Screenshot captured successfully.", typeof(WebDriverResponseModel))]
         [SwaggerResponse(500, "Internal server error. An error occurred while capturing the screenshot.")]
         public IActionResult GetScreenshot(
-            [SwaggerParameter(Description = "The unique identifier for the session.")] string id)
+            [SwaggerParameter(Description = "The unique identifier for the session.")] string session)
         {
             // Capture the screenshot using the domain's sessions repository
             var (statusCode, screenshot) = _domain.SessionsRepository.NewScreenshot();
@@ -46,7 +46,7 @@ namespace Uia.DriverServer.Controllers
             // Prepare the response value containing the screenshot data
             var value = new WebDriverResponseModel
             {
-                Session = id,
+                Session = session,
                 Value = screenshot
             };
 

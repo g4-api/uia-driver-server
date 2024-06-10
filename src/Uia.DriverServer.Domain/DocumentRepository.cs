@@ -33,7 +33,7 @@ namespace Uia.DriverServer.Domain
             category: "Major Code Smell",
             checkId: "S3011:Reflection should not be used to increase accessibility of classes, methods, or fields",
             Justification = "Reflection is used here to dynamically invoke methods based on attributes, which provides flexibility for handling different script types.")]
-        public (int StatusCode, object Result) InvokeScript(string session, string src)
+        public (int StatusCode, object Result) InvokeScript(string src)
         {
             const BindingFlags Flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static;
             const StringComparison Compare = StringComparison.OrdinalIgnoreCase;
@@ -50,26 +50,18 @@ namespace Uia.DriverServer.Domain
             // If no matching method is found, return a 404 status code
             if (method == default)
             {
-                return (StatusCodes.Status404NotFound, string.Empty);
+                return (StatusCodes.Status500InternalServerError, string.Empty);
             }
 
-            try
-            {
-                // Invoke the method with the specified session and script source
-                var result = method.Invoke(obj: null, parameters: [session, src]);
+            // Invoke the method with the specified session and script source
+            var result = method.Invoke(obj: null, parameters: [src]);
 
-                // Return a 200 status code with the result of the script invocation
-                return (StatusCodes.Status200OK, result);
-            }
-            catch (Exception e)
-            {
-                // If an exception occurs, return a 500 status code with the exception message
-                return (StatusCodes.Status500InternalServerError, $"{e.GetBaseException().Message}");
-            }
+            // Return a 200 status code with the result of the script invocation
+            return (StatusCodes.Status200OK, result);
         }
 
         /// <inheritdoc />
-        public Task<(int StatusCode, object Result)> InvokeScriptAsync(string session, string src)
+        public Task<(int StatusCode, object Result)> InvokeScriptAsync(string src)
         {
             throw new NotImplementedException();
         }
@@ -77,22 +69,19 @@ namespace Uia.DriverServer.Domain
 #pragma warning disable IDE0051 // These methods are used via reflection to handle specific locator segment types.
         // Invokes a PowerShell script for the specified session.
         [ScriptType("Powershell")]
-        private static string InvokePowershell(string session, string src)
+        private static string InvokePowershell(string src)
         {
             // Get the temporary directory path.
             var tempPath = Path.GetTempPath();
 
             // Create the file name for the PowerShell script.
-            var fileName = $"{session}.ps1";
+            var fileName = $"{Guid.NewGuid()}.ps1";
 
             // Combine the temporary path and file name to get the full path.
             var path = Path.Combine(tempPath, fileName);
 
-            // Check if the src is a path to an existing file, otherwise treat it as script content.
-            var contents = File.Exists(src) ? File.ReadAllText(src) : src;
-
             // Write the script contents to the file.
-            File.WriteAllText(path, contents);
+            File.WriteAllText(path, src);
 
             // Prepare the process start info for running the PowerShell script.
             var startInfo = new ProcessStartInfo("powershell", $"\"{path}\"");
@@ -106,6 +95,16 @@ namespace Uia.DriverServer.Domain
             // Start the process and wait for it to exit.
             process.Start();
             process.WaitForExit();
+
+            // Delete the file after execution is complete.
+            try
+            {
+                File.Delete(path);
+            }
+            catch
+            {
+                // Ignore any exceptions that occur while deleting the file.
+            }
 
             // Return an empty string upon completion.
             return string.Empty;
