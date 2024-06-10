@@ -74,12 +74,9 @@ namespace Uia.DriverServer.Domain
             throw new NotImplementedException();
         }
 
+#pragma warning disable IDE0051 // These methods are used via reflection to handle specific locator segment types.
         // Invokes a PowerShell script for the specified session.
         [ScriptType("Powershell")]
-        [SuppressMessage(
-            category: "CodeQuality",
-            checkId: "IDE0051:Remove unused private members",
-            Justification = "This method is intended to be used via reflection, which may not be detected by static code analysis.")]
         private static string InvokePowershell(string session, string src)
         {
             // Get the temporary directory path.
@@ -113,5 +110,6 @@ namespace Uia.DriverServer.Domain
             // Return an empty string upon completion.
             return string.Empty;
         }
+#pragma warning restore IDE005
     }
 }
