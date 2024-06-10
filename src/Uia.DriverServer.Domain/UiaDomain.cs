@@ -1,35 +1,33 @@
-﻿using System;
-
-using Uia.DriverServer.Models;
-
+﻿/*
+ * CHANGE LOG - keep only last 5 threads
+ * 
+ * RESOURCES
+ */
 namespace Uia.DriverServer.Domain
 {
-    public class UiaDomain : IUiaDomain
+    /// <summary>
+    /// Implementation of the <see cref="IUiaDomain"/> interface.
+    /// </summary>
+    /// <param name="documentRepository">The document repository.</param>
+    /// <param name="elementsRepository">The elements repository.</param>
+    /// <param name="ocrRepository">The OCR repository.</param>
+    /// <param name="sessionRepository">The sessions repository.</param>
+    public class UiaDomain(
+        IDocumentRepository documentRepository,
+        IElementsRepository elementsRepository,
+        IOcrRepository ocrRepository,
+        ISessionsRepository sessionRepository) : IUiaDomain
     {
-        public UiaDomain(
-            IElementsRepository elementsRepository,
-            IOcrRepository ocrRepository,
-            ISessionsRepository sessionRepository)
-        {
-            ElementsRepository = elementsRepository;
-            OcrRepository = ocrRepository;
-            SessionsRepository = sessionRepository;
-        }
+        /// <inheritdoc />
+        public IDocumentRepository DocumentRepository { get; } = documentRepository;
 
-        public IDocumentRepository DocumentRepository => throw new NotImplementedException();
+        /// <inheritdoc />
+        public IElementsRepository ElementsRepository { get; } = elementsRepository;
 
-        public IElementsRepository ElementsRepository { get; }
+        /// <inheritdoc />
+        public IOcrRepository OcrRepository { get; } = ocrRepository;
 
-        public IOcrRepository OcrRepository { get; }
-        public ISessionsRepository SessionsRepository { get; }
-
-        
-
-        
-
-        public UiaSessionModel GetSession(string id)
-        {
-            throw new NotImplementedException();
-        }
+        /// <inheritdoc />
+        public ISessionsRepository SessionsRepository { get; } = sessionRepository;
     }
 }
