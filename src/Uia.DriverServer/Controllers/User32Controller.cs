@@ -77,7 +77,10 @@ namespace Uia.DriverServer.Controllers
             }
 
             // Return an OK response indicating the click action was successful
-            return Ok();
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
         }
 
         // POST wd/hub/user32/session/{session}/click
@@ -102,7 +105,10 @@ namespace Uia.DriverServer.Controllers
             sessionModel.Automation.SendNativeClick(point.X, point.Y);
 
             // Return an OK response indicating the native click was performed successfully
-            return Ok();
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
         }
 
         // POST wd/hub/user32/session/{session}/element/{element}/copy
@@ -148,7 +154,10 @@ namespace Uia.DriverServer.Controllers
             sessionModel.Automation.SendModifiedKey(modifier: "Ctrl", key: "C");
 
             // Return an OK response indicating the copy action was successful
-            return Ok();
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
         }
 
         // POST wd/hub/user32/session/{session}/dclick
@@ -173,7 +182,10 @@ namespace Uia.DriverServer.Controllers
             sessionModel.Automation.SendNativeClick(point, repeat: 2);
 
             // Return an OK response indicating the double-click action was successful
-            return Ok();
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
         }
 
         // POST wd/hub/user32/session/{session}/element/{element}/dclick
@@ -221,7 +233,10 @@ namespace Uia.DriverServer.Controllers
             }
 
             // Return an OK response indicating the double-click action was successful
-            return Ok();
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
         }
 
         // POST wd/hub/user32/session/{session}/paste
@@ -253,7 +268,10 @@ namespace Uia.DriverServer.Controllers
             }
 
             // Return an OK response indicating the paste action was successful
-            return Ok();
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
         }
 
         // POST wd/hub/user32/session/{session}/element/{element}/select
@@ -285,7 +303,10 @@ namespace Uia.DriverServer.Controllers
             elementModel.UIAutomationElement.Select();
 
             // Return an OK response indicating the select action was successful
-            return Ok();
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
         }
 
         // POST wd/hub/user32/session/{session}/value
@@ -314,7 +335,10 @@ namespace Uia.DriverServer.Controllers
             sessionModel.Automation.SendInputs(inputs);
 
             // Return an OK response indicating the keystrokes were sent successfully
-            return Ok();
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
         }
 
         // POST wd/hub/user32/session/{s}/inputs
@@ -348,7 +372,10 @@ namespace Uia.DriverServer.Controllers
             }
 
             // Return an OK response indicating the key scan codes were sent successfully
-            return Ok();
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
         }
 
         // POST wd/hub/user32/session/{session}/modified
@@ -374,7 +401,10 @@ namespace Uia.DriverServer.Controllers
             sessionModel.Automation.SendModifiedKey($"{inputData.Modifier}", $"{inputData.Key}");
 
             // Return an OK response indicating the modified key was sent successfully
-            return Ok();
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
         }
 
         // GET wd/hub/user32/session/{session}/element/{element}/focus
@@ -406,7 +436,10 @@ namespace Uia.DriverServer.Controllers
             elementModel.UIAutomationElement.SetFocus();
 
             // Return an OK response indicating the focus action was successful
-            return Ok();
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
         }
 
         // POST wd/hub/user32/session/{s}/mouse/move
@@ -432,7 +465,10 @@ namespace Uia.DriverServer.Controllers
             session.Automation.SetCursorPosition(point.X, point.Y);
 
             // Return an OK response indicating the mouse position was set successfully
-            return Ok();
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
         }
 
         // POST wd/hub/user32/session/{session}/element/{element}/mouse/move

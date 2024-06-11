@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 using Swashbuckle.AspNetCore.Annotations;
 
+using System.Net;
 using System.Net.Mime;
 
 using Uia.DriverServer.Domain;
@@ -48,7 +49,10 @@ namespace Uia.DriverServer.Controllers
             var statusCode = _domain.SessionsRepository.DeleteSession(session);
 
             // Return the status code result indicating the outcome of the delete operation
-            return new StatusCodeResult(statusCode);
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = statusCode
+            };
         }
 
         // DELETE wd/hub/session
@@ -76,8 +80,11 @@ namespace Uia.DriverServer.Controllers
                 }
             }
 
-            // Return a 204 No Content status code indicating all sessions were deleted
-            return new StatusCodeResult(StatusCodes.Status204NoContent);
+            // Return a 200 OK status code indicating all sessions were deleted
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
         }
 
         // GET wd/hub/session/{session}

@@ -74,8 +74,8 @@ namespace Uia.DriverServer.Domain
             // Log the successful deletion of the session
             _logger?.LogInformation("Session with ID {SessionId} and application {ApplicationName} deleted successfully.", id, name);
 
-            // Return a 204 No Content status code indicating successful deletion
-            return StatusCodes.Status204NoContent;
+            // Return a 200 OK status code indicating successful deletion
+            return StatusCodes.Status200OK;
         }
 
         /// <inheritdoc />

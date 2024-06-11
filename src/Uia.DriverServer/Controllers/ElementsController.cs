@@ -214,7 +214,10 @@ namespace Uia.DriverServer.Controllers
             elementModel.UIAutomationElement.Invoke();
 
             // Return an OK response indicating the click action was successful
-            return Ok();
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
         }
 
         // POST /wd/hub/session/{session}/element/{element}/value
@@ -248,7 +251,10 @@ namespace Uia.DriverServer.Controllers
             elementModel.UIAutomationElement.SendKeys($"{textData.Text}");
 
             // Return an OK response indicating the value was set successfully
-            return Ok();
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
         }
     }
 }
