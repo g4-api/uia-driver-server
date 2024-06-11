@@ -85,13 +85,17 @@ namespace Uia.DriverServer.Middlewares
                 if (session != null)
                 {
                     // Handle invalid session errors and return an appropriate response
-                    await HandleInvalidSession(context, _uiaDomain, session, _jsonOptions);
+                    var isInvalid = await HandleInvalidSession(context, _uiaDomain, session, _jsonOptions);
 
-                    // Log the occurrence of an invalid session error
-                    _logger.LogError("Invalid session ID: {Session}", session);
+                    // Return early if the session is invalid
+                    if (isInvalid)
+                    {
+                        // Log the occurrence of an invalid session error
+                        _logger.LogError("Invalid session ID: {Session}", session);
 
-                    // Return early
-                    return;
+                        // Return early
+                        return;
+                    }
                 }
 
                 // Check for BadRequest status and handle it
@@ -191,7 +195,7 @@ namespace Uia.DriverServer.Middlewares
         }
 
         // Handles invalid session errors and returns an appropriate JSON response.
-        private static async Task HandleInvalidSession(HttpContext context, IUiaDomain domain, string session, JsonSerializerOptions jsonOptions)
+        private static async Task<bool> HandleInvalidSession(HttpContext context, IUiaDomain domain, string session, JsonSerializerOptions jsonOptions)
         {
             // Get the session status code from the domain's session repository
             var statusCode = domain.SessionsRepository.GetSession(session).StatusCode;
@@ -199,7 +203,8 @@ namespace Uia.DriverServer.Middlewares
             // If the session status code is not 404 (Not Found), return early
             if (statusCode != StatusCodes.Status404NotFound)
             {
-                return;
+                // Return false to indicate that the session is valid
+                return false;
             }
 
             // Create a response indicating an invalid session error
@@ -216,6 +221,9 @@ namespace Uia.DriverServer.Middlewares
 
             // Write the serialized JSON response to the response body
             await context.Response.WriteAsync(jsonResponse);
+
+            // Return true to indicate that the invalid session was handled
+            return true;
         }
     }
 }
