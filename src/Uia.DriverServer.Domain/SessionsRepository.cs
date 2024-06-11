@@ -143,25 +143,28 @@ namespace Uia.DriverServer.Domain
             return (StatusCodes.Status200OK, base64);
         }
 
+        // TODO: Imeplement capabilites merging https://www.w3.org/TR/webdriver/#capabilities
         /// <inheritdoc />
         public (int StatusCode, object Entity) NewSession(NewSessionModel newSessionModel)
         {
             // Deserialize the AlwaysMatch capability to a dictionary
-            var matchCapabilities = newSessionModel.Capabilities.AlwaysMatch;
+            var matchCapabilities = newSessionModel.Capabilities.AlwaysMatch.Count == 0
+                ? newSessionModel.Capabilities.FirstMatch[0]
+                : newSessionModel.Capabilities.AlwaysMatch;
+
+            // Deserialize the options from the capabilities or create a new UiaOptions instance if not present
+            var options = matchCapabilities.TryGetValue(key: UiaCapabilities.Options, out object optionsOut) && optionsOut != null
+                ? JsonSerializer.Deserialize<UiaOptionsModel>($"{optionsOut}", s_jsonOptions)
+                : new UiaOptionsModel();
 
             // Check if the capabilities contain an application key and if it has a non-empty value
-            var isAppCapability = matchCapabilities.ContainsKey(UiaCapabilities.Application);
-            var isApp = isAppCapability && !string.IsNullOrEmpty($"{matchCapabilities[UiaCapabilities.Application]}");
-            var isDesktop = isApp && $"{matchCapabilities[UiaCapabilities.Application]}".Equals("Desktop", StringComparison.OrdinalIgnoreCase);
-
-            // Log the session creation process
-            _logger.LogInformation("Creating new session. IsAppCapability: {IsAppCapability}, IsApp: {IsApp}, IsDesktop: {IsDesktop}",
-                isAppCapability, isApp, isDesktop);
+            var isApp = !string.IsNullOrEmpty(options.App);
+            var isDesktop = !isApp;
 
             // Create a new session based on the application type
             var (statusCode, response, session) = !isApp || isDesktop
                 ? NewDesktopSession(matchCapabilities)
-                : NewApplicationSession(matchCapabilities);
+                : NewApplicationSession(options, matchCapabilities);
 
             // Check if session creation was successful
             if (statusCode == StatusCodes.Status200OK)
@@ -219,15 +222,10 @@ namespace Uia.DriverServer.Domain
         }
 
         // Creates a new application session with the specified capabilities.
-        private static (int StatusCode, WebDriverResponseModel Response, UiaSessionResponseModel Session) NewApplicationSession(IDictionary<string, object> capabilities)
+        private static (int StatusCode, WebDriverResponseModel Response, UiaSessionResponseModel Session) NewApplicationSession(UiaOptionsModel options, IDictionary<string, object> capabilities)
         {
-            // Deserialize the options from the capabilities or create a new UiaOptions instance if not present
-            var options = capabilities.TryGetValue(key: UiaCapabilities.Options, out object optionsOut) && optionsOut != null
-                ? JsonSerializer.Deserialize<UiaOptions>($"{optionsOut}", s_jsonOptions)
-                : new UiaOptions();
-
             // Get the application file name from the capabilities
-            var fileName = $"{capabilities[UiaCapabilities.Application]}";
+            var fileName = options.App;
             var arguments = options.Arguments ?? [];
 
             // Start or mount the process based on the options

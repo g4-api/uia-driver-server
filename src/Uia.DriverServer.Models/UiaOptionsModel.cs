@@ -8,8 +8,14 @@ namespace Uia.DriverServer.Models
     /// <summary>
     /// Represents options for UI Automation.
     /// </summary>
-    public class UiaOptions
+    public class UiaOptionsModel
     {
+        /// <summary>
+        /// Gets or sets the application.
+        /// </summary>
+        /// <value>The application path as a string.</value>
+        public string App { get; set; }
+
         /// <summary>
         /// Gets or sets the arguments.
         /// </summary>
