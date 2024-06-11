@@ -82,7 +82,7 @@ namespace Uia.DriverServer.Middlewares
                 var session = context.Request.RouteValues["session"]?.ToString();
 
                 // Check if the session is invalid
-                if (session != null)
+                if (session != null && context.Request.Method != HttpMethods.Delete)
                 {
                     // Handle invalid session errors and return an appropriate response
                     var isInvalid = await HandleInvalidSession(context, _uiaDomain, session, _jsonOptions);
@@ -112,7 +112,10 @@ namespace Uia.DriverServer.Middlewares
                 }
 
                 // Write the original response body back to the context response
-                await context.Response.Body.WriteAsync(memoryStream.ToArray());
+                if(context.Response.StatusCode!= StatusCodes.Status204NoContent)
+                {
+                    await context.Response.Body.WriteAsync(memoryStream.ToArray());
+                }
             }
             catch (Exception e)
             {

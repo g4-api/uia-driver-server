@@ -47,7 +47,7 @@ namespace Uia.DriverServer.Domain
             if (!Sessions.TryGetValue(id, out UiaSessionResponseModel session))
             {
                 // Log a warning if the session is not found
-                _logger?.LogInformation("Session with ID {SessionId} not found.", id);
+                _logger?.LogError("Session with ID {SessionId} not found.", id);
 
                 // Return a 404 Not Found status code indicating the session was not found
                 return StatusCodes.Status404NotFound;
@@ -84,12 +84,11 @@ namespace Uia.DriverServer.Domain
             // Attempt to retrieve the session from the sessions dictionary
             if (Sessions.TryGetValue(id, out UiaSessionResponseModel session))
             {
-                _logger?.LogInformation("Session with ID {SessionId} found.", id);
                 return (StatusCodes.Status200OK, session);
             }
             else
             {
-                _logger?.LogWarning("Session with ID {SessionId} not found.", id);
+                _logger?.LogError("Session with ID {SessionId} not found.", id);
                 return (StatusCodes.Status404NotFound, default);
             }
         }
