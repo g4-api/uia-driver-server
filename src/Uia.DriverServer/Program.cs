@@ -84,7 +84,7 @@ builder
 
 #region *** Dependencies  ***
 // Add the session model dictionary as a singleton service to store
-builder.Services.AddSingleton<IDictionary<string, UiaSessionModel>>(new ConcurrentDictionary<string, UiaSessionModel>());
+builder.Services.AddSingleton<IDictionary<string, UiaSessionResponseModel>>(new ConcurrentDictionary<string, UiaSessionResponseModel>());
 
 // Add repositories and domain services to the application services
 // collection as transient services for dependency injection and service

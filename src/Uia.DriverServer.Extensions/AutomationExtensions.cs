@@ -116,13 +116,13 @@ namespace Uia.DriverServer.Extensions
         };
 
         /// <summary>
-        /// Confirms the presence of required capabilities in the provided <see cref="UiaCapabilitiesModel"/>.
+        /// Confirms the presence of required capabilities in the provided <see cref="NewSessionModel"/>.
         /// </summary>
         /// <param name="capabilities">The capabilities to confirm.</param>
         /// <returns>
         /// A tuple containing an <see cref="IActionResult"/> response and a boolean indicating the result.
         /// </returns>
-        public static (IActionResult Response, bool Result) ConfirmCapabilities(this UiaCapabilitiesModel capabilities)
+        public static (IActionResult Response, bool Result) ConfirmCapabilities(this NewSessionModel capabilities)
         {
             // Create a ContentResult to represent the response.
             var response = new ContentResult
@@ -135,7 +135,7 @@ namespace Uia.DriverServer.Extensions
             var capability = capabilities.Capabilities;
 
             // Check if the required Application capability is present.
-            if (!capability.ContainsKey(UiaCapabilities.Application))
+            if (!capability.AlwaysMatch.ContainsKey(UiaCapabilities.Application))
             {
                 // Set the response content to indicate the missing capability.
                 response.Content = string.Format("Missing required capability: {0}", UiaCapabilities.Application);
@@ -290,7 +290,7 @@ namespace Uia.DriverServer.Extensions
         /// <param name="locationStrategy">The location strategy model.</param>
         /// <returns>A tuple containing the found element, its corresponding XML object model, and its runtime ID.</returns>
         public static (IUIAutomationElement Element, XNode ObjectModel, string Runtime) FindElement(
-            this UiaSessionModel session,
+            this UiaSessionResponseModel session,
             LocationStrategyModel locationStrategy)
         {
             // Get the location strategy value and trim any leading or trailing whitespace
@@ -339,12 +339,12 @@ namespace Uia.DriverServer.Extensions
         /// <summary>
         /// Retrieves an <see cref="IUIAutomationElement"/> by its runtime ID.
         /// </summary>
-        /// <param name="session">The <see cref="UiaSessionModel"/> containing the UI Automation session.</param>
+        /// <param name="session">The <see cref="UiaSessionResponseModel"/> containing the UI Automation session.</param>
         /// <param name="runtime">The runtime ID of the element to retrieve, serialized as a JSON string.</param>
         /// <returns>
         /// The <see cref="IUIAutomationElement"/> matching the runtime ID if found; otherwise, <c>null</c>.
         /// </returns>
-        public static IUIAutomationElement FindElementByRuntime(this UiaSessionModel session, string runtime)
+        public static IUIAutomationElement FindElementByRuntime(this UiaSessionResponseModel session, string runtime)
         {
             // Get the root element of the session.
             var containerElement = GetApplicationRootElement(session);
@@ -410,9 +410,9 @@ namespace Uia.DriverServer.Extensions
         /// <summary>
         /// Gets the root UI Automation element for the application associated with the given session.
         /// </summary>
-        /// <param name="session">The <see cref="UiaSessionModel"/> instance representing the UI Automation session.</param>
+        /// <param name="session">The <see cref="UiaSessionResponseModel"/> instance representing the UI Automation session.</param>
         /// <returns>An <see cref="IUIAutomationElement"/> representing the root element of the application.</returns>
-        public static IUIAutomationElement GetApplicationRoot(this UiaSessionModel session)
+        public static IUIAutomationElement GetApplicationRoot(this UiaSessionResponseModel session)
         {
             // Calls the GetRoot method to retrieve the root UI Automation element for the application.
             return GetApplicationRootElement(session);
@@ -729,12 +729,12 @@ namespace Uia.DriverServer.Extensions
         /// <summary>
         /// Retrieves an <see cref="UiaElementModel"/> from the session by its ID.
         /// </summary>
-        /// <param name="session">The <see cref="UiaSessionModel"/> containing the elements.</param>
+        /// <param name="session">The <see cref="UiaSessionResponseModel"/> containing the elements.</param>
         /// <param name="id">The ID of the element to retrieve.</param>
         /// <returns>
         /// The <see cref="UiaElementModel"/> if found in the session; otherwise, <c>null</c>.
         /// </returns>
-        public static UiaElementModel GetElement(this UiaSessionModel session, string id)
+        public static UiaElementModel GetElement(this UiaSessionResponseModel session, string id)
         {
             // Try to get the element with the specified ID from the session's elements.
             if (!session.Elements.TryGetValue(id, out UiaElementModel cachedElement))
@@ -781,10 +781,10 @@ namespace Uia.DriverServer.Extensions
         /// <summary>
         /// Retrieves the runtime ID of an element based on the specified XPath.
         /// </summary>
-        /// <param name="session">The <see cref="UiaSessionModel"/> containing the document object model.</param>
+        /// <param name="session">The <see cref="UiaSessionResponseModel"/> containing the document object model.</param>
         /// <param name="xpath">The XPath expression to select the element.</param>
         /// <returns>The runtime ID of the selected element if found; otherwise, <c>null</c>.</returns>
-        public static string GetRuntime(this UiaSessionModel session, string xpath)
+        public static string GetRuntime(this UiaSessionResponseModel session, string xpath)
         {
             // Update the document object model of the session.
             session.DocumentObjectModel = DocumentObjectModelFactory.New(session.ApplicationRoot);
@@ -1402,9 +1402,9 @@ namespace Uia.DriverServer.Extensions
         /// <summary>
         /// Updates the Document Object Model (DOM) for the specified UI Automation session.
         /// </summary>
-        /// <param name="session">The <see cref="UiaSessionModel"/> to update.</param>
-        /// <returns>The same <see cref="UiaSessionModel"/> with the updated DOM.</returns>
-        public static UiaSessionModel UpdateDocumentObjectModel(this UiaSessionModel session)
+        /// <param name="session">The <see cref="UiaSessionResponseModel"/> to update.</param>
+        /// <returns>The same <see cref="UiaSessionResponseModel"/> with the updated DOM.</returns>
+        public static UiaSessionResponseModel UpdateDocumentObjectModel(this UiaSessionResponseModel session)
         {
             // Create a new Document Object Model (DOM) for the application's root element.
             var objectModel = DocumentObjectModelFactory.New(session.ApplicationRoot);
@@ -1583,13 +1583,13 @@ namespace Uia.DriverServer.Extensions
         }
 
         // Retrieves the root UI Automation element for the application based on the session details.
-        private static IUIAutomationElement GetApplicationRootElement(UiaSessionModel session)
+        private static IUIAutomationElement GetApplicationRootElement(UiaSessionResponseModel session)
         {
             // Retrieves the root UI Automation element for the application from File Explorer based on the session details.
-            static IUIAutomationElement GetFromFileExplorer(UiaSessionModel session)
+            static IUIAutomationElement GetFromFileExplorer(UiaSessionResponseModel session)
             {
                 // Retrieves an IUIAutomationElement representing a window from File Explorer based on the session's folder path.
-                static IUIAutomationElement Get(UiaSessionModel session)
+                static IUIAutomationElement Get(UiaSessionResponseModel session)
                 {
                     // Define property and control type IDs.
                     const int NameProperty = UIA_PropertyIds.UIA_NamePropertyId;
@@ -1669,10 +1669,10 @@ namespace Uia.DriverServer.Extensions
             }
 
             // Retrieves the root UI Automation element from the application based on the session details.
-            static IUIAutomationElement GetFromApplication(UiaSessionModel session)
+            static IUIAutomationElement GetFromApplication(UiaSessionResponseModel session)
             {
                 // Creates a UI Automation condition based on the session's runtime, handle, or process ID.
-                static IUIAutomationCondition GetCondition(UiaSessionModel session)
+                static IUIAutomationCondition GetCondition(UiaSessionResponseModel session)
                 {
                     // Check if the session has a runtime ID.
                     var isRuntime = session.Runtime?.Length > 0;

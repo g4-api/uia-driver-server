@@ -20,7 +20,7 @@ namespace Uia.DriverServer.Domain
         /// <summary>
         /// Gets the collection of active sessions.
         /// </summary>
-        IDictionary<string, UiaSessionModel> Sessions { get; }
+        IDictionary<string, UiaSessionResponseModel> Sessions { get; }
 
         /// <summary>
         /// Creates a new session XML document with the specified ID.
@@ -36,13 +36,13 @@ namespace Uia.DriverServer.Domain
         /// <summary>
         /// Creates a new session with the specified capabilities.
         /// </summary>
-        /// <param name="capabilities">The capabilities for the new session.</param>
+        /// <param name="newSessionModel">The capabilities for the new session.</param>
         /// <returns>
         /// A tuple containing:
         /// - StatusCode: An HTTP status code indicating the result of the operation.
         /// - Entity: The created session object.
         /// </returns>
-        (int StatusCode, object Entity) NewSession(UiaCapabilitiesModel capabilities);
+        (int StatusCode, object Entity) NewSession(NewSessionModel newSessionModel);
 
         /// <summary>
         /// Deletes the session with the specified ID.
@@ -55,7 +55,7 @@ namespace Uia.DriverServer.Domain
         /// Retrieves all active sessions.
         /// </summary>
         /// <returns>A tuple containing the status code and a collection of all session models.</returns>
-        (int StatusCode, IEnumerable<UiaSessionModel> Sessions) GetSessions();
+        (int StatusCode, IEnumerable<UiaSessionResponseModel> Sessions) GetSessions();
 
         /// <summary>
         /// Retrieves the screenshot of the current window.
@@ -76,7 +76,7 @@ namespace Uia.DriverServer.Domain
         /// - StatusCode: An HTTP status code indicating the result of the operation.
         /// - Session: The session model.
         /// </returns>
-        (int StatusCode, UiaSessionModel Session) GetSession(string id);
+        (int StatusCode, UiaSessionResponseModel Session) GetSession(string id);
 
         /// <summary>
         /// Sets the visual state of the window for the session with the specified ID.

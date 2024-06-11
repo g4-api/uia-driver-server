@@ -17,39 +17,39 @@ namespace Uia.DriverServer.Models
     /// <summary>
     /// Represents a UI Automation session model.
     /// </summary>
-    public class UiaSessionModel
+    public class UiaSessionResponseModel
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="UiaSessionModel"/> class.
+        /// Initializes a new instance of the <see cref="UiaSessionResponseModel"/> class.
         /// </summary>
-        public UiaSessionModel()
+        public UiaSessionResponseModel()
             : this(new CUIAutomation8())
         { }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="UiaSessionModel"/> class with the specified automation.
+        /// Initializes a new instance of the <see cref="UiaSessionResponseModel"/> class with the specified automation.
         /// </summary>
         /// <param name="automation">The UI Automation object.</param>
-        public UiaSessionModel(CUIAutomation8 automation)
+        public UiaSessionResponseModel(CUIAutomation8 automation)
             : this(automation, default)
         { }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="UiaSessionModel"/> class with the specified automation and application.
+        /// Initializes a new instance of the <see cref="UiaSessionResponseModel"/> class with the specified automation and application.
         /// </summary>
         /// <param name="automation">The UI Automation object.</param>
         /// <param name="application">The process of the application.</param>
-        public UiaSessionModel(CUIAutomation8 automation, Process application)
+        public UiaSessionResponseModel(CUIAutomation8 automation, Process application)
             : this(automation, application, TreeScope.TreeScope_Children)
         { }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="UiaSessionModel"/> class with the specified automation, application, and tree scope.
+        /// Initializes a new instance of the <see cref="UiaSessionResponseModel"/> class with the specified automation, application, and tree scope.
         /// </summary>
         /// <param name="automation">The UI Automation object.</param>
         /// <param name="application">The process of the application.</param>
         /// <param name="treeScope">The tree scope for UI Automation.</param>
-        public UiaSessionModel(CUIAutomation8 automation, Process application, TreeScope treeScope)
+        public UiaSessionResponseModel(CUIAutomation8 automation, Process application, TreeScope treeScope)
         {
             // Assign the UI Automation object to the Automation property.
             Automation = automation;

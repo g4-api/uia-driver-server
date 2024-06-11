@@ -26,7 +26,7 @@ namespace Uia.DriverServer.Domain
     /// </summary>
     /// <param name="sessions">The dictionary of UI Automation sessions.</param>
     /// <param name="logger">The logger instance for logging information.</param>
-    public class SessionsRepository(IDictionary<string, UiaSessionModel> sessions, ILogger<SessionsRepository> logger) : ISessionsRepository
+    public class SessionsRepository(IDictionary<string, UiaSessionResponseModel> sessions, ILogger<SessionsRepository> logger) : ISessionsRepository
     {
         // Initialize the logger instance for logging information and errors in the repository class methods and properties
         private readonly ILogger<SessionsRepository> _logger = logger;
@@ -38,13 +38,13 @@ namespace Uia.DriverServer.Domain
         };
 
         /// <inheritdoc />
-        public IDictionary<string, UiaSessionModel> Sessions { get; } = sessions;
+        public IDictionary<string, UiaSessionResponseModel> Sessions { get; } = sessions;
 
         /// <inheritdoc />
         public int DeleteSession(string id)
         {
             // Attempt to retrieve the session from the sessions dictionary
-            if (!Sessions.TryGetValue(id, out UiaSessionModel session))
+            if (!Sessions.TryGetValue(id, out UiaSessionResponseModel session))
             {
                 // Log a warning if the session is not found
                 _logger?.LogInformation("Session with ID {SessionId} not found.", id);
@@ -79,10 +79,10 @@ namespace Uia.DriverServer.Domain
         }
 
         /// <inheritdoc />
-        public (int StatusCode, UiaSessionModel Session) GetSession(string id)
+        public (int StatusCode, UiaSessionResponseModel Session) GetSession(string id)
         {
             // Attempt to retrieve the session from the sessions dictionary
-            if (Sessions.TryGetValue(id, out UiaSessionModel session))
+            if (Sessions.TryGetValue(id, out UiaSessionResponseModel session))
             {
                 _logger?.LogInformation("Session with ID {SessionId} found.", id);
                 return (StatusCodes.Status200OK, session);
@@ -95,7 +95,7 @@ namespace Uia.DriverServer.Domain
         }
 
         /// <inheritdoc />
-        public (int StatusCode, IEnumerable<UiaSessionModel> Sessions) GetSessions()
+        public (int StatusCode, IEnumerable<UiaSessionResponseModel> Sessions) GetSessions()
         {
             // Retrieve all session models from the sessions dictionary
             var sessions = Sessions.Values;
@@ -110,7 +110,7 @@ namespace Uia.DriverServer.Domain
         public (int StatusCode, XDocument ElementsXml) NewDocumentObjectModel(string id)
         {
             // Attempt to retrieve the session from the sessions dictionary
-            if (!Sessions.TryGetValue(id, out UiaSessionModel session))
+            if (!Sessions.TryGetValue(id, out UiaSessionResponseModel session))
             {
                 _logger?.LogInformation("Session with ID {SessionId} not found.", id);
                 return (StatusCodes.Status404NotFound, default);
@@ -145,12 +145,15 @@ namespace Uia.DriverServer.Domain
         }
 
         /// <inheritdoc />
-        public (int StatusCode, object Entity) NewSession(UiaCapabilitiesModel capabilities)
+        public (int StatusCode, object Entity) NewSession(NewSessionModel newSessionModel)
         {
+            // Deserialize the AlwaysMatch capability to a dictionary
+            var matchCapabilities = newSessionModel.Capabilities.AlwaysMatch;
+
             // Check if the capabilities contain an application key and if it has a non-empty value
-            var isAppCapability = capabilities.Capabilities.ContainsKey(UiaCapabilities.Application);
-            var isApp = isAppCapability && !string.IsNullOrEmpty($"{capabilities.Capabilities[UiaCapabilities.Application]}");
-            var isDesktop = isApp && $"{capabilities.Capabilities[UiaCapabilities.Application]}".Equals("Desktop", StringComparison.OrdinalIgnoreCase);
+            var isAppCapability = matchCapabilities.ContainsKey(UiaCapabilities.Application);
+            var isApp = isAppCapability && !string.IsNullOrEmpty($"{matchCapabilities[UiaCapabilities.Application]}");
+            var isDesktop = isApp && $"{matchCapabilities[UiaCapabilities.Application]}".Equals("Desktop", StringComparison.OrdinalIgnoreCase);
 
             // Log the session creation process
             _logger.LogInformation("Creating new session. IsAppCapability: {IsAppCapability}, IsApp: {IsApp}, IsDesktop: {IsDesktop}",
@@ -158,8 +161,8 @@ namespace Uia.DriverServer.Domain
 
             // Create a new session based on the application type
             var (statusCode, response, session) = !isApp || isDesktop
-                ? NewDesktopSession(capabilities.Capabilities)
-                : NewApplicationSession(capabilities.Capabilities);
+                ? NewDesktopSession(matchCapabilities)
+                : NewApplicationSession(matchCapabilities);
 
             // Check if session creation was successful
             if (statusCode == StatusCodes.Status200OK)
@@ -186,7 +189,7 @@ namespace Uia.DriverServer.Domain
             _logger?.LogInformation("Setting window visual state for session with ID {SessionId} to {VisualState}.", id, visualState);
 
             // Attempt to retrieve the session from the sessions dictionary
-            if (!Sessions.TryGetValue(id, out UiaSessionModel session))
+            if (!Sessions.TryGetValue(id, out UiaSessionResponseModel session))
             {
                 _logger?.LogWarning("Session with ID {SessionId} not found.", id);
                 return (StatusCodes.Status404NotFound, new RectangleModel());
@@ -217,7 +220,7 @@ namespace Uia.DriverServer.Domain
         }
 
         // Creates a new application session with the specified capabilities.
-        private static (int StatusCode, WebDriverResponseModel Response, UiaSessionModel Session) NewApplicationSession(IDictionary<string, object> capabilities)
+        private static (int StatusCode, WebDriverResponseModel Response, UiaSessionResponseModel Session) NewApplicationSession(IDictionary<string, object> capabilities)
         {
             // Deserialize the options from the capabilities or create a new UiaOptions instance if not present
             var options = capabilities.TryGetValue(key: UiaCapabilities.Options, out object optionsOut) && optionsOut != null
@@ -247,7 +250,7 @@ namespace Uia.DriverServer.Domain
             }
 
             // Create a new UIA session model
-            var session = new UiaSessionModel(new CUIAutomation8(), process)
+            var session = new UiaSessionResponseModel(new CUIAutomation8(), process)
             {
                 Capabilities = capabilities,
                 TreeScope = TreeScope.TreeScope_Children,
@@ -269,13 +272,13 @@ namespace Uia.DriverServer.Domain
         }
 
         // Creates a new desktop session with the specified capabilities.
-        private static (int StatusCode, object Response, UiaSessionModel Session) NewDesktopSession(IDictionary<string, object> capabilities)
+        private static (int StatusCode, object Response, UiaSessionResponseModel Session) NewDesktopSession(IDictionary<string, object> capabilities)
         {
             // Generate a new unique identifier for the session
             var id = Guid.NewGuid();
 
             // Create a new UIA session model
-            var session = new UiaSessionModel
+            var session = new UiaSessionResponseModel
             {
                 SessionId = $"{id}",
                 Capabilities = capabilities,

@@ -26,12 +26,12 @@ namespace Uia.DriverServer.Domain
     /// Represents the repository for element-related operations.
     /// </summary>
     /// <param name="sessions">The dictionary containing session models.</param>
-    public class ElementsRepository(IDictionary<string, UiaSessionModel> sessions) : IElementsRepository
+    public class ElementsRepository(IDictionary<string, UiaSessionResponseModel> sessions) : IElementsRepository
     {
         // Initialize the sessions dictionary containing session models as a private readonly
         // field for the repository class instance to use internally and externally as needed
         // for element-related operations.
-        private readonly IDictionary<string, UiaSessionModel> _sessions = sessions;
+        private readonly IDictionary<string, UiaSessionResponseModel> _sessions = sessions;
 
         /// <inheritdoc />
         public (int Status, UiaElementModel ElementModel) FindElement(string session, LocationStrategyModel locationStrategy)
@@ -44,7 +44,7 @@ namespace Uia.DriverServer.Domain
         public (int Status, UiaElementModel ElementModel) FindElement(string session, string element, LocationStrategyModel locationStrategy)
         {
             // Try to retrieve the session model from the sessions dictionary
-            var isSession = _sessions.TryGetValue(session, out UiaSessionModel uiaSession);
+            var isSession = _sessions.TryGetValue(session, out UiaSessionResponseModel uiaSession);
 
             // If the session is not found, return a 404 status code
             if (!isSession)
@@ -216,10 +216,10 @@ namespace Uia.DriverServer.Domain
         }
 
         // Retrieves an element from the session's elements dictionary.
-        private static UiaElementModel GetElementBySession(IDictionary<string, UiaSessionModel> sessions, string session, string element)
+        private static UiaElementModel GetElementBySession(IDictionary<string, UiaSessionResponseModel> sessions, string session, string element)
         {
             // Try to retrieve the session model from the sessions dictionary
-            if (!sessions.TryGetValue(session, out UiaSessionModel sessionModel))
+            if (!sessions.TryGetValue(session, out UiaSessionResponseModel sessionModel))
             {
                 // Return default if the session is not found
                 return default;

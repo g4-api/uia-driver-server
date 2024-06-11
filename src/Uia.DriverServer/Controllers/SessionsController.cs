@@ -152,12 +152,12 @@ namespace Uia.DriverServer.Controllers
             Summary = "Creates a new session with the specified capabilities.",
             Description = "Initializes a new session using the provided capabilities and returns the session details.",
             Tags = ["Sessions"])]
-        [SwaggerResponse(200, "Session created successfully.", typeof(UiaSessionModel))]
+        [SwaggerResponse(200, "Session created successfully.", typeof(UiaSessionResponseModel))]
         [SwaggerResponse(400, "Invalid request. The capabilities model is not valid.")]
         [SwaggerResponse(500, "Internal server error. An error occurred while creating the session.")]
         [Produces(MediaTypeNames.Application.Json)]
         public IActionResult NewSession(
-            [SwaggerRequestBody(Description = "The capabilities required to create the session.")] UiaCapabilitiesModel capabilities)
+            [SwaggerRequestBody(Description = "The capabilities required to create the session.")] NewSessionModel capabilities)
         {
             // Create a new session using the domain's sessions repository
             var (statusCode, session) = _domain.SessionsRepository.NewSession(capabilities);

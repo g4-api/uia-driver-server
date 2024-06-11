@@ -11,6 +11,11 @@ namespace Uia.DriverServer.Models
     public static class UiaCapabilities
     {
         /// <summary>
+        /// The always match setting.
+        /// </summary>
+        public const string AlwaysMatch = "alwaysMatch";
+
+        /// <summary>
         /// The application to be automated.
         /// </summary>
         public const string Application = "app";
