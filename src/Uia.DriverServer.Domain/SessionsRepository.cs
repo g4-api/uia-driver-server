@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -97,12 +98,12 @@ namespace Uia.DriverServer.Domain
         public (int StatusCode, IEnumerable<UiaSessionResponseModel> Sessions) GetSessions()
         {
             // Retrieve all session models from the sessions dictionary
-            var sessions = Sessions.Values;
+            var sessionModels = Sessions.Values;
 
-            _logger?.LogInformation("Retrieved {SessionCount} active sessions.", sessions.Count());
+            _logger?.LogInformation("Retrieved {SessionCount} active sessions.", sessionModels.Count);
 
             // Return a 200 OK status code and the collection of session models
-            return (StatusCodes.Status200OK, sessions);
+            return (StatusCodes.Status200OK, sessionModels);
         }
 
         /// <inheritdoc />
@@ -186,6 +187,7 @@ namespace Uia.DriverServer.Domain
         }
 
         /// <inheritdoc />
+        [SuppressMessage("Major Code Smell", "S2139:Exceptions should be either logged or rethrown but not both", Justification = "Bug in the analysis.")]
         public (int StatusCode, RectangleModel Entity) SetWindowVisualState(string id, WindowVisualState visualState)
         {
             _logger?.LogInformation("Setting window visual state for session with ID {SessionId} to {VisualState}.", id, visualState);

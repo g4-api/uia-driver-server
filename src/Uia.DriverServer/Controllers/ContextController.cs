@@ -4,7 +4,6 @@
  * RESSOURCES
  * https://www.w3.org/TR/webdriver/#contexts
  */
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 using Swashbuckle.AspNetCore.Annotations;
