@@ -40,6 +40,18 @@
     - [Accuracy](#accuracy)
     - [Performance](#performance)
     - [Fallback](#fallback)
+- [Using the Coords Locator](#using-the-coords-locator)
+  - [Overview](#overview)
+  - [Passing Coords Locators as XPath or CssSelector](#passing-coords-locators-as-xpath-or-cssselector)
+  - [Example Code](#example-code)
+    - [Python Example](#python-example)
+    - [C# Example](#c-example)
+    - [Java Example](#java-example)
+  - [Cursor Coordinate Tracker Tool](#cursor-coordinate-tracker-tool)
+  - [Best Practices and Limitations](#best-practices-and-limitations)
+    - [Accuracy](#accuracy)
+    - [Performance](#performance)
+    - [Usage](#usage)
 
 ## Overview
 
@@ -1209,3 +1221,126 @@ To find the OCR value of an element, you can use the [OCR Inspector tool](https:
 - **Fallback**: Implement fallback strategies by providing multiple OCR values. For example, "Bar" can be identified as "8ar" or "88n", so the OCR locator can be `ocr('8ar'|'88n')`.
 
 By following these guidelines, you can effectively use OCR locators to automate interactions with elements that are not otherwise accessible.
+
+## Using the Coords Locator
+
+The Coords (coordinates) locator in the UiaDriver Server allows you to create a virtual element that points to a static point on the screen. This is particularly useful when there are no identifiable UI elements or when you need to interact with a specific point on the screen. To ensure compatibility with all W3C clients, coordinates locators can be passed as XPath or CssSelector.
+
+### Overview
+
+Coords locators enable the creation of virtual elements based on their absolute screen coordinates. This can be especially helpful for automating interactions with applications that render elements in fixed positions or when other locators are not feasible.
+
+### Passing Coords Locators as XPath or CssSelector
+
+To use Coords locators, you need to pass them using the syntax `coords(x,y)` in either XPath or CssSelector. The UiaDriver Server will interpret these locators and create virtual elements pointing to the specified coordinates. These virtual elements can then be interacted with using standard WebDriver Element endpoints such as `click` and `sendKeys`.
+
+#### Example Code
+
+Below are examples of how to use Coords locators in different languages by passing them as XPath or CssSelector.
+
+#### Python Example
+
+```python
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.options import BaseOptions
+
+class UiaOptions(BaseOptions):
+    def __init__(self):
+        super().__init__()
+        self.app = None
+        self.uia_options = None
+
+    def to_capabilities(self):
+        return {
+            "browserName": "Uia",
+            "platformName": "windows",
+            "uia:options": self.uia_options
+        }
+
+options = UiaOptions()
+options.uia_options = {"app": "notepad.exe"}
+
+driver = webdriver.Remote(command_executor="http://localhost:5555/wd/hub", options=options)
+
+# Use Coords locator passed as XPath
+coords_locator = "coords(100,200)"
+element = driver.find_element(By.XPATH, coords_locator)
+element.click()
+
+driver.quit()
+```
+
+#### C# Example
+
+```csharp
+using OpenQA.Selenium;
+using OpenQA.Selenium.Remote;
+using System;
+using Uia.Models;
+
+var options = new UiaOptions
+{
+    UiaOptionsDictionary = new
+    {
+        app = "notepad.exe"
+    }
+};
+
+var driver = new RemoteWebDriver(new Uri("http://localhost:5555/wd/hub"), options.ToCapabilities());
+
+// Use Coords locator passed as XPath
+string coordsLocator = "coords(100,200)";
+var element = driver.FindElement(By.XPath(coordsLocator));
+element.Click();
+
+driver.Quit();
+```
+
+#### Java Example
+
+```java
+package org.example;
+
+import org.openqa.selenium.*;
+import org.openqa.selenium.remote.RemoteWebDriver;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+
+public class Main {
+    public static void main(String[] args) {
+        UiaOptionsDictionary uiaOptionsDictionary = new UiaOptionsDictionary();
+        uiaOptionsDictionary.setApp("notepad.exe");
+
+        UiaOptions uiaOptions = new UiaOptions();
+        uiaOptions.setUiaOptionsDictionary(uiaOptionsDictionary);
+
+        WebDriver driver = null;
+        try {
+            driver = new RemoteWebDriver(new URL("http://localhost:5555/wd/hub"), uiaOptions.toCapabilities());
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+
+        // Use Coords locator passed as XPath
+        String coordsLocator = "coords(100,200)";
+        WebElement element = driver.findElement(By.xpath(coordsLocator));
+        element.click();
+
+        driver.quit();
+    }
+}
+```
+
+### Cursor Coordinate Tracker Tool
+
+To find the screen coordinates of a point, you can use the [Cursor Coordinate Tracker tool](https://github.com/g4-api/cursor-coordinate-tracker). This tool helps you obtain the coordinates that can be passed as a locator value.
+
+### Best Practices and Limitations
+
+- **Accuracy**: Ensure that the coordinates provided are accurate and consistent with the screen resolution and scaling settings.
+- **Performance**: Coordinates-based identification is generally faster but less reliable if the UI layout changes.
+- **Usage**: Use coordinates to create virtual elements that point to static positions on the screen. These virtual elements can be interacted with using standard WebDriver Element endpoints such as `click` and `sendKeys`.
+
+By following these guidelines, you can effectively use Coords locators to automate interactions with specific points on the screen that are not otherwise accessible.
