@@ -14,7 +14,7 @@ on:
 # Set environment variables
 env:
   artifactStagingDirectory: ${{ github.workspace }}/artifact_staging
-  artifactType: 'Production'
+  artifactType: 'Preview'
   binariesDirectory: ${{ github.workspace }}/binaries
   buildConfiguration: 'Release'
   buildPlatform: 'any cpu'
@@ -145,6 +145,6 @@ jobs:
         tag_name: v${{ env.buildVersion }}
         name: ${{ env.artifactType }} v${{ env.buildVersion }}
         generate_release_notes: true
-        draft: true
+        prerelease: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
