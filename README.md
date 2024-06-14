@@ -52,7 +52,7 @@
     - [Accuracy](#accuracy)
     - [Performance](#performance)
     - [Usage](#usage)
--[Using the Object Model Locator](#using-the-object-model-locator)
+- [Using the Object Model Locator](#using-the-object-model-locator)
   - [Overview](#overview)
   - [Syntax](#syntax)
   - [Example Code](#example-code)
