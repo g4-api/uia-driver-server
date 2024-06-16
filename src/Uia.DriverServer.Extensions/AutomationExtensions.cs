@@ -1052,6 +1052,7 @@ namespace Uia.DriverServer.Extensions
                 var point = ExportClickablePoint(boundingRectangle, align, topOffset: 1, leftOffset: 1, scaleRatio);
                 User32.SetPhysicalCursorPosition(point.X, point.Y);
                 User32.SendMouseEvent(0x02, point.X, point.Y);
+                User32.SendMouseEvent(0x04, point.X, point.Y);
             }
 
             // Return the element after performing the click action.

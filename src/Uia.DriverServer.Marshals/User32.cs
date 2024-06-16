@@ -12,60 +12,48 @@ using System.Runtime.InteropServices;
 
 using Uia.DriverServer.Marshals.Models;
 
+// SYSLIB1054: Using DllImport for compatibility with existing P/Invoke patterns.
+// CA2101: Marshaling not specified for string arguments as this is consistent with existing legacy code which has been tested and is known to work correctly.
+#pragma warning disable SYSLIB1054, CA2101
 namespace Uia.DriverServer.Marshals
 {
-    public static partial class User32
+    public static class User32
     {
         // Enumerates the display settings for the specified device.
         [DllImport("user32.dll")]
-        [SuppressMessage(
-            category: "Interoperability",
-            checkId: "SYSLIB1054:Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
-            Justification = "Using DllImport for compatibility with existing P/Invoke patterns.")]
-        [SuppressMessage(
-            category: "Globalization",
-            checkId: "CA2101:Specify marshaling for P/Invoke string arguments",
-            Justification = "Marshaling not specified for string arguments as this is consistent with existing legacy code which has been tested and is known to work correctly.")]
         private static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DevMode devMode);
 
         // P/Invoke declaration for the GetDeviceCaps function from gdi32.dll.
         // Retrieves device-specific information for the specified device.
-        [LibraryImport("gdi32.dll")]
-        private static partial int GetDeviceCaps(IntPtr hdc, int nIndex);
+        [DllImport("gdi32.dll")]
+        private static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
 
         // P/Invoke declaration for the GetMessageExtraInfo function from user32.dll.
         // Retrieves extra message information for the current thread.
-        [LibraryImport("user32.dll")]
-        private static partial IntPtr GetMessageExtraInfo();
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetMessageExtraInfo();
 
         // P/Invoke declaration for the GetPhysicalCursorPos function from user32.dll.
         // Retrieves the position of the mouse cursor.
-        [LibraryImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static partial bool GetPhysicalCursorPos(out Point lpPoint);
+        [DllImport("user32.dll")]
+        private static extern bool GetPhysicalCursorPos(out Point lpPoint);
 
         // Imports the mouse_event function from user32.dll.
-        [LibraryImport("user32.dll")]
-        private static partial void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
+        [DllImport("user32.dll")]
+        private static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
 
         // P/Invoke declaration for the SendInput function from user32.dll.
         // Sends an array of input events (mouse, keyboard, or hardware) to the system.
-        [LibraryImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.U4)]
-        private static partial uint SendInput(
-            uint nInputs,
-            [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] in Input[] pInputs,
-            int cbSize);
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern uint SendInput(uint nInputs, Input[] pInputs, int cbSize);
 
-        [LibraryImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static partial bool SetProcessDpiAwarenessContext(int value);
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool SetProcessDpiAwarenessContext(int value);
 
         // P/Invoke declaration for the SetPhysicalCursorPos function from user32.dll.
         // Sets the position of the mouse cursor.
-        [LibraryImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static partial bool SetPhysicalCursorPos(int x, int y);
+        [DllImport("user32.dll")]
+        private static extern bool SetPhysicalCursorPos(int x, int y);
 
         /// <summary>
         /// Wrapper method for the GetDeviceCaps function.
@@ -139,7 +127,7 @@ namespace Uia.DriverServer.Marshals
         public static uint SendInput(in Input[] inputs)
         {
             // Call the P/Invoke SendInput function with the number of inputs, the array of inputs, and the size of an Input structure.
-            return SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<Input>());
+            return SendInput(nInputs: (uint)inputs.Length, pInputs: inputs, cbSize: Marshal.SizeOf<Input>());
         }
 
         /// <summary>
