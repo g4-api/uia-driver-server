@@ -981,7 +981,7 @@ namespace Uia.DriverServer.Extensions
         /// <returns>The same <see cref="IUIAutomationElement"/> after clicking.</returns>
         public static IUIAutomationElement Invoke(this IUIAutomationElement element)
         {
-            return Invoke(element, align: "TopLeft", scaleRatio: 1.0D);
+            return Invoke(element, align: "MiddleCenter", scaleRatio: 1.0D);
         }
 
         /// <summary>
