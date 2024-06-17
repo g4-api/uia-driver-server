@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 
 using Swashbuckle.AspNetCore.Annotations;
 
-using System.Net;
 using System.Net.Mime;
 
 using Uia.DriverServer.Domain;

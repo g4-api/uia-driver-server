@@ -47,6 +47,7 @@ namespace Uia.DriverServer.Marshals
         [DllImport("user32.dll", SetLastError = true)]
         private static extern uint SendInput(uint nInputs, Input[] pInputs, int cbSize);
 
+        // P/Invoke declaration for the SetProcessDpiAwarenessContext function from user32.dll.
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool SetProcessDpiAwarenessContext(int value);
 
@@ -124,7 +125,7 @@ namespace Uia.DriverServer.Marshals
         /// </summary>
         /// <param name="inputs">An array of Input structures that represent the input events to be inserted into the input stream.</param>
         /// <returns>The number of events that were successfully inserted into the input stream.</returns>
-        public static uint SendInput(in Input[] inputs)
+        public static uint SendInput(Input[] inputs)
         {
             // Call the P/Invoke SendInput function with the number of inputs, the array of inputs, and the size of an Input structure.
             return SendInput(nInputs: (uint)inputs.Length, pInputs: inputs, cbSize: Marshal.SizeOf<Input>());
@@ -357,16 +358,6 @@ namespace Uia.DriverServer.Marshals.Models
     public struct MouseInput
     {
         /// <summary>
-        /// A set of flags that specify various aspects of mouse motion and button clicks.
-        /// </summary>
-        public uint dwFlags;
-
-        /// <summary>
-        /// Additional information associated with the event.
-        /// </summary>
-        public IntPtr dwExtraInfo;
-
-        /// <summary>
         /// The x-coordinate of the mouse movement or the absolute position of the mouse, depending on the value of the dwFlags member.
         /// </summary>
         public int dx;
@@ -383,9 +374,19 @@ namespace Uia.DriverServer.Marshals.Models
         public uint mouseData;
 
         /// <summary>
+        /// A set of flags that specify various aspects of mouse motion and button clicks.
+        /// </summary>
+        public uint dwFlags;
+
+        /// <summary>
         /// The time stamp for the event, in milliseconds.
         /// </summary>
         public uint time;
+
+        /// <summary>
+        /// Additional information associated with the event.
+        /// </summary>
+        public IntPtr dwExtraInfo;
     }
 
     /// <summary>

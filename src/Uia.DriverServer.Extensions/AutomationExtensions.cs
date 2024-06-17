@@ -1051,8 +1051,11 @@ namespace Uia.DriverServer.Extensions
                 // Click the element based on its coordinates if it does not support any specific pattern.
                 var point = ExportClickablePoint(boundingRectangle, align, topOffset: 1, leftOffset: 1, scaleRatio);
                 User32.SetPhysicalCursorPosition(point.X, point.Y);
-                User32.SendMouseEvent(0x02, point.X, point.Y);
-                User32.SendMouseEvent(0x04, point.X, point.Y);
+
+                // Send a mouse click event to the system using the coordinates.
+                var mouseDown = NewMouseInput(MouseEvent.LeftDown, point.X, point.Y);
+                var mouseUp = NewMouseInput(MouseEvent.LeftUp, point.X, point.Y);
+                User32.SendInput([mouseDown, mouseUp]);
             }
 
             // Return the element after performing the click action.
@@ -1206,8 +1209,11 @@ namespace Uia.DriverServer.Extensions
                 leftOffset: 1,
                 scaleRatio: 1.0D);
 
-            // Send a native click to the clickable point.
-            SendNativeClick(null, point.X, point.Y);
+            // Set the cursor position to the specified coordinates.
+            User32.SetPhysicalCursorPosition(x: point.X, y: point.Y);
+
+            // Send the native click.
+            SendNativeClick(_: default);
         }
 
         /// <summary>
@@ -1222,23 +1228,12 @@ namespace Uia.DriverServer.Extensions
             // Repeat the click the specified number of times.
             for (int i = 0; i < repeat; i++)
             {
-                SendNativeClick(_, x, y);
+                // Set the cursor position to the specified coordinates.
+                User32.SetPhysicalCursorPosition(x, y);
+
+                // Send the native click.
+                SendNativeClick(_: default);
             }
-        }
-
-        /// <summary>
-        /// Sends a native click at the specified coordinates.
-        /// </summary>
-        /// <param name="_">An instance of <see cref="CUIAutomation8"/> (unused).</param>
-        /// <param name="x">The x-coordinate to click.</param>
-        /// <param name="y">The y-coordinate to click.</param>
-        public static void SendNativeClick(this CUIAutomation8 _, int x, int y)
-        {
-            // Set the cursor position to the specified coordinates.
-            User32.SetPhysicalCursorPosition(x, y);
-
-            // Send a native click at the current cursor position.
-            SendNativeClick(_);
         }
 
         /// <summary>
@@ -1252,7 +1247,11 @@ namespace Uia.DriverServer.Extensions
             // Repeat the click the specified number of times.
             for (int i = 0; i < repeat; i++)
             {
-                SendNativeClick(_, point);
+                // Set the cursor position to the specified coordinates.
+                User32.SetPhysicalCursorPosition(x: point.X, y: point.Y);
+
+                // Send the native click.
+                SendNativeClick(_: default);
             }
         }
 
@@ -1267,23 +1266,7 @@ namespace Uia.DriverServer.Extensions
             User32.SetPhysicalCursorPosition(x: point.X, y: point.Y);
 
             // Send the native click.
-            SendNativeClick(_);
-        }
-
-        /// <summary>
-        /// Sends a native click at the current cursor position.
-        /// </summary>
-        /// <param name="_">An instance of <see cref="CUIAutomation8"/> (unused).</param>
-        public static void SendNativeClick(this CUIAutomation8 _)
-        {
-            // Get the current cursor position.
-            var point = User32.GetPhysicalCursorPosition();
-
-            // Perform a mouse left button down event at the current cursor position.
-            User32.SendMouseEvent(eventCode: 0x02, point.x, point.y);
-
-            // Perform a mouse left button up event at the current cursor position.
-            User32.SendMouseEvent(eventCode: 0x04, point.x, point.y);
+            SendNativeClick(_: default);
         }
 
         /// <summary>
@@ -1304,8 +1287,11 @@ namespace Uia.DriverServer.Extensions
                 leftOffset: 1,
                 scaleRatio);
 
-            // Send a native click to the clickable point.
-            SendNativeClick(null, point.X, point.Y);
+            // Set the cursor position to the specified coordinates.
+            User32.SetPhysicalCursorPosition(point.X, point.Y);
+
+            // Send a native click at the current cursor position.
+            SendNativeClick(_: default);
         }
 
         /// <summary>
@@ -1321,8 +1307,26 @@ namespace Uia.DriverServer.Extensions
             // Get the clickable point of the element with the specified alignment.
             var point = ExportClickablePoint(boundingRectangle, align, topOffset: 1, leftOffset: 1, scaleRatio: 1.0D);
 
-            // Send a native click to the clickable point.
-            SendNativeClick(null, point.X, point.Y);
+            // Set the cursor position to the specified coordinates.
+            User32.SetPhysicalCursorPosition(point.X, point.Y);
+
+            // Send a native click at the current cursor position.
+            SendNativeClick(_: default);
+        }
+
+        /// <summary>
+        /// Sends a native click at the specified coordinates.
+        /// </summary>
+        /// <param name="_">An instance of <see cref="CUIAutomation8"/> (unused).</param>
+        /// <param name="x">The x-coordinate to click.</param>
+        /// <param name="y">The y-coordinate to click.</param>
+        public static void SendNativeClick(this CUIAutomation8 _, int x, int y)
+        {
+            // Set the cursor position to the specified coordinates.
+            User32.SetPhysicalCursorPosition(x, y);
+
+            // Send a native click at the current cursor position.
+            SendNativeClick(_);
         }
 
         /// <summary>
@@ -1372,6 +1376,25 @@ namespace Uia.DriverServer.Extensions
             {
                 SendNativeClick(_: null);
             }
+        }
+
+        /// <summary>
+        /// Sends a native mouse click at the current cursor position.
+        /// </summary>
+        /// <param name="_">An instance of CUIAutomation8 (not used).</param>
+        public static void SendNativeClick(this CUIAutomation8 _)
+        {
+            // Get the current cursor position.
+            var point = User32.GetPhysicalCursorPosition();
+
+            // Create a mouse input structure for the mouse down event.
+            var mouseDown = NewMouseInput(MouseEvent.LeftDown, point.x, point.y);
+
+            // Create a mouse input structure for the mouse up event.
+            var mouseUp = NewMouseInput(MouseEvent.LeftUp, point.x, point.y);
+
+            // Send the input array to simulate the mouse click.
+            User32.SendInput([mouseDown, mouseUp]);
         }
 
         /// <summary>
@@ -1809,6 +1832,25 @@ namespace Uia.DriverServer.Extensions
                     wScan = keyCode,                                  // The hardware scan code for the key.
                     dwFlags = (uint)keyboardEvents,                   // Flags specifying various aspects of the keystroke.
                     dwExtraInfo = User32.GetMessageExtraInformation() // Additional information associated with the event.
+                }
+            }
+        };
+
+        // Creates a new mouse input event with the specified mouse events and coordinates.
+        private static Input NewMouseInput(MouseEvent mouseEvents, int x, int y) => new()
+        {
+            // Set the type of the input event to keyboard.
+            type = (int)SendInputEventType.Mouse,
+
+            // Initialize the union structure for input event.
+            union = new InputUnion
+            {
+                mi = new MouseInput
+                {
+                    dx = x,
+                    dy = y,
+                    dwFlags = (uint)mouseEvents,
+                    dwExtraInfo = User32.GetMessageExtraInformation()
                 }
             }
         };
