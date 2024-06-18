@@ -449,7 +449,7 @@ namespace Uia.DriverServer.Controllers
         // POST wd/hub/user32/session/{s}/mouse/move
         // POST user32/session/{s}/mouse/move
         [HttpPost]
-        [Route("user32/session/{s}/mouse/move")]
+        [Route("user32/session/{session}/mouse/move")]
         [SwaggerOperation(
             Summary = "Sets the mouse position to the specified coordinates in the given session.",
             Description = "Moves the mouse cursor to the coordinates specified by the point parameter in the session identified by the given session ID.",
@@ -459,14 +459,14 @@ namespace Uia.DriverServer.Controllers
         [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
         [SwaggerResponse(500, "Internal server error. An error occurred while attempting to set the mouse position.")]
         public IActionResult SetMousePosition(
-            [SwaggerParameter(Description = "The unique identifier for the session.")] string s,
+            [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
             [SwaggerRequestBody(Description = "The coordinates to set the mouse position to.")] PointModel point)
         {
             // Retrieve the session based on the provided ID
-            var session = _domain.SessionsRepository.GetSession(s).Session;
+            var sessionModel = _domain.SessionsRepository.GetSession(session).Session;
 
             // Set the cursor position using the session's automation
-            session.Automation.SetCursorPosition(point.X, point.Y);
+            sessionModel.Automation.SetCursorPosition(point.X, point.Y);
 
             // Return an OK response indicating the mouse position was set successfully
             return new JsonResult(new WebDriverResponseModel())
