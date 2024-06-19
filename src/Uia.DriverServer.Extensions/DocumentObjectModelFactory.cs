@@ -42,7 +42,7 @@ namespace Uia.DriverServer.Extensions
             var element = _rootElement ?? automation.GetRootElement();
 
             // Create the XML document from the UI Automation element tree.
-            return New(automation, element);
+            return New(automation, element, addDesktop: true);
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace Uia.DriverServer.Extensions
             var automation = new CUIAutomation8();
 
             // Create the XML document from the UI Automation element tree.
-            return New(automation, element);
+            return New(automation, element, addDesktop: true);
         }
 
         /// <summary>
@@ -67,18 +67,26 @@ namespace Uia.DriverServer.Extensions
         /// <returns>A new <see cref="XDocument"/> representing the UI Automation element tree.</returns>
         public static XDocument New(CUIAutomation8 automation, IUIAutomationElement element)
         {
-            // Get the tag name and attributes of the parent element.
-            var parentTagName = element.GetTagName();
-            var parentAttributes = GetElementAttributes(element);
+            return New(automation, element, addDesktop: true);
+        }
 
+        /// <summary>
+        /// Creates a new XML document representing the DOM structure of the given UI automation element.
+        /// </summary>
+        /// <param name="automation">The UI Automation instance to be used.</param>
+        /// <param name="element">The UI Automation element to be processed.</param>
+        /// <param name="addDesktop">Flag indicating whether to wrap the XML in a desktop tag.</param>
+        /// <returns>An XDocument representing the XML structure of the UI element.</returns>
+        public static XDocument New(CUIAutomation8 automation, IUIAutomationElement element, bool addDesktop)
+        {
             // Register and generate XML data for the new DOM.
             var xmlData = Register(automation, element);
 
             // Construct the XML body with the tag name, attributes, and registered XML data.
-            var xmlBody = $"<{parentTagName} {parentAttributes}>" + string.Join("\n", xmlData) + $"</{parentTagName}>";
+            var xmlBody = string.Join("\n", xmlData);
 
             // Combine the XML data into a single XML string.
-            var xml = "<Desktop>" + xmlBody + "</Desktop>";
+            var xml = addDesktop ? "<Desktop>" + xmlBody + "</Desktop>" : xmlBody;
 
             try
             {

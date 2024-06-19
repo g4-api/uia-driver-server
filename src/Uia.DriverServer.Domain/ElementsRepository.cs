@@ -102,6 +102,9 @@ namespace Uia.DriverServer.Domain
                 }
             }
 
+            // Force the output element to have a unique identifier if it does not have one
+            outputElement.Id ??= $"{Guid.NewGuid()}";
+
             // Add or update the element in the session's elements dictionary
             uiaSession.Elements[outputElement.Id] = outputElement;
 
@@ -304,10 +307,16 @@ namespace Uia.DriverServer.Domain
         {
             // Remove any namespace prefixes from the XPath
             var xpath = Regex.Replace(input: segmentData.PathSegment, pattern: @"(?<=^\/?)\w+:", replacement: string.Empty);
-            xpath = "/" + xpath;
+
+            // Normalize the XPath by adding a wildcard for the root element efficiently
+            // ignoring the previous element under which the search is performed
+            xpath = "/*/" + xpath;
 
             // Create a new Document Object Model (DOM) from the root element
-            var objectModel = new DocumentObjectModelFactory(segmentData.RootElement).New();
+            var objectModel = DocumentObjectModelFactory.New(
+                automation: segmentData.Session,
+                element: segmentData.RootElement,
+                addDesktop: false);
 
             // Select the element by XPath and get its 'id' attribute
             var idAttribute = objectModel.XPathSelectElement(xpath)?.Attribute("id")?.Value;
@@ -332,6 +341,7 @@ namespace Uia.DriverServer.Domain
             // Find and return the first element that matches the condition within the specified scope
             var element = segmentData.RootElement.FindFirst(treeScope, condition);
 
+            // Return a new UIA element model with the found element
             return new UiaElementModel
             {
                 UIAutomationElement = element
