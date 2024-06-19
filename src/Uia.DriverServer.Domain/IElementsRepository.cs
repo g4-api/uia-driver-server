@@ -3,6 +3,8 @@
  * 
  * RESOURCES
  */
+using System.Collections.Generic;
+
 using Uia.DriverServer.Models;
 
 namespace Uia.DriverServer.Domain
@@ -36,6 +38,23 @@ namespace Uia.DriverServer.Domain
         /// - Element: The found element model.
         /// </returns>
         (int Status, UiaElementModel ElementModel) FindElement(string session, string element, LocationStrategyModel locationStrategy);
+
+        /// <summary>
+        /// Finds UI automation elements based on the provided session and location strategy.
+        /// </summary>
+        /// <param name="session">The session identifier.</param>
+        /// <param name="locationStrategy">The location strategy model for finding the elements.</param>
+        /// <returns>A collection of found UI automation elements.</returns>
+        IEnumerable<UiaElementModel> FindElements(string session, LocationStrategyModel locationStrategy);
+
+        /// <summary>
+        /// Finds UI automation elements based on the provided session, element identifier, and location strategy.
+        /// </summary>
+        /// <param name="session">The session identifier.</param>
+        /// <param name="element">The element identifier within the session.</param>
+        /// <param name="locationStrategy">The location strategy model for finding the elements.</param>
+        /// <returns>A collection of found UI automation elements.</returns>
+        IEnumerable<UiaElementModel> FindElements(string session, string element, LocationStrategyModel locationStrategy);
 
         /// <summary>
         /// Gets the element model based on the specified session and element identifier.

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 using Swashbuckle.AspNetCore.Annotations;
 
+using System.Linq;
 using System.Net.Mime;
 
 using Uia.DriverServer.Domain;
@@ -75,7 +76,7 @@ namespace Uia.DriverServer.Controllers
         [SwaggerOperation(
             Summary = "Finds an element within the specified element in the given session using the provided locator strategy.",
             Description = "Uses the locator strategy to find an element within the parent element identified by the given session and element IDs.",
-            Tags = ["Elements"])]
+            Tags = ["Elements", "Retrieval"])]
         [SwaggerResponse(200, "Element found successfully.", typeof(WebDriverResponseModel))]
         [SwaggerResponse(400, "Invalid request. The locator strategy model is not valid.")]
         [SwaggerResponse(404, "Element not found. The session ID, parent element ID, or locator strategy provided does not match any element.")]
@@ -102,6 +103,71 @@ namespace Uia.DriverServer.Controllers
             return new JsonResult(value)
             {
                 StatusCode = statusCode
+            };
+        }
+
+        // POST /wd/hub/session/{session}/elements
+        // POST /session/{session}/elements
+        [HttpPost]
+        [Route("session/{session}/elements")]
+        [SwaggerOperation(
+            Summary = "Finds elements in the specified session using the provided locator strategy.",
+            Description = "Uses the locator strategy to find elements in the session identified by the given session ID.",
+            Tags = ["Elements", "Retrieval"])]
+        [SwaggerResponse(200, "Elements found successfully.", typeof(object))]
+        [SwaggerResponse(400, "Invalid request. The locator strategy model is not valid.")]
+        [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An unexpected error occurred while attempting to find the elements.")]
+        public IActionResult FindElements(
+            [SwaggerParameter(Description = "The unique identifier for the session in which the elements will be found.")] string session,
+            [SwaggerRequestBody(Description = "The locator strategy model containing the strategy to find the elements.")] LocationStrategyModel locator)
+        {
+            // Find elements using the provided session and locator strategy
+            var elementModels = _domain.ElementsRepository.FindElements(session, locator);
+
+            // Initialize a list of element IDs found in the session
+            var ids = elementModels.Select(i => i.Id);
+
+            // Create a response model containing the session ID and the list of found element IDs
+            var value = WebDriverResponseModel.NewElementsResponse(session, ids: !ids.Any() ? [] : ids);
+
+            // Return the response as a JSON result with status code 200
+            return new JsonResult(value)
+            {
+                StatusCode = 200
+            };
+        }
+
+        // POST /wd/hub/session/{session}/element/{element}/elements
+        // POST /session/{session}/element/{element}/elements
+        [HttpPost]
+        [Route("session/{session}/element/{element}/elements")]
+        [SwaggerOperation(
+            Summary = "Finds elements within the specified element in the given session using the provided locator strategy.",
+            Description = "Uses the locator strategy to find elements within the parent element identified by the given session and element IDs.",
+            Tags = ["Elements", "Retrieval"])]
+        [SwaggerResponse(200, "Elements found successfully.", typeof(WebDriverResponseModel))]
+        [SwaggerResponse(400, "Invalid request. The locator strategy model is not valid.")]
+        [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to find the elements.")]
+        public IActionResult FindElements(
+            [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
+            [SwaggerParameter(Description = "The unique identifier for the parent element within which to find the target elements.")] string element,
+            [SwaggerRequestBody(Description = "The locator strategy model containing the strategy to find the elements.")] LocationStrategyModel locator)
+        {
+            // Find elements using the provided session, parent element, and locator strategy
+            var elementModels = _domain.ElementsRepository.FindElements(session, element, locator);
+
+            // Initialize a list of element IDs found in the session
+            var ids = elementModels.Select(i => i.Id);
+
+            // Create a response model containing the session ID and the list of found element IDs
+            var value = WebDriverResponseModel.NewElementsResponse(session, ids: !ids.Any() ? [] : ids);
+
+            // Return the response as a JSON result with status code 200
+            return new JsonResult(value)
+            {
+                StatusCode = 200
             };
         }
 

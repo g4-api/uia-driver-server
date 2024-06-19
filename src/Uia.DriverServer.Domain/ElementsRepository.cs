@@ -113,6 +113,113 @@ namespace Uia.DriverServer.Domain
         }
 
         /// <inheritdoc />
+        public IEnumerable<UiaElementModel> FindElements(string session, LocationStrategyModel locationStrategy)
+        {
+            // Call the overloaded FindElements method with an empty element identifier
+            return FindElements(session, element: string.Empty, locationStrategy);
+        }
+
+        /// <inheritdoc />
+        public IEnumerable<UiaElementModel> FindElements(string session, string element, LocationStrategyModel locationStrategy)
+        {
+            // Try to retrieve the session model from the sessions dictionary
+            var isSession = _sessions.TryGetValue(session, out UiaSessionResponseModel uiaSession);
+
+            // If the session is not found, return an empty list
+            if (!isSession)
+            {
+                return [];
+            }
+
+            // If an element identifier is provided, get the element; otherwise, set it to default
+            var uiaElement = !string.IsNullOrEmpty(element)
+                ? GetElementBySession(_sessions, session, element)
+                : default;
+
+            // Get the locator hierarchy and determine if the root is included
+            var (isRoot, hierarchy) = FormatLocatorHierarchy(locationStrategy);
+
+            // If the hierarchy is empty, return an empty list indicating a bad request
+            if (hierarchy.Length == 0)
+            {
+                return [];
+            }
+
+            // Determine the root element based on whether the root is included in the hierarchy
+            var rootElement = isRoot
+                ? new CUIAutomation8().GetRootElement()
+                : uiaSession.ApplicationRoot;
+
+            // If the element has a valid UI Automation element and the root is not included, use the element as the root
+            if (uiaElement?.UIAutomationElement != null && !isRoot)
+            {
+                rootElement = uiaElement.UIAutomationElement;
+            }
+
+            // Setup the output element model with the root element
+            var outputElement = rootElement;
+
+            // Iterate through the hierarchy to find the element by each segment
+            foreach (var pathSegment in hierarchy.Take(hierarchy.Length - 1))
+            {
+                // Find the element by the current segment and update the root
+                // element accordingly for the next segment search iteration
+                outputElement = FindElementBySegment(new CUIAutomation8(), outputElement, pathSegment)?.UIAutomationElement;
+
+                var notFound = outputElement == default;
+
+                // If the element is not found, return an empty list
+                if (notFound)
+                {
+                    return [];
+                }
+            }
+
+            // Get the last segment of the hierarchy and determine the search scope
+            var lastPathSegment = hierarchy[^1];
+            var scope = lastPathSegment.StartsWith('/') ? TreeScope.TreeScope_Descendants : TreeScope.TreeScope_Children;
+
+            // Initialize the condition object
+            IUIAutomationCondition condition = XpathParser.ConvertToCondition(lastPathSegment);
+
+            // If the condition is null, return an empty list
+            if(condition == null)
+            {
+                return [];
+            }
+
+            // Find all elements that match the condition within the specified scope
+            var elements = outputElement.FindAll(scope, condition);
+
+            // If no elements are found, return an empty list
+            if (elements == null || elements.Length == 0)
+            {
+                return [];
+            }
+
+            // Initialize a list to store the found elements
+            var outputElements = new List<UiaElementModel>();
+
+            // Iterate through the found elements and convert them to element models
+            for (int i = 0; i < elements.Length; i++)
+            {
+                var elementModel = elements.GetElement(i).ConvertToElement();
+
+                // Assign a new GUID if the element ID is null
+                elementModel.Id ??= $"{Guid.NewGuid()}";
+
+                // Store the element model in the session's elements dictionary
+                uiaSession.Elements[elementModel.Id] = elementModel;
+
+                // Add the element model to the output list
+                outputElements.Add(elementModel);
+            }
+
+            // Return the list of found element models
+            return outputElements;
+        }
+
+        /// <inheritdoc />
         public UiaElementModel GetElement(string session, string element)
         {
             return GetElementBySession(_sessions, session, element);
@@ -376,6 +483,12 @@ namespace Uia.DriverServer.Domain
             // Initialize the condition object
             IUIAutomationCondition condition = XpathParser.ConvertToCondition(segmentData.PathSegment);
 
+            // Check if the condition is null and return default if so
+            if(condition == null)
+            {
+                return default;
+            }
+
             // Extract the index value from the path segment
             var indexValue = Regex.Match(input: segmentData.PathSegment, pattern: @"(?<=\[)\d+(?=])").Value;
 
@@ -385,7 +498,7 @@ namespace Uia.DriverServer.Domain
             // Find the first element that matches the condition if no index is specified
             if (!isIndex)
             {
-                return segmentData.RootElement.FindFirst(treeScope, condition).ConvertToElement();
+                return segmentData.RootElement.FindFirst(treeScope, condition)?.ConvertToElement();
             }
 
             // Find all elements that match the condition

@@ -89,6 +89,34 @@ namespace Uia.DriverServer.Models
         }
 
         /// <summary>
+        /// Creates a new WebDriver response model for multiple located elements.
+        /// </summary>
+        /// <param name="session">The session identifier.</param>
+        /// <param name="ids">The unique identifiers of the located elements.</param>
+        /// <returns>A <see cref="WebDriverResponseModel"/> representing the response with the list of element references.</returns>
+        public static WebDriverResponseModel NewElementsResponse(string session, IEnumerable<string> ids)
+        {
+            // Initialize a list to store the element references
+            var elements = new List<Dictionary<string, string>>();
+
+            // Iterate through each id and create a dictionary entry for the element reference
+            foreach (var id in ids)
+            {
+                elements.Add(new Dictionary<string, string>
+                {
+                    [ElementProperties.ElementReference] = id
+                });
+            }
+
+            // Create the response model containing the session ID and the list of element references
+            return new WebDriverResponseModel
+            {
+                Session = session,
+                Value = elements
+            };
+        }
+
+        /// <summary>
         /// Creates a new WebDriver response model indicating an invalid session error.
         /// </summary>
         /// <param name="session">The session identifier.</param>
