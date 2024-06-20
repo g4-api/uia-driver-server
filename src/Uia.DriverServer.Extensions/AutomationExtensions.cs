@@ -1160,8 +1160,16 @@ namespace Uia.DriverServer.Extensions
 
             try
             {
+                // Get the current value of the element.
+                var valuePattern = (IUIAutomationValuePattern)pattern;
+
+                // Create a new value by concatenating the existing value with the specified text.
+                var value = (string.IsNullOrEmpty(valuePattern.CurrentValue) ? string.Empty : valuePattern.CurrentValue) + text;
+
                 // Set the value of the element using the Value pattern.
-                ((IUIAutomationValuePattern)pattern).SetValue(text);
+                ((IUIAutomationValuePattern)pattern).SetValue(value);
+
+                // Return the element after setting the value.
                 return element;
             }
             catch (Exception e)
