@@ -33,6 +33,41 @@ namespace Uia.DriverServer.Controllers
         // Initialize the UIA domain interface
         private readonly IUiaDomain _domain = domain;
 
+        // POST /wd/hub/session/{session}/element/{element}/clear
+        // POST /session/{session}/element/{element}/clear
+        [HttpPost]
+        [Route("session/{session}/element/{element}/clear")]
+        [SwaggerOperation(
+            Summary = "Clears the value of the specified element in the given session.",
+            Description = "Performs a clear action on the element identified by the given session and element IDs, effectively clearing its value.",
+            Tags = ["Elements", "Interaction"])]
+        [SwaggerResponse(200, "Clear action invoked successfully.")]
+        [SwaggerResponse(404, "The element is stale and cannot be found.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to clear the element.")]
+        public IActionResult ClearValue(
+            [SwaggerParameter(Description = "The unique identifier for the session in which the element will be cleared.")] string session,
+            [SwaggerParameter(Description = "The unique identifier for the element to be cleared.")] string element)
+        {
+            // Retrieve the element using the domain's elements repository
+            var elementModel = _domain.ElementsRepository.GetElement(session, element);
+
+            // Check if the element is stale
+            if (elementModel == default)
+            {
+                // Return a not found response if the element is stale
+                return NotFound(WebDriverResponseModel.NewStaleReferenceResponse(session));
+            }
+
+            // Invoke the clear action on the element
+            elementModel.UIAutomationElement.ClearValue();
+
+            // Return an OK response indicating the clear action was successful
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
+        }
+
         // POST /wd/hub/session/{session}/element
         // POST /session/{session}/element
         [HttpPost]

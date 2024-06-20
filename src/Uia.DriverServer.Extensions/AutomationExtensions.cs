@@ -116,6 +116,23 @@ namespace Uia.DriverServer.Extensions
         };
 
         /// <summary>
+        /// Clears the value of the specified UI Automation element by setting it to an empty string.
+        /// </summary>
+        /// <param name="element">The UI Automation element whose value needs to be cleared.</param>
+        /// <returns>The same UI Automation element after clearing its value.</returns>
+        public static IUIAutomationElement ClearValue(this IUIAutomationElement element)
+        {
+            // Retrieve the ValuePattern of the element.
+            var pattern = element.GetCurrentPattern(UIA_PatternIds.UIA_ValuePatternId) as IUIAutomationValuePattern;
+
+            // If the ValuePattern is available, set the value to an empty string.
+            pattern?.SetValue(string.Empty);
+
+            // Return the element.
+            return element;
+        }
+
+        /// <summary>
         /// Confirms the presence of required capabilities in the provided <see cref="NewSessionModel"/>.
         /// </summary>
         /// <param name="capabilities">The capabilities to confirm.</param>
