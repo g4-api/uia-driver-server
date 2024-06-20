@@ -1032,18 +1032,28 @@ namespace Uia.DriverServer.Extensions
             {
                 // Invoke the element if it supports the Invoke pattern.
                 InvokeElement(element);
+
+                // Return the element after performing the click action.
+                return element;
             }
-            else if (isExpandCollapse)
+            if (isExpandCollapse)
             {
                 // Expand or collapse the element if it supports the ExpandCollapse pattern.
                 SwitchExpandCollapse(element);
+
+                // Return the element after performing the expand or collapse action.
+                return element;
             }
-            else if (isSelectable)
+            if (isSelectable)
             {
                 // Select the element if it supports the SelectionItem pattern.
                 SelectElement(element);
+
+                // Return the element after performing the selection action.
+                return element;
             }
-            else if (isCords)
+
+            if (isCords)
             {
                 // Create a new RectangleModel from the element's current bounding rectangle.
                 var boundingRectangle = NewRectangleModel(element.CurrentBoundingRectangle);
