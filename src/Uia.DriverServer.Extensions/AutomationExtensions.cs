@@ -1181,7 +1181,9 @@ namespace Uia.DriverServer.Extensions
                 var valuePattern = (IUIAutomationValuePattern)pattern;
 
                 // Create a new value by concatenating the existing value with the specified text.
-                var value = (string.IsNullOrEmpty(valuePattern.CurrentValue) ? string.Empty : valuePattern.CurrentValue) + text;
+                var value = string.IsNullOrEmpty(valuePattern.CurrentValue)
+                    ? string.Empty
+                    : valuePattern.CurrentValue.Trim('\r') + text;
 
                 // Set the value of the element using the Value pattern.
                 ((IUIAutomationValuePattern)pattern).SetValue(value);
