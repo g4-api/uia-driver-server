@@ -31,9 +31,6 @@ namespace Uia.DriverServer.Controllers
         externalDocsUrl: "https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list")]
     public class User32Controller(IUiaDomain domain) : ControllerBase
     {
-        [DllImport("user32.dll", SetLastError = true)]
-        internal static extern uint SendInput(uint nInputs, Input[] pInputs, int cbSize);
-
         // Initialize the UIA domain interface
         private readonly IUiaDomain _domain = domain;
 

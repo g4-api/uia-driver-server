@@ -1160,8 +1160,8 @@ namespace Uia.DriverServer.Extensions
         public static IUIAutomationElement SendKeys(this IUIAutomationElement element, string text)
         {
             // Attempt to get the Value pattern from the element.
-            var pattern = element.GetCurrentPattern(UIA_PatternIds.UIA_ValuePatternId);
-            var isValue = pattern != null;
+            var valuePattern = element.GetCurrentPattern(UIA_PatternIds.UIA_ValuePatternId) as IUIAutomationValuePattern;
+            var isValue = valuePattern != null;
 
             // If the element is keyboard focusable, set focus to the element.
             if (element.CurrentIsKeyboardFocusable == 1)
@@ -1177,16 +1177,13 @@ namespace Uia.DriverServer.Extensions
 
             try
             {
-                // Get the current value of the element.
-                var valuePattern = (IUIAutomationValuePattern)pattern;
-
                 // Create a new value by concatenating the existing value with the specified text.
                 var value = string.IsNullOrEmpty(valuePattern.CurrentValue)
-                    ? string.Empty
+                    ? text
                     : valuePattern.CurrentValue.Trim('\r') + text;
 
                 // Set the value of the element using the Value pattern.
-                ((IUIAutomationValuePattern)pattern).SetValue(value);
+                valuePattern.SetValue(value);
 
                 // Return the element after setting the value.
                 return element;
