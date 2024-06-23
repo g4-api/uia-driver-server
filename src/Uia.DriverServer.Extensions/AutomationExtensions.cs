@@ -115,6 +115,59 @@ namespace Uia.DriverServer.Extensions
             ["Del"] = 0x53         // Delete key
         };
 
+        // Initialize the dictionary
+        private static readonly Dictionary<string, (ushort Modifier, ushort ModifiedKeyCode)> s_ModifiedKeys = new()
+        {
+            ["!"] = (Modifier: 0x2A, ModifiedKeyCode: 0x02),  // Shift + 1
+            ["@"] = (Modifier: 0x2A, ModifiedKeyCode: 0x03),  // Shift + 2
+            ["#"] = (Modifier: 0x2A, ModifiedKeyCode: 0x04),  // Shift + 3
+            ["$"] = (Modifier: 0x2A, ModifiedKeyCode: 0x05),  // Shift + 4
+            ["%"] = (Modifier: 0x2A, ModifiedKeyCode: 0x06),  // Shift + 5
+            ["^"] = (Modifier: 0x2A, ModifiedKeyCode: 0x07),  // Shift + 6
+            ["&"] = (Modifier: 0x2A, ModifiedKeyCode: 0x08),  // Shift + 7
+            ["*"] = (Modifier: 0x2A, ModifiedKeyCode: 0x09),  // Shift + 8
+            ["("] = (Modifier: 0x2A, ModifiedKeyCode: 0x0A),  // Shift + 9
+            [")"] = (Modifier: 0x2A, ModifiedKeyCode: 0x0B),  // Shift + 0
+            ["_"] = (Modifier: 0x2A, ModifiedKeyCode: 0x0C),  // Shift + -
+            ["+"] = (Modifier: 0x2A, ModifiedKeyCode: 0x0D),  // Shift + =
+            [":"] = (Modifier: 0x2A, ModifiedKeyCode: 0x27),  // Shift + ';' (Colon)
+            ["\""] = (Modifier: 0x2A, ModifiedKeyCode: 0x28), // Shift + '   (Quotation mark)
+            ["<"] = (Modifier: 0x2A, ModifiedKeyCode: 0x33),  // Shift + ,
+            [">"] = (Modifier: 0x2A, ModifiedKeyCode: 0x34),  // Shift + .
+            ["?"] = (Modifier: 0x2A, ModifiedKeyCode: 0x35),  // Shift + /
+            ["{"] = (Modifier: 0x2A, ModifiedKeyCode: 0x1A),  // Shift + [
+            ["}"] = (Modifier: 0x2A, ModifiedKeyCode: 0x1B),  // Shift + ]
+            ["|"] = (Modifier: 0x2A, ModifiedKeyCode: 0x2B),  // Shift + \
+            ["~"] = (Modifier: 0x2A, ModifiedKeyCode: 0x29),  // Shift + `
+            ["A"] = (Modifier: 0x2A, ModifiedKeyCode: 0x1E),  // Shift + A
+            ["B"] = (Modifier: 0x2A, ModifiedKeyCode: 0x30),  // Shift + B
+            ["C"] = (Modifier: 0x2A, ModifiedKeyCode: 0x2E),  // Shift + C
+            ["D"] = (Modifier: 0x2A, ModifiedKeyCode: 0x20),  // Shift + D
+            ["E"] = (Modifier: 0x2A, ModifiedKeyCode: 0x12),  // Shift + E
+            ["F"] = (Modifier: 0x2A, ModifiedKeyCode: 0x21),  // Shift + F
+            ["G"] = (Modifier: 0x2A, ModifiedKeyCode: 0x22),  // Shift + G
+            ["H"] = (Modifier: 0x2A, ModifiedKeyCode: 0x23),  // Shift + H
+            ["I"] = (Modifier: 0x2A, ModifiedKeyCode: 0x17),  // Shift + I
+            ["J"] = (Modifier: 0x2A, ModifiedKeyCode: 0x24),  // Shift + J
+            ["K"] = (Modifier: 0x2A, ModifiedKeyCode: 0x25),  // Shift + K
+            ["L"] = (Modifier: 0x2A, ModifiedKeyCode: 0x26),  // Shift + L
+            ["M"] = (Modifier: 0x2A, ModifiedKeyCode: 0x32),  // Shift + M
+            ["N"] = (Modifier: 0x2A, ModifiedKeyCode: 0x31),  // Shift + N
+            ["O"] = (Modifier: 0x2A, ModifiedKeyCode: 0x18),  // Shift + O
+            ["P"] = (Modifier: 0x2A, ModifiedKeyCode: 0x19),  // Shift + P
+            ["Q"] = (Modifier: 0x2A, ModifiedKeyCode: 0x10),  // Shift + Q
+            ["R"] = (Modifier: 0x2A, ModifiedKeyCode: 0x13),  // Shift + R
+            ["S"] = (Modifier: 0x2A, ModifiedKeyCode: 0x1F),  // Shift + S
+            ["T"] = (Modifier: 0x2A, ModifiedKeyCode: 0x14),  // Shift + T
+            ["U"] = (Modifier: 0x2A, ModifiedKeyCode: 0x16),  // Shift + U
+            ["V"] = (Modifier: 0x2A, ModifiedKeyCode: 0x2F),  // Shift + V
+            ["W"] = (Modifier: 0x2A, ModifiedKeyCode: 0x11),  // Shift + W
+            ["X"] = (Modifier: 0x2A, ModifiedKeyCode: 0x2D),  // Shift + X
+            ["Y"] = (Modifier: 0x2A, ModifiedKeyCode: 0x15),  // Shift + Y
+            ["Z"] = (Modifier: 0x2A, ModifiedKeyCode: 0x2C),  // Shift + Z
+            ["€"] = (Modifier: 0x40, ModifiedKeyCode: 0x05)   // AltGr + 5
+        };
+
         /// <summary>
         /// Clears the value of the specified UI Automation element by setting it to an empty string.
         /// </summary>
@@ -1483,40 +1536,18 @@ namespace Uia.DriverServer.Extensions
         // Confirms if a key is a modified key and returns the modifier and key code.
         private static (bool Modified, ushort Modifier, ushort KeyCode) ConfirmModifiedKey(string input)
         {
-            // Initialize a list to store information about modified keys.
-            var info = new List<(string Input, ushort Modifier, ushort ModifiedKeyCode)>();
-
-            // Add entries for modified keys.
-            info.AddRange(
-            [
-                (Input: "!", Modifier: 0x2A, ModifiedKeyCode: 0x02), // Shift + 1
-                (Input: "@", Modifier: 0x2A, ModifiedKeyCode: 0x03), // Shift + 2
-                (Input: "#", Modifier: 0x2A, ModifiedKeyCode: 0x04), // Shift + 3
-                (Input: "$", Modifier: 0x2A, ModifiedKeyCode: 0x05), // Shift + 4
-                (Input: "%", Modifier: 0x2A, ModifiedKeyCode: 0x06), // Shift + 5
-                (Input: "^", Modifier: 0x2A, ModifiedKeyCode: 0x07), // Shift + 6
-                (Input: "&", Modifier: 0x2A, ModifiedKeyCode: 0x08), // Shift + 7
-                (Input: "*", Modifier: 0x2A, ModifiedKeyCode: 0x09), // Shift + 8
-                (Input: "(", Modifier: 0x2A, ModifiedKeyCode: 0x0A), // Shift + 9
-                (Input: ")", Modifier: 0x2A, ModifiedKeyCode: 0x0B), // Shift + 0
-                (Input: "_", Modifier: 0x2A, ModifiedKeyCode: 0x0C), // Shift + -
-                (Input: "+", Modifier: 0x2A, ModifiedKeyCode: 0x0D), // Shift + =
-                (Input: ":", Modifier: 0x2A, ModifiedKeyCode: 0x27), // Shift + ';' (Colon)
-                (Input: "<", Modifier: 0x2A, ModifiedKeyCode: 0x33), // Shift + ,
-                (Input: ">", Modifier: 0x2A, ModifiedKeyCode: 0x34), // Shift + .
-                (Input: "?", Modifier: 0x2A, ModifiedKeyCode: 0x35), // Shift + /
-                (Input: "{", Modifier: 0x2A, ModifiedKeyCode: 0x1A), // Shift + [
-                (Input: "}", Modifier: 0x2A, ModifiedKeyCode: 0x1B), // Shift + ]
-                (Input: "|", Modifier: 0x2A, ModifiedKeyCode: 0x2B), // Shift + \
-                (Input: "~", Modifier: 0x2A, ModifiedKeyCode: 0x29)  // Shift + `
-            ]);
-
             // Check if the input key is in the list of modified keys.
-            var isModified = info.Exists(i => i.Input.Equals(input));
+            var isModified = s_ModifiedKeys.ContainsKey(input);
 
             // Get the modifier and modified key code if the key is modified, otherwise set to 0x00.
-            var modifier = isModified ? info.First(i => i.Input.Equals(input)).Modifier : (ushort)0x00;
-            var modifiedKeyCode = isModified ? info.First(i => i.Input.Equals(input)).ModifiedKeyCode : (ushort)0x00;
+            var modifier = isModified
+                ? s_ModifiedKeys[input].Modifier
+                : (ushort)0x00;
+
+            // Get the modified key code if the key is modified, otherwise set to 0x00.
+            var modifiedKeyCode = isModified
+                ? s_ModifiedKeys[input].ModifiedKeyCode
+                : (ushort)0x00;
 
             // Return the results as a tuple.
             return (isModified, modifier, modifiedKeyCode);

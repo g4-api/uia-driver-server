@@ -11,7 +11,6 @@ using Swashbuckle.AspNetCore.Annotations;
 
 using System;
 using System.Linq;
-using System.Runtime.InteropServices;
 
 using Uia.DriverServer.Domain;
 using Uia.DriverServer.Extensions;
