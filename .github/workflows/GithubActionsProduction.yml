@@ -1,5 +1,5 @@
 # Workflow to build and release UiaXpathTester for production
-name: Build & Release
+name: Build & Release Production
 
 # Permissions for the workflow
 permissions:
