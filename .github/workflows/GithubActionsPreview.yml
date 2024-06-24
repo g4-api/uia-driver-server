@@ -5,11 +5,9 @@ name: Build & Release
 permissions:
   contents: write
 
-# Trigger workflow on push to the main branch
+# Trigger the workflow on manual execution only using the workflow_dispatch event
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 # Set environment variables
 env:
