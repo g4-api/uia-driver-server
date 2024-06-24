@@ -8,10 +8,15 @@ permissions:
 # Trigger workflow on push to the main branch
 on:
   push:
-    paths-ignore:
-      - 'README.md'
     branches:
       - main
+    paths-ignore:
+      - '../README.md'
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '../README.md'
 
 # Set environment variables
 env:
