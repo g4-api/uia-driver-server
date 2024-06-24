@@ -11,12 +11,12 @@ on:
     branches:
       - main
     paths-ignore:
-      - '../README.md'
+      - 'README.md'
   pull_request:
     branches:
       - main
     paths-ignore:
-      - '../README.md'
+      - 'README.md'
 
 # Set environment variables
 env:
