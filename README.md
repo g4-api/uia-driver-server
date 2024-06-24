@@ -1,6 +1,6 @@
 # Windows WebDriver Automation Service
 
-[![Build & Release](https://github.com/g4-api/uia-driver-server/actions/workflows/GithubActions.yml/badge.svg)](https://github.com/g4-api/uia-driver-server/actions/workflows/GithubActions.yml)
+[![Build & Release Production](https://github.com/g4-api/uia-driver-server/actions/workflows/GithubActionsProduction.yml/badge.svg)](https://github.com/g4-api/uia-driver-server/actions/workflows/GithubActionsProduction.yml)
 
 ## Table of Contents
 

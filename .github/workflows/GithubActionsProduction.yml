@@ -8,6 +8,8 @@ permissions:
 # Trigger workflow on push to the main branch
 on:
   push:
+    paths-ignore:
+      - 'README.md'
     branches:
       - main
 
