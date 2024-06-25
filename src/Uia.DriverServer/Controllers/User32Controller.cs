@@ -36,7 +36,7 @@ namespace Uia.DriverServer.Controllers
         // POST wd/hub/user32/session/{session}/element/{element}/click
         // POST user32/session/{session}/element/{element}/click
         [HttpPost]
-        [Route("session/user32/{session}/element/{element}/click")]
+        [Route("user32/session/{session}/element/{element}/click")]
         [SwaggerOperation(
             Summary = "Invokes a click action on the specified element in the given session.",
             Description = "Performs a click action on the element identified by the given session and element IDs.",
@@ -114,7 +114,7 @@ namespace Uia.DriverServer.Controllers
         // POST wd/hub/user32/session/{session}/element/{element}/copy
         // POST user32/session/{session}/element/{element}/copy
         [HttpPost]
-        [Route("session/user32/{session}/element/{element}/copy")]
+        [Route("user32/session/{session}/element/{element}/copy")]
         [SwaggerOperation(
             Summary = "Invokes the copy action on the specified element in the given session.",
             Description = "Performs a copy action on the element identified by the given session and element IDs.",
@@ -191,7 +191,7 @@ namespace Uia.DriverServer.Controllers
         // POST wd/hub/user32/session/{session}/element/{element}/dclick
         // POST user32/session/{session}/element/{element}/dclick
         [HttpPost]
-        [Route("session/user32/{session}/element/{element}/dclick")]
+        [Route("user32/session/{session}/element/{element}/dclick")]
         [SwaggerOperation(
             Summary = "Invokes a double-click action on the specified element in the given session.",
             Description = "Performs a double-click action on the element identified by the given session and element IDs.",
@@ -242,7 +242,7 @@ namespace Uia.DriverServer.Controllers
         // POST wd/hub/user32/session/{session}/paste
         // POST user32/session/{session}/paste
         [HttpPost]
-        [Route("session/user32/{session}/paste")]
+        [Route("user32/session/{session}/paste")]
         [SwaggerOperation(
             Summary = "Invokes a paste action in the specified session.",
             Description = "Performs a paste action in the session identified by the given session ID.",
