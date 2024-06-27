@@ -30,7 +30,7 @@ namespace Uia.DriverServer.Extensions
     public static class AutomationExtensions
     {
         // A static dictionary mapping key names to their corresponding scan codes.
-        private static readonly Dictionary<string, ushort> s_CodeMap = new (StringComparer.OrdinalIgnoreCase)
+        private static readonly Dictionary<string, ushort> s_codeMap = new (StringComparer.OrdinalIgnoreCase)
         {
             ["Esc"] = 0x01,        // Escape key
             ["1"] = 0x02,          // 1 key
@@ -116,7 +116,7 @@ namespace Uia.DriverServer.Extensions
         };
 
         // Initialize the dictionary
-        private static readonly Dictionary<string, (ushort Modifier, ushort ModifiedKeyCode)> s_ModifiedKeys = new()
+        private static readonly Dictionary<string, (ushort Modifier, ushort ModifiedKeyCode)> s_modifiedKeys = new()
         {
             ["!"] = (Modifier: 0x2A, ModifiedKeyCode: 0x02),  // Shift + 1
             ["@"] = (Modifier: 0x2A, ModifiedKeyCode: 0x03),  // Shift + 2
@@ -293,7 +293,7 @@ namespace Uia.DriverServer.Extensions
         public static IEnumerable<Input> ConvertToInputs(this string input)
         {
             // Check if the input is a single key in the scan code map.
-            if (s_CodeMap.TryGetValue(input, out ushort value))
+            if (s_codeMap.TryGetValue(input, out ushort value))
             {
                 // Return the key down and key up events for the key.
                 return
@@ -320,8 +320,8 @@ namespace Uia.DriverServer.Extensions
                 }
 
                 // Get the scan code for the character.
-                var wScan = s_CodeMap.ContainsKey($"{character}")
-                    ? s_CodeMap[$"{character}"]
+                var wScan = s_codeMap.ContainsKey($"{character}")
+                    ? s_codeMap[$"{character}"]
                     : (ushort)0x00;
 
                 // Add the key down and key up events for the character to the list.
@@ -825,7 +825,7 @@ namespace Uia.DriverServer.Extensions
         public static ushort GetKeyCode(this string key)
         {
             // Try to get the scan code from the map. If the key is found, return the scan code; otherwise, return ushort.MaxValue.
-            return s_CodeMap.TryGetValue(key, out ushort keyCode) ? keyCode : ushort.MaxValue;
+            return s_codeMap.TryGetValue(key, out ushort keyCode) ? keyCode : ushort.MaxValue;
         }
 
         /// <summary>
@@ -874,7 +874,7 @@ namespace Uia.DriverServer.Extensions
         public static ushort GetScanCode(this string key)
         {
             // Try to get the scan code from the code map using the provided key
-            var isCodes = s_CodeMap.TryGetValue(key, out ushort code);
+            var isCodes = s_codeMap.TryGetValue(key, out ushort code);
 
             // If the key is found in the map, return the associated code; otherwise, return ushort.MaxValue
             return isCodes ? code : ushort.MaxValue;
@@ -1260,7 +1260,7 @@ namespace Uia.DriverServer.Extensions
             static ushort GetKeyCode(string key)
             {
                 // Return the scan code if found, otherwise return 0x00.
-                return s_CodeMap.TryGetValue(key, out ushort keyCode) ? keyCode : (ushort)0x00;
+                return s_codeMap.TryGetValue(key, out ushort keyCode) ? keyCode : (ushort)0x00;
             }
 
             // Get the scan code for the modifier key.
@@ -1537,16 +1537,16 @@ namespace Uia.DriverServer.Extensions
         private static (bool Modified, ushort Modifier, ushort KeyCode) ConfirmModifiedKey(string input)
         {
             // Check if the input key is in the list of modified keys.
-            var isModified = s_ModifiedKeys.ContainsKey(input);
+            var isModified = s_modifiedKeys.ContainsKey(input);
 
             // Get the modifier and modified key code if the key is modified, otherwise set to 0x00.
             var modifier = isModified
-                ? s_ModifiedKeys[input].Modifier
+                ? s_modifiedKeys[input].Modifier
                 : (ushort)0x00;
 
             // Get the modified key code if the key is modified, otherwise set to 0x00.
             var modifiedKeyCode = isModified
-                ? s_ModifiedKeys[input].ModifiedKeyCode
+                ? s_modifiedKeys[input].ModifiedKeyCode
                 : (ushort)0x00;
 
             // Return the results as a tuple.
@@ -1595,7 +1595,7 @@ namespace Uia.DriverServer.Extensions
             scaleRatio = scaleRatio <= 0 ? 1 : scaleRatio;
 
             // Calculate the clickable point based on the specified alignment.
-            switch (align.ToUpper())
+            switch (align?.ToUpper())
             {
                 case "TOPLEFT":
                     // Calculate the point at the top-left corner.
