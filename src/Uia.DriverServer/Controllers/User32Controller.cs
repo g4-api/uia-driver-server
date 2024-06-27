@@ -33,84 +33,6 @@ namespace Uia.DriverServer.Controllers
         // Initialize the UIA domain interface
         private readonly IUiaDomain _domain = domain;
 
-        // POST wd/hub/user32/session/{session}/element/{element}/click
-        // POST user32/session/{session}/element/{element}/click
-        [HttpPost]
-        [Route("user32/session/{session}/element/{element}/click")]
-        [SwaggerOperation(
-            Summary = "Invokes a click action on the specified element in the given session.",
-            Description = "Performs a click action on the element identified by the given session and element IDs.",
-            Tags = ["User32"])]
-        [SwaggerResponse(200, "Click action invoked successfully.")]
-        [SwaggerResponse(404, "Session or element not found. The session ID or element ID provided does not exist.")]
-        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to click the element.")]
-        public IActionResult InvokeClick(
-            [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
-            [SwaggerParameter(Description = "The unique identifier for the element to be clicked.")] string element)
-        {
-            // Get the session status code
-            var sessionModel = _domain.SessionsRepository.GetSession(id: session).Session;
-
-            // Retrieve the element using the domain's elements repository
-            var elementModel = _domain.ElementsRepository.GetElement(session, element);
-
-            // Check if the element is stale
-            if (elementModel == default)
-            {
-                // Return a not found response if the element is stale
-                return NotFound(WebDriverResponseModel.NewStaleReferenceResponse(session));
-            }
-
-            // Check if the UIAutomationElement property of the element model is null
-            if (elementModel.UIAutomationElement == null)
-            {
-                // Get the clickable point of the element based on the session's scale ratio
-                var point = elementModel.GetClickablePoint();
-
-                // Send a native click to the computed point using the session's automation object
-                sessionModel.Automation.SendNativeClick(point);
-            }
-            else
-            {
-                // Send a native click to the element using its UIAutomationElement property and the session's scale ratio
-                elementModel.UIAutomationElement.SendNativeClick();
-            }
-
-            // Return an OK response indicating the click action was successful
-            return new JsonResult(new WebDriverResponseModel())
-            {
-                StatusCode = StatusCodes.Status200OK
-            };
-        }
-
-        // POST wd/hub/user32/session/{session}/click
-        // POST user32/session/{session}/click
-        [HttpPost]
-        [Route("user32/session/{session}/click")]
-        [SwaggerOperation(
-            Summary = "Performs a native click at the specified coordinates in the given session.",
-            Description = "Sends a native click action to the coordinates specified by the point parameter in the session identified by the given session ID.",
-            Tags = ["User32"])]
-        [SwaggerResponse(200, "Native click performed successfully.")]
-        [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
-        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to perform the native click.")]
-        public IActionResult InvokeNativeClick(
-            [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
-            [SwaggerRequestBody(Description = "The coordinates where the click should be performed.")] PointModel point)
-        {
-            // Retrieve the session based on the provided ID
-            var sessionModel = _domain.SessionsRepository.GetSession(session).Session;
-
-            // Perform a native click at the specified coordinates using the session's automation
-            sessionModel.Automation.SendNativeClick(point.X, point.Y);
-
-            // Return an OK response indicating the native click was performed successfully
-            return new JsonResult(new WebDriverResponseModel())
-            {
-                StatusCode = StatusCodes.Status200OK
-            };
-        }
-
         // POST wd/hub/user32/session/{session}/element/{element}/copy
         // POST user32/session/{session}/element/{element}/copy
         [HttpPost]
@@ -154,85 +76,6 @@ namespace Uia.DriverServer.Controllers
             sessionModel.Automation.SendModifiedKey(modifier: "Ctrl", key: "C");
 
             // Return an OK response indicating the copy action was successful
-            return new JsonResult(new WebDriverResponseModel())
-            {
-                StatusCode = StatusCodes.Status200OK
-            };
-        }
-
-        // POST wd/hub/user32/session/{session}/dclick
-        // POST user32/session/{session}/dclick
-        [HttpPost]
-        [Route("user32/session/{session}/dclick")]
-        [SwaggerOperation(
-            Summary = "Invokes a double-click action at the specified coordinates in the given session.",
-            Description = "Performs a double-click action at the coordinates specified by the point parameter in the session identified by the given session ID.",
-            Tags = ["User32"])]
-        [SwaggerResponse(200, "Double-click action invoked successfully.")]
-        [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
-        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to perform the double-click action.")]
-        public IActionResult InvokeDoubleClick(
-            [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
-            [SwaggerRequestBody(Description = "The coordinates where the double-click should be performed.")] PointModel point)
-        {
-            // Get the session status code
-            var sessionModel = _domain.SessionsRepository.GetSession(id: session).Session;
-
-            // Send a native double-click to the specified coordinates using the session's automation object
-            sessionModel.Automation.SendNativeClick(point, repeat: 2);
-
-            // Return an OK response indicating the double-click action was successful
-            return new JsonResult(new WebDriverResponseModel())
-            {
-                StatusCode = StatusCodes.Status200OK
-            };
-        }
-
-        // POST wd/hub/user32/session/{session}/element/{element}/dclick
-        // POST user32/session/{session}/element/{element}/dclick
-        [HttpPost]
-        [Route("user32/session/{session}/element/{element}/dclick")]
-        [SwaggerOperation(
-            Summary = "Invokes a double-click action on the specified element in the given session.",
-            Description = "Performs a double-click action on the element identified by the given session and element IDs.",
-            Tags = ["User32"])]
-        [SwaggerResponse(200, "Double-click action invoked successfully.")]
-        [SwaggerResponse(404, "Session or element not found. The session ID or element ID provided does not exist.")]
-        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to perform the double-click action.")]
-        public IActionResult InvokeDoubleClick(
-            [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
-            [SwaggerParameter(Description = "The unique identifier for the element to be double-clicked.")] string element)
-        {
-            // Get the session status code and model
-            var sessionModel = _domain.SessionsRepository.GetSession(id: session).Session;
-
-            // Retrieve the element using the domain's elements repository
-            var elementModel = _domain.ElementsRepository.GetElement(session, element);
-
-            // Check if the element was not found
-            if (elementModel == null)
-            {
-                // Return a not found response if the element was not found
-                return NotFound();
-            }
-
-            // Check if the UIAutomationElement property of the element model is null
-            if (elementModel.UIAutomationElement == null)
-            {
-                // Get the clickable point of the element based on the session's scale ratio
-                var point = elementModel.GetClickablePoint();
-
-                // Send a native double-click to the computed point using the session's automation object
-                sessionModel.Automation.SendNativeClick(point, repeat: 2);
-            }
-            else
-            {
-                // Send a native double-click to the element using its UIAutomationElement
-                // property and the session's scale ratio
-                elementModel.UIAutomationElement.SendNativeClick(align: default, repeat: 2);
-            }
-
-            // Return an OK response indicating the double-click action was successful
             return new JsonResult(new WebDriverResponseModel())
             {
                 StatusCode = StatusCodes.Status200OK
@@ -401,6 +244,163 @@ namespace Uia.DriverServer.Controllers
             sessionModel.Automation.SendModifiedKey($"{inputData.Modifier}", $"{inputData.Key}");
 
             // Return an OK response indicating the modified key was sent successfully
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
+        }
+
+        // POST wd/hub/user32/session/{session}/element/{element}/click
+        // POST user32/session/{session}/element/{element}/click
+        [HttpPost]
+        [Route("user32/session/{session}/element/{element}/click")]
+        [SwaggerOperation(
+            Summary = "Invokes a click action on the specified element in the given session.",
+            Description = "Performs a click action on the element identified by the given session and element IDs.",
+            Tags = ["User32"])]
+        [SwaggerResponse(200, "Click action invoked successfully.")]
+        [SwaggerResponse(404, "Session or element not found. The session ID or element ID provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to click the element.")]
+        public IActionResult SendNativeClick(
+            [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
+            [SwaggerParameter(Description = "The unique identifier for the element to be clicked.")] string element)
+        {
+            // Get the session status code
+            var sessionModel = _domain.SessionsRepository.GetSession(id: session).Session;
+
+            // Retrieve the element using the domain's elements repository
+            var elementModel = _domain.ElementsRepository.GetElement(session, element);
+
+            // Check if the element is stale
+            if (elementModel == default)
+            {
+                // Return a not found response if the element is stale
+                return NotFound(WebDriverResponseModel.NewStaleReferenceResponse(session));
+            }
+
+            // Check if the UIAutomationElement property of the element model is null
+            if (elementModel.UIAutomationElement == null)
+            {
+                // Get the clickable point of the element based on the session's scale ratio
+                var point = elementModel.GetClickablePoint();
+
+                // Send a native click to the computed point using the session's automation object
+                sessionModel.Automation.SendNativeClick(point);
+            }
+            else
+            {
+                // Send a native click to the element using its UIAutomationElement property and the session's scale ratio
+                elementModel.UIAutomationElement.SendNativeClick();
+            }
+
+            // Return an OK response indicating the click action was successful
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
+        }
+
+        // POST wd/hub/user32/session/{session}/click
+        // POST user32/session/{session}/click
+        [HttpPost]
+        [Route("user32/session/{session}/click")]
+        [SwaggerOperation(
+            Summary = "Performs a native click at the specified coordinates in the given session.",
+            Description = "Sends a native click action to the coordinates specified by the point parameter in the session identified by the given session ID.",
+            Tags = ["User32"])]
+        [SwaggerResponse(200, "Native click performed successfully.")]
+        [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to perform the native click.")]
+        public IActionResult SendNativeClick(
+            [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
+            [SwaggerRequestBody(Description = "The coordinates where the click should be performed.")] PointModel point)
+        {
+            // Retrieve the session based on the provided ID
+            var sessionModel = _domain.SessionsRepository.GetSession(session).Session;
+
+            // Perform a native click at the specified coordinates using the session's automation
+            sessionModel.Automation.SendNativeClick(point.X, point.Y);
+
+            // Return an OK response indicating the native click was performed successfully
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
+        }
+
+        // POST wd/hub/user32/session/{session}/dclick
+        // POST user32/session/{session}/dclick
+        [HttpPost]
+        [Route("user32/session/{session}/dclick")]
+        [SwaggerOperation(
+            Summary = "Invokes a double-click action at the specified coordinates in the given session.",
+            Description = "Performs a double-click action at the coordinates specified by the point parameter in the session identified by the given session ID.",
+            Tags = ["User32"])]
+        [SwaggerResponse(200, "Double-click action invoked successfully.")]
+        [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to perform the double-click action.")]
+        public IActionResult SendNativeDoubleClick(
+            [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
+            [SwaggerRequestBody(Description = "The coordinates where the double-click should be performed.")] PointModel point)
+        {
+            // Get the session status code
+            var sessionModel = _domain.SessionsRepository.GetSession(id: session).Session;
+
+            // Send a native double-click to the specified coordinates using the session's automation object
+            sessionModel.Automation.SendNativeClick(point, repeat: 2);
+
+            // Return an OK response indicating the double-click action was successful
+            return new JsonResult(new WebDriverResponseModel())
+            {
+                StatusCode = StatusCodes.Status200OK
+            };
+        }
+
+        // POST wd/hub/user32/session/{session}/element/{element}/dclick
+        // POST user32/session/{session}/element/{element}/dclick
+        [HttpPost]
+        [Route("user32/session/{session}/element/{element}/dclick")]
+        [SwaggerOperation(
+            Summary = "Invokes a double-click action on the specified element in the given session.",
+            Description = "Performs a double-click action on the element identified by the given session and element IDs.",
+            Tags = ["User32"])]
+        [SwaggerResponse(200, "Double-click action invoked successfully.")]
+        [SwaggerResponse(404, "Session or element not found. The session ID or element ID provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while attempting to perform the double-click action.")]
+        public IActionResult SendNativeDoubleClick(
+            [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
+            [SwaggerParameter(Description = "The unique identifier for the element to be double-clicked.")] string element)
+        {
+            // Get the session status code and model
+            var sessionModel = _domain.SessionsRepository.GetSession(id: session).Session;
+
+            // Retrieve the element using the domain's elements repository
+            var elementModel = _domain.ElementsRepository.GetElement(session, element);
+
+            // Check if the element was not found
+            if (elementModel == null)
+            {
+                // Return a not found response if the element was not found
+                return NotFound();
+            }
+
+            // Check if the UIAutomationElement property of the element model is null
+            if (elementModel.UIAutomationElement == null)
+            {
+                // Get the clickable point of the element based on the session's scale ratio
+                var point = elementModel.GetClickablePoint();
+
+                // Send a native double-click to the computed point using the session's automation object
+                sessionModel.Automation.SendNativeClick(point, repeat: 2);
+            }
+            else
+            {
+                // Send a native double-click to the element using its UIAutomationElement
+                // property and the session's scale ratio
+                elementModel.UIAutomationElement.SendNativeClick(align: default, repeat: 2);
+            }
+
+            // Return an OK response indicating the double-click action was successful
             return new JsonResult(new WebDriverResponseModel())
             {
                 StatusCode = StatusCodes.Status200OK
