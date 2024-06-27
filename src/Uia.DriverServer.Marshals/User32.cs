@@ -125,7 +125,7 @@ namespace Uia.DriverServer.Marshals
         /// </summary>
         /// <param name="inputs">An array of Input structures that represent the input events to be inserted into the input stream.</param>
         /// <returns>The number of events that were successfully inserted into the input stream.</returns>
-        public static uint SendInput(Input[] inputs)
+        public static uint SendInput(params Input[] inputs)
         {
             // Call the P/Invoke SendInput function with the number of inputs, the array of inputs, and the size of an Input structure.
             return SendInput(nInputs: (uint)inputs.Length, pInputs: inputs, cbSize: Marshal.SizeOf<Input>());

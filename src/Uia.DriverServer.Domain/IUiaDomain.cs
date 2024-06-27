@@ -11,6 +11,11 @@ namespace Uia.DriverServer.Domain
     public interface IUiaDomain
     {
         /// <summary>
+        /// Gets the actions repository.
+        /// </summary>
+        IActionsRepository ActionsRepository { get; }
+
+        /// <summary>
         /// Gets the document repository.
         /// </summary>
         IDocumentRepository DocumentRepository { get; }

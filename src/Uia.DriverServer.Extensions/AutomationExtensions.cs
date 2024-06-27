@@ -29,8 +29,68 @@ namespace Uia.DriverServer.Extensions
 {
     public static class AutomationExtensions
     {
+        // A static dictionary mapping non-alphabetic key names to their corresponding scan codes.
+        public static Dictionary<string, ushort> NonAlphabeticCodeMap => new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Esc"] = 0x01,        // Escape key
+            ["1"] = 0x02,          // 1 key
+            ["2"] = 0x03,          // 2 key
+            ["3"] = 0x04,          // 3 key
+            ["4"] = 0x05,          // 4 key
+            ["5"] = 0x06,          // 5 key
+            ["6"] = 0x07,          // 6 key
+            ["7"] = 0x08,          // 7 key
+            ["8"] = 0x09,          // 8 key
+            ["9"] = 0x0A,          // 9 key
+            ["0"] = 0x0B,          // 0 key
+            ["-"] = 0x0C,          // Hyphen key
+            ["="] = 0x0D,          // Equals key
+            ["Backspace"] = 0x0E,  // Backspace key
+            ["Tab"] = 0x0F,        // Tab key
+            ["["] = 0x1A,          // Open bracket key
+            ["]"] = 0x1B,          // Close bracket key
+            ["Enter"] = 0x1C,      // Enter key
+            ["Ctrl"] = 0x1D,       // Control key
+            [";"] = 0x27,          // Semicolon key
+            ["'"] = 0x28,          // Apostrophe key
+            ["`"] = 0x29,          // Grave accent key
+            ["LShift"] = 0x2A,     // Left Shift key
+            [@"\"] = 0x2B,         // Backslash key
+            [","] = 0x33,          // Comma key
+            ["."] = 0x34,          // Period key
+            ["/"] = 0x35,          // Slash key
+            ["RShift"] = 0x36,     // Right Shift key
+            ["PrtSc"] = 0x37,      // Print Screen key
+            ["Alt"] = 0x38,        // Alt key
+            [" "] = 0x39,          // Spacebar key
+            ["CapsLock"] = 0x3A,   // Caps Lock key
+            ["F1"] = 0x3B,         // F1 key
+            ["F2"] = 0x3C,         // F2 key
+            ["F3"] = 0x3D,         // F3 key
+            ["F4"] = 0x3E,         // F4 key
+            ["F5"] = 0x3F,         // F5 key
+            ["F6"] = 0x40,         // F6 key
+            ["F7"] = 0x41,         // F7 key
+            ["F8"] = 0x42,         // F8 key
+            ["F9"] = 0x43,         // F9 key
+            ["F10"] = 0x44,        // F10 key
+            ["Num"] = 0x45,        // Num Lock key
+            ["Scroll"] = 0x46,     // Scroll Lock key
+            ["Home"] = 0x47,       // Home key
+            ["Up"] = 0x48,         // Up arrow key
+            ["PgUp"] = 0x49,       // Page Up key
+            ["Left"] = 0x4B,       // Left arrow key
+            ["Center"] = 0x4C,     // Center key
+            ["Right"] = 0x4D,      // Right arrow key
+            ["End"] = 0x4F,        // End key
+            ["Down"] = 0x50,       // Down arrow key
+            ["PgDn"] = 0x51,       // Page Down key
+            ["Ins"] = 0x52,        // Insert key
+            ["Del"] = 0x53         // Delete key
+        };
+
         // A static dictionary mapping key names to their corresponding scan codes.
-        private static readonly Dictionary<string, ushort> s_codeMap = new (StringComparer.OrdinalIgnoreCase)
+        public static Dictionary<string, ushort> CodeMap => new(StringComparer.OrdinalIgnoreCase)
         {
             ["Esc"] = 0x01,        // Escape key
             ["1"] = 0x02,          // 1 key
@@ -116,7 +176,7 @@ namespace Uia.DriverServer.Extensions
         };
 
         // Initialize the dictionary
-        private static readonly Dictionary<string, (ushort Modifier, ushort ModifiedKeyCode)> s_modifiedKeys = new()
+        public static Dictionary<string, (ushort Modifier, ushort ModifiedKeyCode)> ModifiedKeys => new()
         {
             ["!"] = (Modifier: 0x2A, ModifiedKeyCode: 0x02),  // Shift + 1
             ["@"] = (Modifier: 0x2A, ModifiedKeyCode: 0x03),  // Shift + 2
@@ -242,7 +302,7 @@ namespace Uia.DriverServer.Extensions
         public static UiaElementModel ConvertToElement(this IUIAutomationElement automationElement)
         {
             // Check if the automation element is null.
-            if(automationElement == default)
+            if (automationElement == default)
             {
                 return default;
             }
@@ -286,14 +346,96 @@ namespace Uia.DriverServer.Extensions
         }
 
         /// <summary>
+        /// Converts action data from a dictionary to a sequence of input events.
+        /// </summary>
+        /// <param name="actionData">The action data dictionary containing input event details.</param>
+        /// <returns>An enumerable collection of Input objects.</returns>
+        public static IEnumerable<Input> ConvertToInputs(this Dictionary<string, object> actionData)
+        {
+            // Comparison type to use for string comparisons
+            const StringComparison comparison = StringComparison.OrdinalIgnoreCase;
+
+            // Determine the input type based on the 'type' field in actionData
+            var inputType = $"{actionData["type"]}".Contains("POINTER", comparison)
+                ? SendInputEventType.Mouse
+                : SendInputEventType.Keyboard;
+
+            // If the input type is a keyboard event
+            if (inputType == SendInputEventType.Keyboard)
+            {
+                // Determine the specific keyboard event type (KeyDown or KeyUp)
+                var keyboardEvent = $"{actionData["type"]}" == "keyDown" ? KeyEvent.KeyDown : KeyEvent.KeyUp;
+
+                // Convert the action data to keyboard inputs
+                return ConvertToInputs(input: $"{actionData["value"]}", keyboardEvent);
+            }
+
+            // Parse the mouse button from the action data
+            var mouseButton = int.Parse($"{actionData["button"]}");
+            // Get the mouse event type from the action data
+            var mouseEvent = $"{actionData["type"]}";
+
+            // Return the corresponding mouse input based on the mouse event type and button
+            if (mouseEvent == "pointerUp" && mouseButton == 0)
+            {
+                return [NewMouseInput(MouseEvent.LeftUp)];
+            }
+            else if (mouseEvent == "pointerUp" && mouseButton == 2)
+            {
+                return [NewMouseInput(MouseEvent.RightUp)];
+            }
+            else if (mouseEvent == "pointerDown" && mouseButton == 0)
+            {
+                return [NewMouseInput(MouseEvent.LeftDown)];
+            }
+            else if (mouseEvent == "pointerDown" && mouseButton == 2)
+            {
+                return [NewMouseInput(MouseEvent.RightDown)];
+            }
+
+            // Return an empty array if no conditions match
+            return Array.Empty<Input>();
+        }
+
+        /// <summary>
+        /// Converts a string input into a sequence of keyboard input events.
+        /// </summary>
+        /// <param name="input">The string input to be converted.</param>
+        /// <param name="keyboardEvent">The keyboard event type (KeyDown, KeyUp, etc.).</param>
+        /// <returns>An IEnumerable of <see cref="Input"/> representing the keyboard input events.</returns>
+        public static IEnumerable<Input> ConvertToInputs(this string input, KeyEvent keyboardEvent)
+        {
+            // Check if the input represents a modified key (e.g., Shift + key).
+            var (modified, modifier, keyCode) = ConfirmModifiedKey(input);
+
+            // If the key was found and modified, return the keyboard input events
+            // for the modified key combination.
+            if (modified)
+            {
+                // Return the keyboard input events for the modified key combination.
+                return NewKeyboardInput(modifier, keyCode, keyboardEvent);
+            }
+
+            // Check if the input is a single key in the scan code map.
+            if (CodeMap.TryGetValue(input, out ushort keyCodeOut))
+            {
+                // Return the keyboard input events for the key using the scan code.
+                return [NewKeyboardInput(keyCode: keyCodeOut, keyboardEvent | KeyEvent.Scancode)];
+            }
+
+            // If the key was not found, no action will be taken.
+            return [];
+        }
+
+        /// <summary>
         /// Converts a string input into a sequence of keyboard input events.
         /// </summary>
         /// <param name="input">The string input to convert.</param>
         /// <returns>A sequence of <see cref="Input"/> structures representing the keyboard input events.</returns>
         public static IEnumerable<Input> ConvertToInputs(this string input)
         {
-            // Check if the input is a single key in the scan code map.
-            if (s_codeMap.TryGetValue(input, out ushort value))
+            // Check if the input is a functional key in the scan code map.
+            if (NonAlphabeticCodeMap.TryGetValue(input, out ushort value))
             {
                 // Return the key down and key up events for the key.
                 return
@@ -320,8 +462,8 @@ namespace Uia.DriverServer.Extensions
                 }
 
                 // Get the scan code for the character.
-                var wScan = s_codeMap.ContainsKey($"{character}")
-                    ? s_codeMap[$"{character}"]
+                var wScan = CodeMap.ContainsKey($"{character}")
+                    ? CodeMap[$"{character}"]
                     : (ushort)0x00;
 
                 // Add the key down and key up events for the character to the list.
@@ -825,7 +967,7 @@ namespace Uia.DriverServer.Extensions
         public static ushort GetKeyCode(this string key)
         {
             // Try to get the scan code from the map. If the key is found, return the scan code; otherwise, return ushort.MaxValue.
-            return s_codeMap.TryGetValue(key, out ushort keyCode) ? keyCode : ushort.MaxValue;
+            return CodeMap.TryGetValue(key, out ushort keyCode) ? keyCode : ushort.MaxValue;
         }
 
         /// <summary>
@@ -874,7 +1016,7 @@ namespace Uia.DriverServer.Extensions
         public static ushort GetScanCode(this string key)
         {
             // Try to get the scan code from the code map using the provided key
-            var isCodes = s_codeMap.TryGetValue(key, out ushort code);
+            var isCodes = CodeMap.TryGetValue(key, out ushort code);
 
             // If the key is found in the map, return the associated code; otherwise, return ushort.MaxValue
             return isCodes ? code : ushort.MaxValue;
@@ -1135,7 +1277,7 @@ namespace Uia.DriverServer.Extensions
                 // Send a mouse click event to the system using the coordinates.
                 var mouseDown = NewMouseInput(MouseEvent.LeftDown, point.X, point.Y);
                 var mouseUp = NewMouseInput(MouseEvent.LeftUp, point.X, point.Y);
-                User32.SendInput([mouseDown, mouseUp]);
+                User32.SendInput(mouseDown, mouseUp);
             }
 
             // Return the element after performing the click action.
@@ -1193,8 +1335,32 @@ namespace Uia.DriverServer.Extensions
         /// </returns>
         public static (uint NumberOfEvents, int ErrorCode) SendInputs(this CUIAutomation8 _, params Input[] inputs)
         {
+            return SendInputs(_, millisecondsTimeout: 5, inputs);
+        }
+
+        /// <summary>
+        /// Sends an array of input events to the system and retrieves the number of events sent and the error code.
+        /// </summary>
+        /// <param name="_">An instance of <see cref="CUIAutomation8"/> (unused).</param>
+        /// <param name="millisecondsTimeout">The time interval in milliseconds between sending each input event.</param>
+        /// <param name="inputs">An array of <see cref="Input"/> structures representing the input events to be sent.</param>
+        /// <returns>
+        /// A tuple containing the number of events successfully inserted into the input stream and the last Win32 error code.
+        /// </returns>
+        public static (uint NumberOfEvents, int ErrorCode) SendInputs(this CUIAutomation8 _, int millisecondsTimeout, params Input[] inputs)
+        {
+            // Initialize the number of events to 0.
+            uint numberOfEvents = 0;
+
             // Send the array of input events to the system.
-            var numberOfEvents = User32.SendInput(inputs);
+            foreach (var input in inputs)
+            {
+                // Increment the number of events successfully inserted into the input stream.
+                numberOfEvents += User32.SendInput([input]);
+
+                // Sleep for the specified time interval between sending each input event.
+                Thread.Sleep(millisecondsTimeout);
+            }
 
             // Retrieve the last Win32 error code.
             var errorCode = Marshal.GetLastWin32Error();
@@ -1260,7 +1426,7 @@ namespace Uia.DriverServer.Extensions
             static ushort GetKeyCode(string key)
             {
                 // Return the scan code if found, otherwise return 0x00.
-                return s_codeMap.TryGetValue(key, out ushort keyCode) ? keyCode : (ushort)0x00;
+                return CodeMap.TryGetValue(key, out ushort keyCode) ? keyCode : (ushort)0x00;
             }
 
             // Get the scan code for the modifier key.
@@ -1481,7 +1647,7 @@ namespace Uia.DriverServer.Extensions
             var mouseUp = NewMouseInput(MouseEvent.LeftUp, point.x, point.y);
 
             // Send the input array to simulate the mouse click.
-            User32.SendInput([mouseDown, mouseUp]);
+            User32.SendInput(mouseDown, mouseUp);
         }
 
         /// <summary>
@@ -1537,16 +1703,16 @@ namespace Uia.DriverServer.Extensions
         private static (bool Modified, ushort Modifier, ushort KeyCode) ConfirmModifiedKey(string input)
         {
             // Check if the input key is in the list of modified keys.
-            var isModified = s_modifiedKeys.ContainsKey(input);
+            var isModified = ModifiedKeys.ContainsKey(input);
 
             // Get the modifier and modified key code if the key is modified, otherwise set to 0x00.
             var modifier = isModified
-                ? s_modifiedKeys[input].Modifier
+                ? ModifiedKeys[input].Modifier
                 : (ushort)0x00;
 
             // Get the modified key code if the key is modified, otherwise set to 0x00.
             var modifiedKeyCode = isModified
-                ? s_modifiedKeys[input].ModifiedKeyCode
+                ? ModifiedKeys[input].ModifiedKeyCode
                 : (ushort)0x00;
 
             // Return the results as a tuple.
@@ -1882,6 +2048,38 @@ namespace Uia.DriverServer.Extensions
             NewKeyboardInput(modifierKeyCode, KeyEvent.KeyUp | KeyEvent.Scancode),
         ];
 
+        // Creates a sequence of keyboard input events for pressing and releasing a key with a modifier (e.g., Shift + key).
+        private static Input[] NewKeyboardInput(ushort modifierKeyCode, ushort keyCode, KeyEvent keyboardEvent)
+        {
+            // Check if the event type is KeyDown.
+            if (keyboardEvent == KeyEvent.KeyDown)
+            {
+                return
+                [
+                    // Press the modifier key down.
+                    NewKeyboardInput(modifierKeyCode, keyboardEvent | KeyEvent.Scancode),
+
+                    // Press the main key down.
+                    NewKeyboardInput(keyCode, keyboardEvent | KeyEvent.Scancode)
+                ];
+            }
+            // Check if the event type is KeyUp
+            else if (keyboardEvent == KeyEvent.KeyUp)
+            {
+                return
+                [
+                    // Release the main key.
+                    NewKeyboardInput(keyCode, keyboardEvent | KeyEvent.Scancode),
+
+                    // Release the modifier key.
+                    NewKeyboardInput(modifierKeyCode, keyboardEvent | KeyEvent.Scancode)
+                ];
+            }
+
+            // If the event type is not KeyDown or KeyUp, return an empty array.
+            return [];
+        }
+
         // Creates a new keyboard input event with the specified key code and keyboard events.
         private static Input NewKeyboardInput(ushort keyCode, KeyEvent keyboardEvents) => new()
         {
@@ -1901,8 +2099,34 @@ namespace Uia.DriverServer.Extensions
             }
         };
 
+        // Creates a new mouse input event with the specified mouse events.
+        private static Input NewMouseInput(MouseEvent mouseEvent)
+        {
+            // Get the current cursor position.
+            var cursorPosition = User32.GetPhysicalCursorPosition();
+
+            // Create a new mouse input event with the specified mouse events and coordinates.
+            return new Input
+            {
+                // Set the type of the input event to keyboard.
+                type = (int)SendInputEventType.Mouse,
+
+                // Initialize the union structure for input event.
+                union = new InputUnion
+                {
+                    mi = new MouseInput
+                    {
+                        dx = cursorPosition.x,
+                        dy = cursorPosition.y,
+                        dwFlags = (uint)mouseEvent,
+                        dwExtraInfo = User32.GetMessageExtraInformation()
+                    }
+                }
+            };
+        }
+
         // Creates a new mouse input event with the specified mouse events and coordinates.
-        private static Input NewMouseInput(MouseEvent mouseEvents, int x, int y) => new()
+        private static Input NewMouseInput(MouseEvent mouseEvent, int x, int y) => new()
         {
             // Set the type of the input event to keyboard.
             type = (int)SendInputEventType.Mouse,
@@ -1914,7 +2138,7 @@ namespace Uia.DriverServer.Extensions
                 {
                     dx = x,
                     dy = y,
-                    dwFlags = (uint)mouseEvents,
+                    dwFlags = (uint)mouseEvent,
                     dwExtraInfo = User32.GetMessageExtraInformation()
                 }
             }

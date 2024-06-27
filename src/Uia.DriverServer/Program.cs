@@ -89,6 +89,7 @@ builder.Services.AddSingleton<IDictionary<string, UiaSessionResponseModel>>(new 
 // Add repositories and domain services to the application services
 // collection as transient services for dependency injection and service
 // resolution during runtime operations and requests to the application services and controllers
+builder.Services.AddTransient<IActionsRepository, ActionsRepository>();
 builder.Services.AddTransient<IDocumentRepository, DocumentRepository>();
 builder.Services.AddTransient<IElementsRepository, ElementsRepository>();
 builder.Services.AddTransient<IOcrRepository, OcrRepository>();
