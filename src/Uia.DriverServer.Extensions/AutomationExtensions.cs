@@ -1245,6 +1245,20 @@ namespace Uia.DriverServer.Extensions
         }
 
         /// <summary>
+        /// Creates a new mouse input event with the specified mouse event type and coordinates.
+        /// </summary>
+        /// <param name="_">The UiaSessionResponseModel instance (not used in this overload).</param>
+        /// <param name="mouseEvent">The type of mouse event to create.</param>
+        /// <param name="x">The X-coordinate for the mouse event.</param>
+        /// <param name="y">The Y-coordinate for the mouse event.</param>
+        /// <returns>An Input object representing the mouse event at the specified coordinates.</returns>
+        public static Input NewMouseInput(this UiaSessionResponseModel _, MouseEvent mouseEvent, int x, int y)
+        {
+            // Calls the non-extension method to create a new mouse input with the specified event type and coordinates
+            return NewMouseInput(mouseEvent, x, y);
+        }
+
+        /// <summary>
         /// Creates a new mouse input event with the specified mouse event type and element.
         /// </summary>
         /// <param name="session">The UiaSessionResponseModel instance containing session details.</param>

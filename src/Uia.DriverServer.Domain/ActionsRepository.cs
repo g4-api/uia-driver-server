@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
 using System.Threading;
 
 using Uia.DriverServer.Extensions;
@@ -141,15 +142,77 @@ namespace Uia.DriverServer.Domain
             // Determine the mouse event based on the button value
             var mouseEvent = buttonOut == 2 ? MouseEvent.RightDown : MouseEvent.LeftDown;
 
+            // Get the physical cursor position
+            var point = User32.GetPhysicalCursorPosition();
+
             // Create a new mouse input for the session based on the mouse event
-            var input = inputData.Session.NewMouseInput(mouseEvent);
+            var input = inputData.Session.NewMouseInput(mouseEvent, point.x, point.y);
 
             // Send the input event to the system
             User32.SendInput(input);
         }
 
+        // Handles the pointer move event by moving the cursor to the specified coordinates.
         private static void PointerMove(InputDataModel inputData)
         {
+            // Determines the new point coordinates based on the origin and input data.
+            static (int X, int Y) NewPoint(string origin, InputDataModel inputData)
+            {
+                // Check if the origin is an element identifier
+                var isElement = !origin.Equals("pointer") && !origin.Equals("viewport");
+
+                // Try to get the X coordinate from the input data, default to 0 if not found
+                var x = inputData.Data.TryGetValue("x", out object xValue)
+                    ? int.Parse($"{xValue}")
+                    : int.Parse("0");
+
+                // Try to get the Y coordinate from the input data, default to 0 if not found
+                var y = inputData.Data.TryGetValue("y", out object yValue)
+                    ? int.Parse($"{yValue}")
+                    : int.Parse("0");
+
+                if (isElement)
+                {
+                    // Deserialize the origin string to get the element identifier
+                    var elementData = JsonSerializer.Deserialize<Dictionary<string, string>>(origin);
+                    var element = elementData.First().Value;
+
+                    // Get the element model from the session using the element identifier
+                    var elementModel = inputData.Session.GetElement(element);
+
+                    // Get the clickable point of the element
+                    var clickablePoint = elementModel.GetClickablePoint();
+
+                    // Set the coordinates to the clickable point of the element
+                    x = clickablePoint.X + x;
+                    y = clickablePoint.Y + y;
+                }
+
+                // Return the coordinates as a tuple
+                return (x, y);
+            }
+
+            // Get the origin value from the input data, default to an empty string if not found
+            var origin = inputData.Data.TryGetValue("origin", out object originValue)
+                ? $"{originValue}"
+                : string.Empty;
+
+            // Get the new coordinates based on the origin and input data
+            var (x, y) = NewPoint(origin, inputData);
+
+            // If the origin is "pointer", adjust the coordinates relative to the current cursor position
+            if (origin.Equals("pointer"))
+            {
+                // Get the current physical cursor position
+                var location = User32.GetPhysicalCursorPosition();
+
+                // Adjust the new coordinates based on the current cursor position
+                x += location.x;
+                y += location.y;
+            }
+
+            // Set the physical cursor position to the new coordinates
+            User32.SetPhysicalCursorPosition(x, y);
         }
 
         // Handles the pointer up event by sending the appropriate mouse input to the system.
@@ -168,8 +231,11 @@ namespace Uia.DriverServer.Domain
             // Determine the mouse event based on the button value
             var mouseEvent = buttonOut == 2 ? MouseEvent.RightUp : MouseEvent.LeftUp;
 
+            // Get the physical cursor position
+            var point = User32.GetPhysicalCursorPosition();
+
             // Create a new mouse input for the session based on the mouse event
-            var input = inputData.Session.NewMouseInput(mouseEvent);
+            var input = inputData.Session.NewMouseInput(mouseEvent, point.x, point.y);
 
             // Send the input event to the system
             User32.SendInput(input);
