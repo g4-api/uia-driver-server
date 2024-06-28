@@ -16,7 +16,7 @@ namespace Uia.DriverServer.Domain
         /// Sends a series of actions to the system based on the provided session and actions model.
         /// </summary>
         /// <param name="session">The session model containing session details.</param>
-        /// <param name="actions">The actions model containing the actions to be sent.</param>
-        void SendActions(UiaSessionResponseModel session, ActionsModel actions);
+        /// <param name="actionsModel">The actions model containing the actions to be sent.</param>
+        void SendActions(UiaSessionResponseModel session, ActionsModel actionsModel);
     }
 }

@@ -8,8 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 
 using Swashbuckle.AspNetCore.Annotations;
 
-using System.Collections.Generic;
-
 using Uia.DriverServer.Domain;
 using Uia.DriverServer.Models;
 
@@ -51,13 +49,6 @@ namespace Uia.DriverServer.Controllers
             {
                 StatusCode = StatusCodes.Status200OK
             };
-        }
-
-        [HttpPost]
-        [Route("session/{session}/element/{element}/actions")]
-        public IActionResult InvokeCopy(string session, string element, [FromBody] IDictionary<string, object> data)
-        {
-            return Ok(data);
         }
     }
 }

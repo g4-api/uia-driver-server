@@ -346,58 +346,6 @@ namespace Uia.DriverServer.Extensions
         }
 
         /// <summary>
-        /// Converts action data from a dictionary to a sequence of input events.
-        /// </summary>
-        /// <param name="actionData">The action data dictionary containing input event details.</param>
-        /// <returns>An enumerable collection of Input objects.</returns>
-        public static IEnumerable<Input> ConvertToInputs(this Dictionary<string, object> actionData)
-        {
-            // Comparison type to use for string comparisons
-            const StringComparison comparison = StringComparison.OrdinalIgnoreCase;
-
-            // Determine the input type based on the 'type' field in actionData
-            var inputType = $"{actionData["type"]}".Contains("POINTER", comparison)
-                ? SendInputEventType.Mouse
-                : SendInputEventType.Keyboard;
-
-            // If the input type is a keyboard event
-            if (inputType == SendInputEventType.Keyboard)
-            {
-                // Determine the specific keyboard event type (KeyDown or KeyUp)
-                var keyboardEvent = $"{actionData["type"]}" == "keyDown" ? KeyEvent.KeyDown : KeyEvent.KeyUp;
-
-                // Convert the action data to keyboard inputs
-                return ConvertToInputs(input: $"{actionData["value"]}", keyboardEvent);
-            }
-
-            // Parse the mouse button from the action data
-            var mouseButton = int.Parse($"{actionData["button"]}");
-            // Get the mouse event type from the action data
-            var mouseEvent = $"{actionData["type"]}";
-
-            // Return the corresponding mouse input based on the mouse event type and button
-            if (mouseEvent == "pointerUp" && mouseButton == 0)
-            {
-                return [NewMouseInput(MouseEvent.LeftUp)];
-            }
-            else if (mouseEvent == "pointerUp" && mouseButton == 2)
-            {
-                return [NewMouseInput(MouseEvent.RightUp)];
-            }
-            else if (mouseEvent == "pointerDown" && mouseButton == 0)
-            {
-                return [NewMouseInput(MouseEvent.LeftDown)];
-            }
-            else if (mouseEvent == "pointerDown" && mouseButton == 2)
-            {
-                return [NewMouseInput(MouseEvent.RightDown)];
-            }
-
-            // Return an empty array if no conditions match
-            return Array.Empty<Input>();
-        }
-
-        /// <summary>
         /// Converts a string input into a sequence of keyboard input events.
         /// </summary>
         /// <param name="input">The string input to be converted.</param>
@@ -1285,6 +1233,49 @@ namespace Uia.DriverServer.Extensions
         }
 
         /// <summary>
+        /// Creates a new mouse input event with the specified mouse event type.
+        /// </summary>
+        /// <param name="_">The UiaSessionResponseModel instance (not used in this overload).</param>
+        /// <param name="mouseEvent">The type of mouse event to create.</param>
+        /// <returns>An Input object representing the mouse event.</returns>
+        public static Input NewMouseInput(this UiaSessionResponseModel _, MouseEvent mouseEvent)
+        {
+            // Calls the non-extension method to create a new mouse input
+            return NewMouseInput(mouseEvent);
+        }
+
+        /// <summary>
+        /// Creates a new mouse input event with the specified mouse event type and element.
+        /// </summary>
+        /// <param name="session">The UiaSessionResponseModel instance containing session details.</param>
+        /// <param name="mouseEvent">The type of mouse event to create.</param>
+        /// <param name="element">The element associated with the mouse event.</param>
+        /// <returns>An Input object representing the mouse event, or default if the element is not found.</returns>
+        public static Input NewMouseInput(this UiaSessionResponseModel session, MouseEvent mouseEvent, string element)
+        {
+            // Check if the element exists in the session's elements dictionary
+            if (session.Elements.ContainsKey(element))
+            {
+                // Return default if the element is not found
+                return NewMouseInput(mouseEvent);
+            }
+
+            // Retrieve the element model from the session's elements
+            var elementModel = session.Elements[element];
+
+            // Export the clickable point for the element's bounding rectangle
+            var clickablePoint = ExportClickablePoint(
+                boundingRectangle: elementModel.Rectangle,
+                align: "TopLeft",
+                topOffset: 1,
+                leftOffset: 1,
+                scaleRatio: 1.0D);
+
+            // Create a new mouse input event with the specified coordinates
+            return NewMouseInput(mouseEvent, clickablePoint.X, clickablePoint.Y);
+        }
+
+        /// <summary>
         /// Creates a new <see cref="UiaElementModel"/> with a clickable point from the coordinates specified in the location strategy value.
         /// </summary>
         /// <param name="locationStrategy">The <see cref="LocationStrategyModel"/> containing the value with coordinates.</param>
@@ -1356,7 +1347,7 @@ namespace Uia.DriverServer.Extensions
             foreach (var input in inputs)
             {
                 // Increment the number of events successfully inserted into the input stream.
-                numberOfEvents += User32.SendInput([input]);
+                numberOfEvents += User32.SendInput(input);
 
                 // Sleep for the specified time interval between sending each input event.
                 Thread.Sleep(millisecondsTimeout);
@@ -2106,23 +2097,7 @@ namespace Uia.DriverServer.Extensions
             var cursorPosition = User32.GetPhysicalCursorPosition();
 
             // Create a new mouse input event with the specified mouse events and coordinates.
-            return new Input
-            {
-                // Set the type of the input event to keyboard.
-                type = (int)SendInputEventType.Mouse,
-
-                // Initialize the union structure for input event.
-                union = new InputUnion
-                {
-                    mi = new MouseInput
-                    {
-                        dx = cursorPosition.x,
-                        dy = cursorPosition.y,
-                        dwFlags = (uint)mouseEvent,
-                        dwExtraInfo = User32.GetMessageExtraInformation()
-                    }
-                }
-            };
+            return NewMouseInput(mouseEvent, cursorPosition.x, cursorPosition.y);
         }
 
         // Creates a new mouse input event with the specified mouse events and coordinates.
