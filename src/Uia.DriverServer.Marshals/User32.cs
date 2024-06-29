@@ -23,6 +23,10 @@ namespace Uia.DriverServer.Marshals
         [DllImport("user32.dll")]
         private static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DevMode devMode);
 
+        // Retrieves the status of the specified virtual key.
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
+
         // P/Invoke declaration for the GetDeviceCaps function from gdi32.dll.
         // Retrieves device-specific information for the specified device.
         [DllImport("gdi32.dll")]
@@ -55,6 +59,11 @@ namespace Uia.DriverServer.Marshals
         // Sets the position of the mouse cursor.
         [DllImport("user32.dll")]
         private static extern bool SetPhysicalCursorPos(int x, int y);
+
+        public static bool ConfirmKeyPressed(int vKey)
+        {
+            return GetAsyncKeyState(vKey) != 0;
+        }
 
         /// <summary>
         /// Wrapper method for the GetDeviceCaps function.

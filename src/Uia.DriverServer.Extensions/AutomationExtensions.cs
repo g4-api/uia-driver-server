@@ -1340,7 +1340,7 @@ namespace Uia.DriverServer.Extensions
         /// </returns>
         public static (uint NumberOfEvents, int ErrorCode) SendInputs(this CUIAutomation8 _, params Input[] inputs)
         {
-            return SendInputs(_, millisecondsTimeout: 5, inputs);
+            return SendInputs(_, millisecondsTimeout: 10, inputs);
         }
 
         /// <summary>
@@ -1360,11 +1360,25 @@ namespace Uia.DriverServer.Extensions
             // Send the array of input events to the system.
             foreach (var input in inputs)
             {
-                // Increment the number of events successfully inserted into the input stream.
-                numberOfEvents += User32.SendInput(input);
+                // Set the timeout to 5 seconds from the current time.
+                var timeout = DateTime.Now.AddSeconds(5);
 
-                // Sleep for the specified time interval between sending each input event.
-                Thread.Sleep(millisecondsTimeout);
+                // Initialize the result to 0.
+                uint result;
+
+                // Attempt to send the input event until it is successfully inserted into the input stream.
+                do
+                {
+                    // Send the input event to the system.
+                    result = User32.SendInput(input);
+
+                    // Wait for the specified time interval before sending the next input event.
+                    Thread.Sleep(millisecondsTimeout);
+
+                } while (result == 0 && DateTime.Now < timeout);
+
+                // Increment the number of events successfully inserted into the input stream.
+                numberOfEvents++;
             }
 
             // Retrieve the last Win32 error code.

@@ -97,9 +97,6 @@ namespace Uia.DriverServer.Domain
                 {
                     // Send the input to the system.
                     SendInput(instance: this, session: session, inputData: input);
-
-                    // Sleep for the specified duration.
-                    Thread.Sleep(TimeSpan.FromMilliseconds(10));
                 }
             }
         }
