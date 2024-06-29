@@ -24,6 +24,67 @@ namespace Uia.DriverServer.Domain
     /// </summary>
     public class ActionsRepository : IActionsRepository
     {
+        // Dictionary mapping special characters to their corresponding scan codes.
+        private static Dictionary<string, ushort> CharToScanCode => new()
+        {
+            { "\uE000", 0x01 }, // Null (example)
+            { "\uE001", 0x02 }, // Cancel (example)
+            { "\uE002", 0x03 }, // Help (example)
+            { "\uE003", 0x0E }, // Backspace
+            { "\uE004", 0x0F }, // Tab
+            { "\uE005", 0x04 }, // Clear (example)
+            { "\uE006", 0x1C }, // Return
+            { "\uE007", 0x1C }, // Enter
+            { "\uE008", 0x2A }, // Shift
+            { "\uE009", 0x1D }, // Control
+            { "\uE00A", 0x38 }, // Alt
+            { "\uE00B", 0x39 }, // Pause (example)
+            { "\uE00C", 0x01 }, // Escape
+            { "\uE00D", 0x39 }, // Space
+            { "\uE00E", 0x49 }, // PageUp
+            { "\uE00F", 0x51 }, // PageDown
+            { "\uE010", 0x4F }, // End
+            { "\uE011", 0x47 }, // Home
+            { "\uE012", 0x4B }, // Left / ArrowLeft
+            { "\uE013", 0x48 }, // Up / ArrowUp
+            { "\uE014", 0x4D }, // Right / ArrowRight
+            { "\uE015", 0x50 }, // Down / ArrowDown
+            { "\uE016", 0x52 }, // Insert
+            { "\uE017", 0x53 }, // Delete
+            { "\uE018", 0x27 }, // Semicolon
+            { "\uE019", 0x0D }, // Equal
+            { "\uE01A", 0x52 }, // NumberPad0 (example)
+            { "\uE01B", 0x4F }, // NumberPad1 (example)
+            { "\uE01C", 0x50 }, // NumberPad2 (example)
+            { "\uE01D", 0x51 }, // NumberPad3 (example)
+            { "\uE01E", 0x4B }, // NumberPad4 (example)
+            { "\uE01F", 0x4C }, // NumberPad5 (example)
+            { "\uE020", 0x4D }, // NumberPad6 (example)
+            { "\uE021", 0x47 }, // NumberPad7 (example)
+            { "\uE022", 0x48 }, // NumberPad8 (example)
+            { "\uE023", 0x49 }, // NumberPad9 (example)
+            { "\uE024", 0x37 }, // Multiply
+            { "\uE025", 0x4E }, // Add
+            { "\uE026", 0x04 }, // Separator (example)
+            { "\uE027", 0x4A }, // Subtract
+            { "\uE028", 0x53 }, // Decimal (example)
+            { "\uE029", 0x35 }, // Divide
+            { "\uE031", 0x3B }, // F1
+            { "\uE032", 0x3C }, // F2
+            { "\uE033", 0x3D }, // F3
+            { "\uE034", 0x3E }, // F4
+            { "\uE035", 0x3F }, // F5
+            { "\uE036", 0x40 }, // F6
+            { "\uE037", 0x41 }, // F7
+            { "\uE038", 0x42 }, // F8
+            { "\uE039", 0x43 }, // F9
+            { "\uE03A", 0x44 }, // F10
+            { "\uE03B", 0x57 }, // F11
+            { "\uE03C", 0x58 }, // F12
+            { "\uE03D", 0x5B }, // Meta / Command (example)
+            { "\uE040", 0x29 }  // ZenkakuHankaku (example)
+        };
+
         /// <inheritdoc />
         public void SendActions(UiaSessionResponseModel session, ActionsModel actionsModel)
         {
@@ -82,11 +143,28 @@ namespace Uia.DriverServer.Domain
                 return;
             }
 
+            // Convert the value to a string key
+            var key = $"{value}";
+
+            // Check if the key is a special character that requires
+            // a scan code lookup table entry (e.g., "\uE000")
+            if (CharToScanCode.TryGetValue(key, out ushort keyCode))
+            {
+                // Convert the scan code to a keyboard input event
+                var input = keyCode.ConvertToInput(KeyEvent.KeyDown);
+
+                // Send the input event to the system
+                inputData.Session.Automation.SendInputs(input);
+
+                // return early
+                return;
+            }
+
             // Convert the value to a sequence of keyboard input events
-            var inputs = $"{value}".ConvertToInputs(KeyEvent.KeyDown).ToArray();
+            var inputs = key.ConvertToInputs(KeyEvent.KeyDown).ToArray();
 
             // Send the input events to the system
-            User32.SendInput(inputs);
+            inputData.Session.Automation.SendInputs(inputs);
         }
 
         // Handles the key up event by sending the appropriate input to the system.
@@ -99,11 +177,28 @@ namespace Uia.DriverServer.Domain
                 return;
             }
 
+            // Convert the value to a string key
+            var key = $"{value}";
+
+            // Check if the key is a special character that requires
+            // a scan code lookup table entry (e.g., "\uE000")
+            if (CharToScanCode.TryGetValue(key, out ushort keyCode))
+            {
+                // Convert the scan code to a keyboard input event
+                var input = keyCode.ConvertToInput(KeyEvent.KeyUp);
+
+                // Send the input event to the system
+                inputData.Session.Automation.SendInputs(input);
+
+                // return early
+                return;
+            }
+
             // Convert the value to a sequence of keyboard input events
             var inputs = $"{value}".ConvertToInputs(KeyEvent.KeyUp).ToArray();
 
             // Send the input events to the system
-            User32.SendInput(inputs);
+            inputData.Session.Automation.SendInputs(inputs);
         }
 
         // Handles the pause event by pausing the execution for the specified duration.
@@ -149,7 +244,7 @@ namespace Uia.DriverServer.Domain
             var input = inputData.Session.NewMouseInput(mouseEvent, point.x, point.y);
 
             // Send the input event to the system
-            User32.SendInput(input);
+            inputData.Session.Automation.SendInputs(input);
         }
 
         // Handles the pointer move event by moving the cursor to the specified coordinates.
@@ -238,7 +333,7 @@ namespace Uia.DriverServer.Domain
             var input = inputData.Session.NewMouseInput(mouseEvent, point.x, point.y);
 
             // Send the input event to the system
-            User32.SendInput(input);
+            inputData.Session.Automation.SendInputs(input);
         }
 
         // Filters the actions from the given action model to exclude unnecessary pause actions.
@@ -270,9 +365,19 @@ namespace Uia.DriverServer.Domain
             return filteredActions;
         }
 
+        /// <summary>
+        /// Represents the input data model containing event details and session information.
+        /// </summary>
         private sealed class InputDataModel
         {
+            /// <summary>
+            /// Gets or sets the dictionary containing input event data.
+            /// </summary>
             public Dictionary<string, object> Data { get; set; }
+
+            /// <summary>
+            /// Gets or sets the UI automation session response model.
+            /// </summary>
             public UiaSessionResponseModel Session { get; set; }
         }
     }
