@@ -8,8 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 
 using Swashbuckle.AspNetCore.Annotations;
 
-using System.Text.Json;
-
 using Uia.DriverServer.Domain;
 using Uia.DriverServer.Models;
 
