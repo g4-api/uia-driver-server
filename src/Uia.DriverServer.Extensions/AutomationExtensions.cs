@@ -363,14 +363,6 @@ namespace Uia.DriverServer.Extensions
                 return default;
             }
 
-            // Get the automation ID of the element.
-            var automationId = automationElement.CurrentAutomationId;
-
-            // If the automation ID is null or empty, generate a new GUID as the ID; otherwise, use the automation ID.
-            var id = string.IsNullOrEmpty(automationId)
-                ? $"{Guid.NewGuid()}"
-                : automationElement.CurrentAutomationId;
-
             // Create a new LocationModel and set its properties based on the element's bounding rectangle.
             var location = new RectangleModel
             {
@@ -383,7 +375,7 @@ namespace Uia.DriverServer.Extensions
             // Create and return a new ElementModel with the ID, UI Automation element, and location.
             return new UiaElementModel
             {
-                Id = id,
+                Id = $"element-{Guid.NewGuid()}",
                 UIAutomationElement = automationElement,
                 Rectangle = location
             };
