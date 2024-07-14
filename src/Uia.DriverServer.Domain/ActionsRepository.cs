@@ -263,22 +263,41 @@ namespace Uia.DriverServer.Domain
                     ? int.Parse($"{yValue}")
                     : int.Parse("0");
 
-                if (isElement)
+                if (!isElement)
                 {
-                    // Deserialize the origin string to get the element identifier
-                    var elementData = JsonSerializer.Deserialize<Dictionary<string, string>>(origin);
-                    var element = elementData.First().Value;
-
-                    // Get the element model from the session using the element identifier
-                    var elementModel = inputData.Session.GetElement(element);
-
-                    // Get the clickable point of the element
-                    var clickablePoint = elementModel.GetClickablePoint();
-
-                    // Set the coordinates to the clickable point of the element
-                    x = clickablePoint.X + x;
-                    y = clickablePoint.Y + y;
+                    // Return the coordinates as a tuple
+                    return (x, y);
                 }
+
+                // Deserialize the origin string to get the element identifier
+                var elementData = JsonSerializer.Deserialize<Dictionary<string, string>>(origin);
+                var element = elementData.First().Value;
+
+                // Get the element model from the session using the element identifier
+                var elementModel = inputData.Session.GetElement(element);
+
+                // Check if the element can have focus
+                var canHaveFocus = elementModel.UIAutomationElement?.CurrentIsKeyboardFocusable == 1;
+
+                // Set focus to the element if it can have focus
+                if (canHaveFocus)
+                {
+                    try
+                    {
+                        elementModel.UIAutomationElement.SetFocus();
+                    }
+                    catch
+                    {
+                        // Silently ignore any exceptions
+                    }
+                }
+
+                // Get the clickable point of the element
+                var clickablePoint = elementModel.GetClickablePoint();
+
+                // Set the coordinates to the clickable point of the element
+                x = clickablePoint.X + x;
+                y = clickablePoint.Y + y;
 
                 // Return the coordinates as a tuple
                 return (x, y);
