@@ -1422,7 +1422,6 @@ namespace Uia.DriverServer.Extensions
 
                     // Wait for the specified time interval before sending the next input event.
                     Thread.Sleep(millisecondsTimeout);
-
                 } while (result == 0 && DateTime.Now < timeout);
 
                 // Increment the number of events successfully inserted into the input stream.
