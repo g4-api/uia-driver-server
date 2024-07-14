@@ -9,12 +9,12 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.Json;
 using System.Xml.Linq;
 
 using Uia.DriverServer.Extensions;
+using Uia.DriverServer.Marshals;
 using Uia.DriverServer.Models;
 
 using UIAutomationClient;
@@ -34,7 +34,8 @@ namespace Uia.DriverServer.Domain
         // Initialize the JSON serializer options for deserializing capabilities into UiaOptions instances
         private static readonly JsonSerializerOptions s_jsonOptions = new()
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
         /// <inheritdoc />
@@ -76,6 +77,39 @@ namespace Uia.DriverServer.Domain
 
             // Return a 200 OK status code indicating successful deletion
             return StatusCodes.Status200OK;
+        }
+
+        /// <inheritdoc />
+        public (int StatusCode, string Handle) GetHandle(string id)
+        {
+            // Get the handle and name of the current focused window.
+            var (handle, name) = User32.GetFocusedWindowHandle();
+
+            // If the handle is not valid, return a 404 Not Found status code.
+            if (handle == IntPtr.Zero)
+            {
+                return (StatusCodes.Status404NotFound, default);
+            }
+
+            // Create an object containing the handle and name of the window.
+            var handleObject = new
+            {
+                Handle = handle.ToString("X"),
+                Name = name
+            };
+
+            // Serialize the handle object to a JSON string.
+            var handleJson = JsonSerializer.Serialize(handleObject, s_jsonOptions);
+
+            // Return a 200 OK status code with the JSON string.
+            return (StatusCodes.Status200OK, handleJson);
+        }
+
+        /// <inheritdoc />
+        public (int StatusCode, IEnumerable<string> Handles) GetHandles(string id)
+        {
+            // Return status code 200 (OK) and the list of window handles.
+            return (StatusCodes.Status200OK, User32.GetHandles());
         }
 
         /// <inheritdoc />
@@ -186,7 +220,6 @@ namespace Uia.DriverServer.Domain
         }
 
         /// <inheritdoc />
-        [SuppressMessage("Major Code Smell", "S2139:Exceptions should be either logged or rethrown but not both", Justification = "Bug in the analysis.")]
         public (int StatusCode, RectangleModel Entity) SetWindowVisualState(string id, WindowVisualState visualState)
         {
             _logger?.LogInformation("Setting window visual state for session with ID {SessionId} to {VisualState}.", id, visualState);
@@ -209,7 +242,6 @@ namespace Uia.DriverServer.Domain
                 catch (Exception e)
                 {
                     _logger?.LogError(e, "Failed to set window visual state for session with ID {SessionId}.", id);
-                    throw;
                 }
             }
             else
@@ -220,6 +252,57 @@ namespace Uia.DriverServer.Domain
 
             // Return the current bounding rectangle of the application root
             return (StatusCode: StatusCodes.Status200OK, Entity: session.ApplicationRoot.GetRectangle());
+        }
+
+        /// <inheritdoc />
+        public int SwitchWindow(string id, string windowHandleOrName)
+        {
+            // Attempt to retrieve the session from the sessions dictionary
+            var session = Sessions[id];
+
+            // Check if the window handle or name is numeric to determine the type of search to perform (by handle or name).
+            var isNumeric = int.TryParse(windowHandleOrName, out int windowHandle);
+
+            // Initialize the window handle as an IntPtr.
+            IntPtr hwnd;
+
+            // If the window handle is numeric, initialize the window handle as an IntPtr from the numeric value.
+            // Otherwise, find the window by its name.
+            if (isNumeric)
+            {
+                // Initialize the window handle as an IntPtr from the numeric value.
+                hwnd = new IntPtr(windowHandle);
+
+                // Check if the window handle is valid.
+                if (!User32.AssertWindow(hwnd))
+                {
+                    return 400;
+                }
+            }
+            else
+            {
+                hwnd = User32.FindWindowByName(windowHandleOrName);
+            }
+
+            // Get the UI Automation element from the window handle. 
+            // If the element is not found, return a 404 Not Found status code.
+            IUIAutomationElement element;
+            try
+            {
+                element = session.Automation.ElementFromHandle(hwnd);
+            }
+            catch
+            {
+                return StatusCodes.Status404NotFound;
+            }
+
+            // Set focus to the element if it exists.
+            element?.SetFocus();
+
+            // Return the appropriate status code based on whether the element was found.
+            return element == null
+                ? StatusCodes.Status404NotFound
+                : StatusCodes.Status200OK;
         }
 
         // Creates a new application session with the specified capabilities.
