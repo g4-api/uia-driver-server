@@ -24,6 +24,14 @@ namespace Uia.DriverServer.Models
         /// Initializes a new instance of the <see cref="WebDriverResponseModel"/> class with the specified session and value.
         /// </summary>
         /// <param name="session">The session identifier.</param>
+        public WebDriverResponseModel(string session)
+            : this(session, new Dictionary<string, object>())
+        { }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WebDriverResponseModel"/> class with the specified session and value.
+        /// </summary>
+        /// <param name="session">The session identifier.</param>
         /// <param name="value">The value of the response.</param>
         public WebDriverResponseModel(string session, object value)
         {
@@ -44,7 +52,7 @@ namespace Uia.DriverServer.Models
         /// </summary>
         /// <value>The value returned by the WebDriver operation.</value>
         [DataMember]
-        public object Value { get; set; }
+        public object Value { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Creates a new WebDriver response model indicating that an element was not found.
