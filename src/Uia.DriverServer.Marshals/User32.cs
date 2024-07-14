@@ -7,21 +7,41 @@
  * https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
  */
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json;
 
 using Uia.DriverServer.Marshals.Models;
 
 // SYSLIB1054: Using DllImport for compatibility with existing P/Invoke patterns.
 // CA2101: Marshaling not specified for string arguments as this is consistent with existing legacy code which has been tested and is known to work correctly.
-#pragma warning disable SYSLIB1054, CA2101
+// S4200: This suppression is applied because SonarAnalyzer incorrectly flags this code, resulting in false positives. The unmanaged code patterns used here are necessary for the implementation.
+#pragma warning disable SYSLIB1054, CA2101, S4200
 namespace Uia.DriverServer.Marshals
 {
     public static class User32
     {
+        // JSON serialization options for the User32 marshals.
+        private static JsonSerializerOptions JsonOptions => new()
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        // Delegate for the EnumWindows callback function
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
         // Enumerates the display settings for the specified device.
         [DllImport("user32.dll")]
         private static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DevMode devMode);
+
+        // Enumerates the top-level windows on the screen by passing the handle to each
+        // window, in turn, to an application-defined callback function.
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
 
         // Retrieves the status of the specified virtual key.
         [DllImport("user32.dll")]
@@ -31,6 +51,10 @@ namespace Uia.DriverServer.Marshals
         // Retrieves device-specific information for the specified device.
         [DllImport("gdi32.dll")]
         private static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+
+        // Gets the foreground window handle.
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
 
         // P/Invoke declaration for the GetMessageExtraInfo function from user32.dll.
         // Retrieves extra message information for the current thread.
@@ -42,7 +66,23 @@ namespace Uia.DriverServer.Marshals
         [DllImport("user32.dll")]
         private static extern bool GetPhysicalCursorPos(out Point lpPoint);
 
+        // P/Invoke declaration for the GetWindowText function from user32.dll.
+        // Copies the text of the specified window's title bar (if it has one) into a buffer.
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+        // P/Invoke declaration for the GetWindowTextLength function from user32.dll.
+        // Retrieves the length of the text of the specified window's title bar (if it has one).
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int GetWindowTextLength(IntPtr hWnd);
+
+        // P/Invoke declaration for the IsWindow function from user32.dll.
+        // Determines whether the specified window handle identifies an existing window.
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool IsWindow(IntPtr hWnd);
+
         // Imports the mouse_event function from user32.dll.
+        // Synthesizes mouse motion and button clicks.
         [DllImport("user32.dll")]
         private static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
 
@@ -50,6 +90,12 @@ namespace Uia.DriverServer.Marshals
         // Sends an array of input events (mouse, keyboard, or hardware) to the system.
         [DllImport("user32.dll", SetLastError = true)]
         private static extern uint SendInput(uint nInputs, Input[] pInputs, int cbSize);
+
+        // P/Invoke declaration for the SetForegroundWindow function from user32.dll.
+        // Brings the thread that created the specified window into the foreground and activates the window.
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
 
         // P/Invoke declaration for the SetProcessDpiAwarenessContext function from user32.dll.
         [DllImport("user32.dll", SetLastError = true)]
@@ -60,9 +106,65 @@ namespace Uia.DriverServer.Marshals
         [DllImport("user32.dll")]
         private static extern bool SetPhysicalCursorPos(int x, int y);
 
-        public static bool ConfirmKeyPressed(int vKey)
+        /// <summary>
+        /// Checks if the provided window handle is valid.
+        /// </summary>
+        /// <param name="handle">The window handle to validate.</param>
+        /// <returns>True if the window handle is valid and the window exists; otherwise, false.</returns>
+        public static bool AssertWindow(IntPtr handle)
         {
-            return GetAsyncKeyState(vKey) != 0;
+            // Check if the handle is not zero and if the window exists.
+            return handle != IntPtr.Zero && IsWindow(handle);
+        }
+
+        /// <summary>
+        /// Finds a window handle by its window name.
+        /// </summary>
+        /// <param name="windowName">The name of the window to find.</param>
+        /// <returns>The handle of the window if found; otherwise, <see cref="IntPtr.Zero"/>.</returns>
+        [SuppressMessage(
+            category: "Roslynator",
+            checkId: "RCS1163:Unused parameter",
+            Justification = "The lParam parameter is required by the EnumWindows API but not used in the callback.")]
+        public static IntPtr FindWindowByName(string windowName)
+        {
+            // Variable to store the found window handle.
+            IntPtr foundHandle = IntPtr.Zero;
+
+            // Callback function for EnumWindows.
+            bool EnumWindowsCallback(IntPtr hWnd, IntPtr lParam)
+            {
+                // Get the length of the window text.
+                int length = GetWindowTextLength(hWnd);
+
+                if (length > 0)
+                {
+                    // StringBuilder to hold the window text.
+                    var sb = new StringBuilder(length + 1);
+
+                    // Get the window text.
+                    int resultCode = GetWindowText(hWnd, sb, sb.Capacity);
+
+                    // Check if the resultCode indicates success.
+                    if (resultCode > 0 && sb.ToString().Equals(windowName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // If the window name matches, store the handle and stop enumeration.
+                        foundHandle = hWnd;
+
+                        // Stop enumeration.
+                        return false;
+                    }
+                }
+
+                // Continue enumeration.
+                return true;
+            }
+
+            // Enumerate all windows.
+            EnumWindows(EnumWindowsCallback, IntPtr.Zero);
+
+            // Return the found window handle.
+            return foundHandle;
         }
 
         /// <summary>
@@ -98,6 +200,48 @@ namespace Uia.DriverServer.Marshals
         }
 
         /// <summary>
+        /// Retrieves the handle and name of the currently focused window.
+        /// </summary>
+        /// <returns>A tuple containing the handle and name of the focused window.</returns>
+        public static (IntPtr Handle, string Name) GetFocusedWindowHandle()
+        {
+            // Get the handle of the current focused window.
+            var handle = GetForegroundWindow();
+
+            // Check if the handle is valid (non-zero).
+            if (handle == IntPtr.Zero)
+            {
+                // Return an empty tuple if the handle is not valid.
+                return (IntPtr.Zero, string.Empty);
+            }
+
+            // Get the length of the window name.
+            var length = GetWindowTextLength(handle);
+
+            // Initialize the window name.
+            var windowName = string.Empty;
+
+            // Check if the window has a name (length > 0).
+            if (length > 0)
+            {
+                // Allocate a StringBuilder to hold the window name.
+                var stringBuilder = new StringBuilder(length + 1);
+
+                // Get the window name and store the result code.
+                var resultCode = GetWindowText(handle, stringBuilder, stringBuilder.Capacity);
+
+                // If the result code is greater than 0, retrieve the window name.
+                if (resultCode > 0)
+                {
+                    windowName = stringBuilder.ToString();
+                }
+            }
+
+            // Return the handle and name of the focused window as a tuple (Handle, Name).
+            return (handle, windowName);
+        }
+
+        /// <summary>
         /// Wrapper method for the GetMessageExtraInfo function.
         /// Retrieves extra message information for the current thread.
         /// </summary>
@@ -106,6 +250,67 @@ namespace Uia.DriverServer.Marshals
         {
             // Call the P/Invoke GetMessageExtraInfo function and return its result.
             return GetMessageExtraInfo();
+        }
+
+        /// <summary>
+        /// Retrieves a list of all window handles currently open.
+        /// </summary>
+        /// <returns>A list of window handles as hexadecimal strings.</returns>
+        [SuppressMessage(
+            category: "Roslynator",
+            checkId: "RCS1163:Unused parameter",
+            Justification = "The lParam parameter is required by the EnumWindows API but not used in the callback.")]
+        public static IEnumerable<string> GetHandles()
+        {
+            // List to store the window handles and their names.
+            var windowHandlesAndNames = new List<string>();
+
+            // Callback function for EnumWindows.
+            bool EnumWindowsCallback(IntPtr hWnd, IntPtr lParam)
+            {
+                // Get the length of the window text.
+                int length = GetWindowTextLength(hWnd);
+
+                // Continue enumeration if there's no text.
+                if (length == 0)
+                {
+                    return true;
+                }
+
+                // StringBuilder to hold the window text.
+                var stringBuilder = new StringBuilder(length + 1);
+
+                // Get the window text.
+                var resultCode = GetWindowText(hWnd, stringBuilder, stringBuilder.Capacity);
+
+                // If GetWindowText fails, continue enumeration.
+                if (resultCode == 0)
+                {
+                    return true;
+                }
+
+                // Create an anonymous object with the handler and name.
+                var nameSegments = new
+                {
+                    Handler = hWnd.ToString("X"),
+                    Name = stringBuilder.ToString()
+                };
+
+                // Serialize the handler and name to a JSON string.
+                var name = JsonSerializer.Serialize(value: nameSegments, options: JsonOptions);
+
+                // Add the JSON string to the list.
+                windowHandlesAndNames.Add(name);
+
+                // Continue enumeration.
+                return true;
+            }
+
+            // Enumerate all windows.
+            EnumWindows(EnumWindowsCallback, IntPtr.Zero);
+
+            // Return the list of window handles and their names.
+            return windowHandlesAndNames;
         }
 
         /// <summary>
@@ -183,6 +388,22 @@ namespace Uia.DriverServer.Marshals
         public static bool SetDpiAwareness()
         {
             return SetProcessDpiAwarenessContext(value: -4);
+        }
+
+        /// <summary>
+        /// Sets the focus to the window with the specified handle.
+        /// </summary>
+        /// <param name="handle">The handle of the window to set focus to.</param>
+        public static void SetFocus(IntPtr handle)
+        {
+            // Check if the handle is not zero and if the window exists.
+            var isWindow = handle != IntPtr.Zero && IsWindow(handle);
+
+            if (isWindow)
+            {
+                // Bring the window to the foreground.
+                SetForegroundWindow(handle);
+            }
         }
 
         /// <summary>
