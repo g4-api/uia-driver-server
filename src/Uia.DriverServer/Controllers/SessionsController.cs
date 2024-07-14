@@ -151,12 +151,24 @@ namespace Uia.DriverServer.Controllers
             });
         }
 
+        // GET wd/hub/session/{session}/window
+        // GET session/{session}/window
         [HttpGet]
         [Route("session/{session}/window")]
-        public IActionResult GetWindowHandle(string session)
+        [SwaggerOperation(
+            Summary = "Gets the handle of the currently focused window for the specified session.",
+            Description = "Retrieves the handle of the currently focused window for the session identified by the given session ID.",
+            Tags = ["Sessions"])]
+        [SwaggerResponse(200, "Window handle retrieved successfully.", typeof(string))]
+        [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while retrieving the window handle.")]
+        public IActionResult GetWindowHandle(
+            [SwaggerParameter(Description = "The unique identifier for the session.")][FromRoute] string session)
         {
+            // Get the handle of the currently focused window
             var (statusCode, handle) = _domain.SessionsRepository.GetHandle(session);
 
+            // Prepare the response based on the status code
             var response = statusCode == StatusCodes.Status404NotFound
                 ? new WebDriverResponseModel(session, new Dictionary<string, string> { ["error"] = "no such window" })
                 : new WebDriverResponseModel(session, value: handle);
