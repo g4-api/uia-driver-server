@@ -16,7 +16,6 @@ using Microsoft.OpenApi.Models;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 using Uia.DriverServer.Converters;
 using Uia.DriverServer.Domain;
@@ -49,7 +48,6 @@ builder.Services
     .AddJsonOptions(i =>
     {
         i.JsonSerializerOptions.WriteIndented = true;
-        i.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         i.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         i.JsonSerializerOptions.Converters.Add(new TypeConverter());
         i.JsonSerializerOptions.Converters.Add(new ExceptionConverter());

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 using Swashbuckle.AspNetCore.Annotations;
 
+using System.Collections.Generic;
 using System.Net.Mime;
 
 using Uia.DriverServer.Domain;
@@ -150,6 +151,47 @@ namespace Uia.DriverServer.Controllers
             });
         }
 
+        [HttpGet]
+        [Route("session/{session}/window")]
+        public IActionResult GetWindowHandle(string session)
+        {
+            var (statusCode, handle) = _domain.SessionsRepository.GetHandle(session);
+
+            var response = statusCode == StatusCodes.Status404NotFound
+                ? new WebDriverResponseModel(session, new Dictionary<string, string> { ["error"] = "no such window" })
+                : new WebDriverResponseModel(session, value: handle);
+
+            // Return the result as a JSON response with the appropriate status code
+            return new JsonResult(response)
+            {
+                StatusCode = statusCode
+            };
+        }
+
+        // GET wd/hub/session/{session}/window/handles
+        // GET session/{session}/window/handles
+        [HttpGet]
+        [Route("session/{session}/window/handles")]
+        [SwaggerOperation(
+            Summary = "Gets all window handles for the specified session.",
+            Description = "Retrieves all window handles for the session identified by the given session ID.",
+            Tags = ["Sessions"])]
+        [SwaggerResponse(200, "Window handles retrieved successfully.", typeof(IEnumerable<string>))]
+        [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while retrieving the window handles.")]
+        public IActionResult GetWindowHandles(
+            [SwaggerParameter(Description = "The unique identifier for the session.")][FromRoute] string session)
+        {
+            // Get the window handles for the specified session
+            var (statusCode, value) = _domain.SessionsRepository.GetHandles(id: session);
+
+            // Return the window handles as a JSON result with the appropriate status code
+            return new JsonResult(new WebDriverResponseModel(session, value))
+            {
+                StatusCode = statusCode
+            };
+        }
+
         // POST wd/hub/session
         // POST session
         [HttpPost]
@@ -170,6 +212,50 @@ namespace Uia.DriverServer.Controllers
 
             // Return the result as JSON with the appropriate status code
             return new JsonResult(session)
+            {
+                StatusCode = statusCode
+            };
+        }
+
+        // POST wd/hub/session/{session}/window
+        // POST session/{session}/window
+        [HttpPost]
+        [Route("session/{session}/window")]
+        [SwaggerOperation(
+            Summary = "Switches to the specified window in the session.",
+            Description = "Sets the focus to the specified window handle or name within the given session.",
+            Tags = ["Sessions"])]
+        [SwaggerResponse(200, "Switched to window successfully.")]
+        [SwaggerResponse(400, "Invalid argument. The window handle or name is not valid.")]
+        [SwaggerResponse(404, "No such window. The window handle or name does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while switching the window.")]
+        public IActionResult SwitchWindow(
+            [SwaggerParameter(Description = "The unique identifier for the session.")][FromRoute] string session,
+            [SwaggerRequestBody(Description = "The request model containing the window handle or name to switch to.")] WindowHandleRequestModel requestModel)
+        {
+            // Switch to the specified window within the session
+            var statusCode = _domain.SessionsRepository.SwitchWindow(id: session, requestModel.Handle);
+
+            // Prepare the response value based on the status code result of the operation
+            var errorCode = string.Empty;
+
+            // Determine the error code based on the status code
+            if (statusCode == StatusCodes.Status404NotFound)
+            {
+                errorCode = "no such window";
+            }
+            else if (statusCode == StatusCodes.Status400BadRequest)
+            {
+                errorCode = "invalid argument";
+            }
+
+            // Prepare the response value
+            var value = statusCode != 200
+                ? new Dictionary<string, string> { ["error"] = errorCode }
+                : null;
+
+            // Return the result as a JSON response with the appropriate status code
+            return new JsonResult(new WebDriverResponseModel(session, value))
             {
                 StatusCode = statusCode
             };

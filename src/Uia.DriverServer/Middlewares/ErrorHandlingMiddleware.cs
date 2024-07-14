@@ -112,7 +112,7 @@ namespace Uia.DriverServer.Middlewares
                 }
 
                 // Write the original response body back to the context response
-                if(context.Response.StatusCode!= StatusCodes.Status204NoContent)
+                if (context.Response.StatusCode != StatusCodes.Status204NoContent)
                 {
                     await context.Response.Body.WriteAsync(memoryStream.ToArray());
                 }
