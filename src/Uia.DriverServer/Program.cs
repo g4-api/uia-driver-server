@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text.Json;
@@ -32,10 +33,33 @@ UiaUtilities.WriteUiaAsciiLogo();
 var builder = WebApplication.CreateBuilder(args);
 
 #region *** Url & Kestrel ***
+// Function to extract port from CLI arguments
+static int GetPort(string[] arguments, int defaultPort)
+{
+    // Iterate through each argument in the array.
+    for (int i = 0; i < arguments.Length; i++)
+    {
+        // Check if the current argument is "--port" and if there is a subsequent argument.
+        if (arguments[i] == "--port" && i + 1 < arguments.Length && int.TryParse(arguments[i + 1], out int port))
+        {
+            // If the next argument is a valid integer, return it as the port number.
+            return port;
+        }
+    }
+    // If "--port" is not found or the subsequent argument is not a valid integer, return the default port.
+    return defaultPort;
+}
+
+// Default port if none provided via CLI
+const int defaultPort = 5555;
+
+// Extract port from arguments
+var port = GetPort(args, defaultPort);
+
 // Use Kestrel as the web server and configure the URL settings
 // for the application to listen on all interfaces on port 5000
 // and 5001 for HTTPS requests by default
-builder.WebHost.UseUrls();
+builder.WebHost.UseUrls($"http://+:{port}");
 #endregion
 
 #region *** Service       ***
