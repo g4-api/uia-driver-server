@@ -33,10 +33,10 @@ namespace Uia.DriverServer.Controllers
         // Initialize the UIA domain interface
         private readonly IUiaDomain _domain = domain;
 
-        // POST wd/hub/user32/session/{session}/element/{element}/copy
-        // POST user32/session/{session}/element/{element}/copy
+        // POST wd/hub/session/{session}/user32/element/{element}/copy
+        // POST session/{session}/user32/element/{element}/copy
         [HttpPost]
-        [Route("user32/session/{session}/element/{element}/copy")]
+        [Route("session/{session}/user32/element/{element}/copy")]
         [SwaggerOperation(
             Summary = "Invokes the copy action on the specified element in the given session.",
             Description = "Performs a copy action on the element identified by the given session and element IDs.",
@@ -82,10 +82,10 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/user32/session/{session}/paste
-        // POST user32/session/{session}/paste
+        // POST wd/hub/session/{session}/user32/paste
+        // POST session/{session}/user32/paste
         [HttpPost]
-        [Route("user32/session/{session}/paste")]
+        [Route("session/{session}/user32/paste")]
         [SwaggerOperation(
             Summary = "Invokes a paste action in the specified session.",
             Description = "Performs a paste action in the session identified by the given session ID.",
@@ -117,10 +117,10 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/user32/session/{session}/element/{element}/select
-        // POST user32/session/{session}/element/{element}/select
+        // POST wd/hub/session/{session}/user32/element/{element}/select
+        // POST session/{session}/user32/element/{element}/select
         [HttpPost]
-        [Route("user32/session/{session}/element/{element}/select")]
+        [Route("session/{session}/user32/element/{element}/select")]
         [SwaggerOperation(
             Summary = "Selects the specified element in the given session.",
             Description = "Performs a select action on the element identified by the given session and element IDs.",
@@ -152,10 +152,10 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/user32/session/{session}/value
-        // POST user32/session/{session}/value
+        // POST wd/hub/session/{session}/user32/value
+        // POST session/{session}/user32/value
         [HttpPost]
-        [Route("user32/session/{session}/value")]
+        [Route("session/{session}/user32/value")]
         [SwaggerOperation(
             Summary = "Sends keystrokes to the specified session.",
             Description = "Performs a send keys action in the session identified by the given session ID with the provided keystrokes.",
@@ -184,10 +184,10 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/user32/session/{s}/inputs
-        // POST user32/session/{s}/inputs
+        // POST wd/hub/session/{session}/user32/inputs
+        // POST session/{session}/user32/inputs
         [HttpPost]
-        [Route("user32/session/{session}/inputs")]
+        [Route("session/{session}/user32/inputs")]
         [SwaggerOperation(
             Summary = "Sends key scan codes to the specified session.",
             Description = "Performs a send key scan codes action in the session identified by the given session ID with the provided key scan codes.",
@@ -221,10 +221,10 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/user32/session/{session}/modified
-        // POST user32/session/{session}/modified
+        // POST wd/hub/session/{session}/user32/modified
+        // POST session/{session}/user32/modified
         [HttpPost]
-        [Route("user32/session/{session}/modified")]
+        [Route("session/{session}/user32/modified")]
         [SwaggerOperation(
             Summary = "Sends a modified key (e.g., Ctrl+C) to the specified session.",
             Description = "Performs a send modified key action in the session identified by the given session ID with the provided modifier and main key.",
@@ -250,10 +250,10 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/user32/session/{session}/element/{element}/click
-        // POST user32/session/{session}/element/{element}/click
+        // POST wd/hub/session/{session}/user32/element/{element}/click
+        // POST session/{session}/user32/element/{element}/click
         [HttpPost]
-        [Route("user32/session/{session}/element/{element}/click")]
+        [Route("session/{session}/user32/element/{element}/click")]
         [SwaggerOperation(
             Summary = "Invokes a click action on the specified element in the given session.",
             Description = "Performs a click action on the element identified by the given session and element IDs.",
@@ -300,10 +300,10 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/user32/session/{session}/click
-        // POST user32/session/{session}/click
+        // POST wd/hub/session/{session}/user32/click
+        // POST session/{session}/user32/click
         [HttpPost]
-        [Route("user32/session/{session}/click")]
+        [Route("session/{session}/user32/click")]
         [SwaggerOperation(
             Summary = "Performs a native click at the specified coordinates in the given session.",
             Description = "Sends a native click action to the coordinates specified by the point parameter in the session identified by the given session ID.",
@@ -328,10 +328,10 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/user32/session/{session}/dclick
-        // POST user32/session/{session}/dclick
+        // POST wd/hub/session/{session}/user32/dclick
+        // POST session/{session}/user32/dclick
         [HttpPost]
-        [Route("user32/session/{session}/dclick")]
+        [Route("session/{session}/user32/dclick")]
         [SwaggerOperation(
             Summary = "Invokes a double-click action at the specified coordinates in the given session.",
             Description = "Performs a double-click action at the coordinates specified by the point parameter in the session identified by the given session ID.",
@@ -356,10 +356,10 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/user32/session/{session}/element/{element}/dclick
-        // POST user32/session/{session}/element/{element}/dclick
+        // POST wd/hub/session/{session}/user32/element/{element}/dclick
+        // POST session/{session}/user32/element/{element}/dclick
         [HttpPost]
-        [Route("user32/session/{session}/element/{element}/dclick")]
+        [Route("session/{session}/user32/element/{element}/dclick")]
         [SwaggerOperation(
             Summary = "Invokes a double-click action on the specified element in the given session.",
             Description = "Performs a double-click action on the element identified by the given session and element IDs.",
@@ -407,10 +407,10 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // GET wd/hub/user32/session/{session}/element/{element}/focus
-        // GET user32/session/{session}/element/{element}/focus
+        // GET wd/hub/session/{session}/user32/element/{element}/focus
+        // GET session/{session}/user32/element/{element}/focus
         [HttpGet]
-        [Route("user32/session/{session}/element/{element}/focus")]
+        [Route("session/{session}/user32/element/{element}/focus")]
         [SwaggerOperation(
             Summary = "Sets focus on the specified element in the given session.",
             Description = "Sets focus on the element identified by the given session and element IDs.",
@@ -442,10 +442,10 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/user32/session/{s}/mouse/move
-        // POST user32/session/{s}/mouse/move
+        // POST wd/hub/session/{session}/user32/mouse/move
+        // POST session/{session}/user32/mouse/move
         [HttpPost]
-        [Route("user32/session/{session}/mouse/move")]
+        [Route("session/{session}/user32/mouse/move")]
         [SwaggerOperation(
             Summary = "Sets the mouse position to the specified coordinates in the given session.",
             Description = "Moves the mouse cursor to the coordinates specified by the point parameter in the session identified by the given session ID.",
@@ -471,10 +471,10 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/user32/session/{session}/element/{element}/mouse/move
-        // POST user32/session/{session}/element/{element}/mouse/move
+        // POST wd/hub/session/{session}/user32/element/{element}/mouse/move
+        // POST session/{session}/user32/element/{element}/mouse/move
         [HttpPost]
-        [Route("user32/session/{session}/element/{element}/mouse/move")]
+        [Route("session/{session}/user32/element/{element}/mouse/move")]
         [SwaggerOperation(
             Summary = "Sets the mouse position to the specified element in the given session.",
             Description = "Moves the mouse cursor to the specified element with alignment and offset options in the session identified by the given session ID.",
