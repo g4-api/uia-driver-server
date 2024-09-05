@@ -9,8 +9,10 @@ using Microsoft.AspNetCore.Mvc;
 
 using Swashbuckle.AspNetCore.Annotations;
 
+using System;
 using System.Collections.Generic;
 using System.Net.Mime;
+using System.Runtime.InteropServices;
 
 using Uia.DriverServer.Domain;
 using Uia.DriverServer.Models;
@@ -143,11 +145,20 @@ namespace Uia.DriverServer.Controllers
                 : "Sessions slots available, can create new session";
 
             // Return the status as a JSON result
-            return new JsonResult(new SessionStatusModel
+            return new JsonResult(new
             {
-                Message = message,
-                Ready = !isFull,
-                Sessions = sessions
+                Value = new SessionStatusModel
+                {
+                    Message = message,
+                    OperatingSystem = new Dictionary<string, object>
+                    {
+                        ["arch"] = $"{RuntimeInformation.OSArchitecture}",
+                        ["name"] = RuntimeInformation.OSDescription,
+                        ["version"] = $"{Environment.OSVersion.Version}"
+                    },
+                    Ready = !isFull,
+                    Sessions = sessions
+                }
             });
         }
 
