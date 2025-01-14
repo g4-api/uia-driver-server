@@ -29,13 +29,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CommandBridge" Version="2024.6.5.59" />
+		<PackageReference Include="CommandBridge" Version="2024.6.7.61" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.6" NoWarn="NU1605" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.6" NoWarn="NU1605" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.6" />
-		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.20.1" />
-		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
-		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.6.2" />
+		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="7.2.0" />
 	</ItemGroup>
 
 	<ItemGroup>

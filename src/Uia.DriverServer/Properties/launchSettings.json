@@ -1,0 +1,12 @@
+{
+	"profiles": {
+		"Uia.DriverServer": {
+			"commandName": "Project",
+			"launchBrowser": false,
+			"environmentVariables": {
+				"ASPNETCORE_ENVIRONMENT": "Development"
+			},
+			"applicationUrl": "https://localhost:55930;http://localhost:55931"
+		}
+	}
+}
