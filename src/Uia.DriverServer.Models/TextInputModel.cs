@@ -1,9 +1,4 @@
-﻿/*
- * CHANGE LOG - keep only last 5 threads
- * 
- * RESOURCES
- */
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Uia.DriverServer.Models
 {
@@ -16,7 +11,7 @@ namespace Uia.DriverServer.Models
         /// Gets or sets the text to be input.
         /// </summary>
         /// <value>The text to be input.</value>
-        [Required]
+        [Required(AllowEmptyStrings = true)]
         public string Text { get; set; }
     }
 }
