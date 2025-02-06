@@ -90,10 +90,8 @@ namespace Uia.DriverServer.Domain
         {
             foreach (var action in actionsModel.Actions)
             {
-                var actions = FilterActions(action);
-
                 // Iterate through each input in the sequence.
-                foreach (var input in actions)
+                foreach (var input in FilterActions(action))
                 {
                     // Send the input to the system.
                     SendInput(instance: this, session: session, inputData: input);
