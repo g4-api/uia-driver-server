@@ -89,10 +89,10 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // GET wd/hub/session/{session}
-        // GET session/{session}
+        // GET wd/hub/session/{session}/dom
+        // GET session/{session}/dom
         [HttpGet]
-        [Route("session/{session}")]
+        [Route("session/{session}/dom")]
         [SwaggerOperation(
             Summary = "Gets the Document Object Model (DOM) for the specified session.",
             Description = "Retrieves the DOM for the session identified by the given session ID.",
@@ -117,6 +117,48 @@ namespace Uia.DriverServer.Controllers
                 Content = content,
                 ContentType = MediaTypeNames.Application.Xml,
                 StatusCode = statusCode
+            };
+        }
+
+        // POST /wd/hub/session/{session}/element/dom
+        // POST /session/{session}/element/dom
+        [HttpPost]
+        [Route("session/{session}/element/dom")]
+        [SwaggerOperation(
+            Summary = "Creates the Document Object Model (DOM) for a specific element within a session.",
+            Description = "Finds the specified element using the provided locator strategy, then generates the DOM for that element.",
+            Tags = ["Sessions"])]
+        [SwaggerResponse(200, "DOM created successfully.", typeof(string))]
+        [SwaggerResponse(400, "Invalid request. The locator strategy model is not valid.")]
+        [SwaggerResponse(404, "Element not found. The session ID or locator strategy provided does not match any element.")]
+        [SwaggerResponse(500, "Internal server error. An unexpected error occurred while attempting to find the element.")]
+        public IActionResult GetDocumentObjectModel(
+            [SwaggerParameter(Description = "The unique identifier for the session in which the element will be found.")][FromRoute] string session,
+            [SwaggerRequestBody(Description = "The locator strategy model containing the strategy to find the element.")][FromBody] LocationStrategyModel locator)
+        {
+            // Attempt to find the element in the specified session using the provided locator strategy.
+            var (findStatusCode, elementModel) = _domain.ElementsRepository.FindElement(session, locator);
+
+            // If the element is not found, return a 404 Not Found response with an appropriate error message.
+            if (findStatusCode == StatusCodes.Status404NotFound || elementModel == null)
+            {
+                return NotFound(WebDriverResponseModel.NewElementNotFoundResponse(locator, session));
+            }
+
+            // Create a new Document Object Model (DOM) for the found element.
+            var (domStatusCode, objectModel) = _domain.SessionsRepository.NewDocumentObjectModel(elementModel);
+
+            // Prepare the XML content to return based on the status of the DOM creation.
+            var content = domStatusCode == StatusCodes.Status200OK
+                ? objectModel.ToString()
+                : $"<Desktop><Error>Session with ID {session} not found.</Error></Desktop>";
+
+            // Return the generated XML content along with the appropriate HTTP status code.
+            return new ContentResult
+            {
+                Content = content,
+                ContentType = MediaTypeNames.Application.Xml,
+                StatusCode = domStatusCode
             };
         }
 

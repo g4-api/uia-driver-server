@@ -61,7 +61,7 @@ namespace Uia.DriverServer.Domain
         (int StatusCode, IEnumerable<string> Handles) GetHandles(string id);
 
         /// <summary>
-        /// Creates a new session XML document with the specified ID.
+        /// Creates a new session XML document with the specified session ID.
         /// </summary>
         /// <param name="id">The session identifier.</param>
         /// <returns>
@@ -70,6 +70,17 @@ namespace Uia.DriverServer.Domain
         /// - ElementsXml: The XML document representing the session elements.
         /// </returns>
         (int StatusCode, XDocument ElementsXml) NewDocumentObjectModel(string id);
+
+        /// <summary>
+        /// Creates a new session XML document for the specified element.
+        /// </summary>
+        /// <param name="element">The UI Element to create a tree for.</param>
+        /// <returns>
+        /// A tuple containing:
+        /// - StatusCode: An HTTP status code indicating the result of the operation.
+        /// - ElementsXml: The XML document representing the element tree.
+        /// </returns>
+        (int StatusCode, XDocument ElementsXml) NewDocumentObjectModel(UiaElementModel element);
 
         /// <summary>
         /// Retrieves the screenshot of the current window.

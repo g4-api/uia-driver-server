@@ -159,6 +159,26 @@ namespace Uia.DriverServer.Domain
         }
 
         /// <inheritdoc />
+        public (int StatusCode, XDocument ElementsXml) NewDocumentObjectModel(UiaElementModel element)
+        {
+            // Validate that the provided element contains a valid UI Automation element.
+            if (element?.UIAutomationElement == null)
+            {
+                _logger?.LogInformation("UIAutomationElement is missing. Cannot create Document Object Model.");
+                return (StatusCodes.Status404NotFound, default);
+            }
+
+            // Generate a new Document Object Model (DOM) based on the UI Automation element.
+            var elementsXml = DocumentObjectModelFactory.New(element.UIAutomationElement);
+
+            // Log the successful creation of the DOM, including the element's ID for traceability.
+            _logger?.LogInformation("Document Object Model created successfully for element with ID {ElementId}.", element.Id);
+
+            // Return a success status code (200 OK) along with the generated XML document.
+            return (StatusCodes.Status200OK, elementsXml);
+        }
+
+        /// <inheritdoc />
         public (int StatusCode, string Entity) NewScreenshot()
         {
             // Capture a new bitmap image
