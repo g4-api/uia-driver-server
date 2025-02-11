@@ -1,38 +1,72 @@
-﻿/*
- * CHANGE LOG - keep only last 5 threads
- * 
- * RESOURCES
- */
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
 using Uia.DriverServer.Attributes;
+using Uia.DriverServer.Extensions;
+using Uia.DriverServer.Models;
 
 namespace Uia.DriverServer.Domain
 {
     /// <summary>
     /// Represents the repository for document-related operations.
     /// </summary>
-    public class DocumentRepository : IDocumentRepository
+    public class DocumentRepository(IDictionary<string, UiaSessionResponseModel> sessions, ILogger<SessionsRepository> logger) : IDocumentRepository
     {
+        // Initialize the logger instance for logging information and errors in the repository class methods and properties
+        private readonly ILogger<SessionsRepository> _logger = logger;
+
         /// <inheritdoc />
-        public (int StatusCode, string Result) GetPageSource(string session)
+        public IDictionary<string, UiaSessionResponseModel> Sessions { get; } = sessions;
+
+        /// <inheritdoc />
+        public (int StatusCode, string Result) GetElementSource(UiaElementModel element)
         {
-            throw new NotImplementedException();
+            // Validate that the provided element contains a valid UI Automation element.
+            if (element?.UIAutomationElement == null)
+            {
+                _logger?.LogInformation("UIAutomationElement is missing. Cannot create Document Object Model.");
+                return (StatusCodes.Status404NotFound, default);
+            }
+
+            // Generate a new Document Object Model (DOM) based on the UI Automation element.
+            var elementsXml = DocumentObjectModelFactory.New(element.UIAutomationElement);
+
+            // Log the successful creation of the DOM, including the element's ID for traceability.
+            _logger?.LogInformation("Document Object Model created successfully for element with ID {ElementId}.", element.Id);
+
+            // Return a success status code (200 OK) along with the generated XML document.
+            return (StatusCodes.Status200OK, $"{elementsXml.Document}");
         }
 
         /// <inheritdoc />
-        [SuppressMessage(
-            category: "Major Code Smell",
-            checkId: "S3011:Reflection should not be used to increase accessibility of classes, methods, or fields",
-            Justification = "Reflection is used here to dynamically invoke methods based on attributes, which provides flexibility for handling different script types.")]
+        public (int StatusCode, string Result) GetPageSource(string session)
+        {
+            // Attempt to retrieve the session from the sessions dictionary
+            if (!Sessions.TryGetValue(session, out UiaSessionResponseModel uiaSession))
+            {
+                _logger?.LogInformation("Session with ID {SessionId} not found.", session);
+                return (StatusCodes.Status404NotFound, default);
+            }
+
+            // Create a new Document Object Model (DOM) for the session's application root
+            var elementsXml = DocumentObjectModelFactory.New(uiaSession.ApplicationRoot);
+
+            // Log the successful creation of the DOM for the session
+            _logger?.LogInformation("New Document Object Model created for session with ID {SessionId}.", session);
+
+            // Return a 200 OK status code and the XML document representing the DOM
+            return (StatusCodes.Status200OK, $"{elementsXml.Document}");
+        }
+
+        /// <inheritdoc />
         public (int StatusCode, object Result) InvokeScript(string src)
         {
             const BindingFlags Flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static;
@@ -70,6 +104,7 @@ namespace Uia.DriverServer.Domain
         // Invokes a PowerShell script for the specified session.
         [ScriptType("Powershell")]
         private static string InvokePowershell(string src)
+#pragma warning restore IDE0051 // Remove unused private members
         {
             // Get the temporary directory path.
             var tempPath = Path.GetTempPath();
@@ -109,6 +144,5 @@ namespace Uia.DriverServer.Domain
             // Return an empty string upon completion.
             return string.Empty;
         }
-#pragma warning restore IDE005
     }
 }

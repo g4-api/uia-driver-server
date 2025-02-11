@@ -3,7 +3,11 @@
  * 
  * RESOURCES
  */
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+
+using Uia.DriverServer.Models;
 
 namespace Uia.DriverServer.Domain
 {
@@ -12,6 +16,22 @@ namespace Uia.DriverServer.Domain
     /// </summary>
     public interface IDocumentRepository
     {
+        /// <summary>
+        /// Gets the collection of active sessions.
+        /// </summary>
+        IDictionary<string, UiaSessionResponseModel> Sessions { get; }
+
+        /// <summary>
+        /// Retrieves the element source or the state of the current element in a Windows desktop automation session
+        /// </summary>
+        /// <param name="element">The UI Element to get source from.</param>
+        /// <returns>
+        /// A tuple containing:
+        /// - StatusCode: An HTTP status code indicating the result of the operation.
+        /// - Result: The element source or state as a string.
+        /// </returns>
+        (int StatusCode, string Result) GetElementSource(UiaElementModel element);
+
         /// <summary>
         /// Retrieves the page source or the state of the current application window in a Windows desktop automation session.
         /// </summary>
