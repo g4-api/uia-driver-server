@@ -104,11 +104,11 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the session.")][FromRoute] string session)
         {
             // Retrieve the DOM for the specified session
-            var (statusCode, objectModel) = _domain.SessionsRepository.NewDocumentObjectModel(session);
+            var (statusCode, objectModel) = _domain.DocumentRepository.GetPageSource(session);
 
             // Prepare the content based on the status code
             var content = statusCode == StatusCodes.Status200OK
-                ? objectModel.ToString()
+                ? objectModel
                 : $"<Desktop><Error>Session with ID {session} not found.</Error></Desktop>";
 
             // Return the result as XML content with the appropriate status code
@@ -146,11 +146,11 @@ namespace Uia.DriverServer.Controllers
             }
 
             // Create a new Document Object Model (DOM) for the found element.
-            var (domStatusCode, objectModel) = _domain.SessionsRepository.NewDocumentObjectModel(elementModel);
+            var (domStatusCode, objectModel) = _domain.DocumentRepository.GetElementSource(elementModel);
 
             // Prepare the XML content to return based on the status of the DOM creation.
             var content = domStatusCode == StatusCodes.Status200OK
-                ? objectModel.ToString()
+                ? objectModel
                 : $"<Desktop><Error>Session with ID {session} not found.</Error></Desktop>";
 
             // Return the generated XML content along with the appropriate HTTP status code.

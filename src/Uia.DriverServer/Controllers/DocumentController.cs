@@ -1,6 +1,4 @@
 ﻿/*
- * CHANGE LOG - keep only last 5 threads
- * 
  * RESSOURCES
  * https://www.w3.org/TR/webdriver/#document
  */
@@ -16,10 +14,6 @@ using Uia.DriverServer.Models;
 
 namespace Uia.DriverServer.Controllers
 {
-    /// <summary>
-    /// Controller for handling document-related actions in UI Automation.
-    /// </summary>
-    /// <param name="domain">The UIA domain interface.</param>
     [Produces(MediaTypeNames.Application.Json)]
     [Route("wd/hub"), Route("/")]
     [ApiController]
@@ -31,8 +25,40 @@ namespace Uia.DriverServer.Controllers
         // Initialize the UIA domain interface
         private readonly IUiaDomain _domain = domain;
 
-        // POST wd/hub/session/{session}/execute/sync
-        // POST /session/{session}/execute/sync
+        [HttpGet]
+        [Route("session/{session}/source")]
+        [SwaggerOperation(
+            Summary = "Retrieves the document source for the specified session.",
+            Description = "Retrieves the current HTML/XML content of the document from the specified session. If the session does not exist, an XML error message is returned.",
+            Tags = ["Document"])]
+        [SwaggerResponse(200, "Document source successfully retrieved.", typeof(WebDriverResponseModel))]
+        [SwaggerResponse(400, "Invalid request. Please ensure the session identifier is correct.")]
+        [SwaggerResponse(404, "Session not found. The specified session does not exist.")]
+        [SwaggerResponse(500, "Internal server error. An error occurred while retrieving the document source.")]
+        public IActionResult GetSource(
+            [SwaggerParameter(Description = "The unique identifier for the session whose document source is to be retrieved.")] string session)
+        {
+            // Retrieve the DOM for the specified session
+            var (statusCode, objectModel) = _domain.DocumentRepository.GetPageSource(session);
+
+            // Prepare the content based on the status code
+            var content = statusCode == StatusCodes.Status200OK
+                ? objectModel
+                : $"<Desktop><Error>Session with ID {session} not found.</Error></Desktop>";
+
+            // Prepare the response model with the result of the script execution
+            var value = new WebDriverResponseModel
+            {
+                Value = content
+            };
+
+            // Return the result as JSON with the appropriate status code
+            return new JsonResult(value)
+            {
+                StatusCode = statusCode
+            };
+        }
+
         [HttpPost]
         [Route("session/{session}/execute/sync")]
         [SwaggerOperation(
