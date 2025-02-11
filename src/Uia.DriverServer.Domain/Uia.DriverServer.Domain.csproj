@@ -12,7 +12,7 @@
 		<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
 
 		<!-- https://learn.microsoft.com/en-us/dotnet/fundamentals/syslib-diagnostics/syslib1040-1049 -->
-		<NoWarn>$(NoWarn);SYSLIB1045</NoWarn>
+		<NoWarn>$(NoWarn);SYSLIB1045;S3011</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
