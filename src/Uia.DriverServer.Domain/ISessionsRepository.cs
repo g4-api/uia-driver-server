@@ -1,9 +1,4 @@
-﻿/*
- * CHANGE LOG - keep only last 5 threads
- * 
- * RESOURCES
- */
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Xml.Linq;
 
 using Uia.DriverServer.Models;
