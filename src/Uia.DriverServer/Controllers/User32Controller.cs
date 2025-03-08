@@ -1,6 +1,4 @@
 ﻿/*
- * CHANGE LOG - keep only last 5 threads
- * 
  * RESOURCES
  * https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list
  */
@@ -10,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using Uia.DriverServer.Domain;
@@ -32,6 +31,21 @@ namespace Uia.DriverServer.Controllers
     {
         // Initialize the UIA domain interface
         private readonly IUiaDomain _domain = domain;
+
+        // GET wd/hub/user32/layouts
+        // GET session/user32/layouts
+        [HttpGet]
+        [Route("/user32/layouts")]
+        [SwaggerOperation(
+            Summary = "Retrieves available keyboard layouts.",
+            Description = "Gets a list of available keyboard layout identifiers from the CodeMaps class.",
+            Tags = ["User32"])]
+        [SwaggerResponse(200, "Keyboard layouts retrieved successfully.", typeof(IEnumerable<string>))]
+        public IActionResult GetKeyboardLayouts()
+        {
+            // Retrieve and return the list of keyboard layouts.
+            return Ok(CodeMaps.GetLayouts());
+        }
 
         // POST wd/hub/session/{session}/user32/element/{element}/copy
         // POST session/{session}/user32/element/{element}/copy
