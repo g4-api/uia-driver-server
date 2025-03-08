@@ -779,22 +779,9 @@ namespace Uia.DriverServer.Extensions
         /// <returns>The scan code associated with the key if found; otherwise, <see cref="ushort.MaxValue"/>.</returns>
         public static ushort GetScanCode(this string key, string layout)
         {
-            // Use ordinal (case-insensitive) comparison for matching layout identifiers.
-            const StringComparison comparison = StringComparison.OrdinalIgnoreCase;
-
-            // Retrieve all public static properties from the CodeMaps class that are decorated with KeyboardLayoutAttribute.
-            var maps = typeof(CodeMaps)
-                .GetProperties(BindingFlags.Public | BindingFlags.Static)
-                .Where(i => i.GetCustomAttribute<KeyboardLayoutAttribute>() != null);
-
-            // Find the property whose associated KeyboardLayoutAttribute matches the provided layout.
-            var mapProperty = maps.FirstOrDefault(i => i
-                .GetCustomAttribute<KeyboardLayoutAttribute>()
-                .Layout.Equals(layout, comparison));
-
             // Retrieve the scan code mapping dictionary from the found property.
             // If no property matches, fall back to the default US English code map.
-            var map = mapProperty?.GetValue(null) as Dictionary<string, ushort> ?? CodeMaps.EnUnitedStatesCodeMap;
+            var map = CodeMaps.GetLayoutMap(layout);
 
             // Attempt to get the scan code for the specified key from the mapping dictionary.
             var isCodes = map.TryGetValue(key, out ushort code);
