@@ -15,7 +15,6 @@ using Uia.DriverServer.Marshals;
 using Uia.DriverServer.Marshals.Models;
 using Uia.DriverServer.Models;
 
-#pragma warning disable S3011 // Suppresses warnings about using reflection to access members, which is necessary for dynamic method invocation in this context.
 #pragma warning disable S1144, IDE0051, RCS1213 // Suppresses warnings about unused private methods, which are dynamically invoked using reflection.
 namespace Uia.DriverServer.Domain
 {
