@@ -1,6 +1,4 @@
 ﻿/*
- * CHANGE LOG - keep only last 5 threads
- * 
  * RESOURCES
  * https://docs.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-hardwareinput
  * https://docs.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-keybdinput
@@ -18,7 +16,6 @@ using Uia.DriverServer.Marshals.Models;
 // SYSLIB1054: Using DllImport for compatibility with existing P/Invoke patterns.
 // CA2101: Marshaling not specified for string arguments as this is consistent with existing legacy code which has been tested and is known to work correctly.
 // S4200: This suppression is applied because SonarAnalyzer incorrectly flags this code, resulting in false positives. The unmanaged code patterns used here are necessary for the implementation.
-#pragma warning disable SYSLIB1054, CA2101, S4200
 namespace Uia.DriverServer.Marshals
 {
     public static class User32
@@ -30,8 +27,21 @@ namespace Uia.DriverServer.Marshals
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
+        // Dictionary mapping culture codes to their keyboard layout identifiers (KLID).
+        private static readonly Dictionary<string, string> Layouts = new()
+        {
+            ["en-US"] = "00000409", // English (US)
+            ["he-IL"] = "0002040D"  // Hebrew (Standard)
+        };
+
         // Delegate for the EnumWindows callback function
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+        // P/Invoke declaration for the ActivateKeyboardLayout function from user32.dll.
+        // Activates the specified input locale identifier (formerly called the keyboard layout) for the calling thread.
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ActivateKeyboardLayout(IntPtr hkl, uint Flags);
 
         // Enumerates the display settings for the specified device.
         [DllImport("user32.dll")]
@@ -66,6 +76,11 @@ namespace Uia.DriverServer.Marshals
         [DllImport("user32.dll")]
         private static extern bool GetPhysicalCursorPos(out Point lpPoint);
 
+        // P/Invoke declaration for the GetWindowThreadProcessId function from user32.dll.
+        // Retrieves the identifier of the thread that created the specified window and, optionally, the identifier of the process that created the window.
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr lpdwProcessId);
+
         // P/Invoke declaration for the GetWindowText function from user32.dll.
         // Copies the text of the specified window's title bar (if it has one) into a buffer.
         [DllImport("user32.dll", SetLastError = true)]
@@ -81,10 +96,20 @@ namespace Uia.DriverServer.Marshals
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool IsWindow(IntPtr hWnd);
 
+        // P/Invoke declaration for the LoadKeyboardLayout function from user32.dll.
+        // Loads a new input locale identifier (formerly called the keyboard layout) into the system.
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr LoadKeyboardLayout(string pwszKLID, uint Flags);
+
         // Imports the mouse_event function from user32.dll.
         // Synthesizes mouse motion and button clicks.
         [DllImport("user32.dll")]
         private static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
+
+        // P/Invoke declaration for the PostMessage function from user32.dll.
+        // Places (posts) a message in the message queue associated with the thread that created the specified window.
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
         // P/Invoke declaration for the SendInput function from user32.dll.
         // Sends an array of input events (mouse, keyboard, or hardware) to the system.
@@ -437,6 +462,54 @@ namespace Uia.DriverServer.Marshals
                 // Throw an exception if the function failed to set the cursor position.
                 throw new InvalidOperationException("Failed to set cursor position.");
             }
+        }
+
+        /// <summary>
+        /// Switches the current keyboard layout to the specified layout.
+        /// </summary>
+        /// <param name="layout">
+        /// The identifier of the keyboard layout to switch to (e.g., "en-US", "he-IL").
+        /// If the specified layout is not found, the default US English layout ("00000409") is used.
+        /// </param>
+        /// <returns><c>true</c> if the keyboard layout was successfully switched; otherwise, <c>false</c>.</returns>
+        public static bool SwitchKeyboardLayout(string layout)
+        {
+            // Define the flag for activating the keyboard layout for the process.
+            const uint KLF_SETFORPROCESS = 0x00000100;
+
+            // Define the message identifier for input language change requests.
+            const uint WM_INPUTLANGCHANGEREQUEST = 0x0050;
+
+            // Retrieve the layout code from the 'Layouts' dictionary.
+            // If the specified layout is not found, default to "00000409" (typically representing US English).
+            var layoutCode = Layouts.GetValueOrDefault(layout, "00000409");
+
+            // Load the keyboard layout using the retrieved layout code.
+            // KLF_SETFORPROCESS flag is used to set the layout for the current process.
+            var keyboardLayout = LoadKeyboardLayout(layoutCode, KLF_SETFORPROCESS);
+
+            // Check if the keyboard layout was successfully loaded.
+            if (keyboardLayout == IntPtr.Zero)
+            {
+                return false;
+            }
+
+            // Get the handle of the foreground window.
+            IntPtr foregroundWindow = GetForegroundWindow();
+            if (foregroundWindow == IntPtr.Zero)
+            {
+                return false;
+            }
+
+            // Get the thread identifier associated with the foreground window.
+            uint threadId = GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
+            if (threadId == 0)
+            {
+                return false;
+            }
+
+            // Post a message to the foreground window to request an input language change.
+            return PostMessage(foregroundWindow, WM_INPUTLANGCHANGEREQUEST, IntPtr.Zero, keyboardLayout);
         }
     }
 }
