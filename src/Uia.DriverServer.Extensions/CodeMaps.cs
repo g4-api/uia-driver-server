@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 
 using Uia.DriverServer.Attributes;
 
@@ -359,5 +361,58 @@ namespace Uia.DriverServer.Extensions
             ["Z"] = (Modifier: 0x2A, ModifiedKeyCode: 0x2C),  // Shift + Z
             ["€"] = (Modifier: 0x40, ModifiedKeyCode: 0x05)   // AltGr + 5
         };
+
+        /// <summary>
+        /// Retrieves the default scan code mapping dictionary for the US English keyboard layout ("en-US").
+        /// </summary>
+        /// <returns>A dictionary mapping keys to their corresponding scan codes for the US English layout.</returns>
+        public static Dictionary<string, ushort> GetLayoutMap()
+        {
+            // Delegate to the overload of GetLayoutMap, specifying "en-US" as the default layout.
+            return GetLayoutMap("en-US");
+        }
+
+        /// <summary>
+        /// Retrieves the scan code mapping dictionary for the specified keyboard layout.
+        /// </summary>
+        /// <param name="layout">The identifier for the desired keyboard layout (e.g., "en-US", "he-IL").</param>
+        /// <returns>
+        /// A dictionary mapping keys to their corresponding scan codes for the specified layout.
+        /// If no matching layout is found, the default US English code map is returned.
+        /// </returns>
+        public static Dictionary<string, ushort> GetLayoutMap(string layout)
+        {
+            // Use ordinal (case-insensitive) comparison for matching layout identifiers.
+            const StringComparison comparison = StringComparison.OrdinalIgnoreCase;
+
+            // Retrieve all public static properties from the CodeMaps class that are decorated with KeyboardLayoutAttribute.
+            var maps = typeof(CodeMaps)
+                .GetProperties(BindingFlags.Public | BindingFlags.Static)
+                .Where(i => i.GetCustomAttribute<KeyboardLayoutAttribute>() != null);
+
+            // Find the property whose associated KeyboardLayoutAttribute matches the provided layout.
+            var mapProperty = maps.FirstOrDefault(i => i
+                .GetCustomAttribute<KeyboardLayoutAttribute>()
+                .Layout.Equals(layout, comparison));
+
+            // Retrieve the scan code mapping dictionary from the found property.
+            // If no property matches, fall back to the default US English code map.
+            return mapProperty?.GetValue(null) as Dictionary<string, ushort> ?? EnUnitedStatesCodeMap;
+        }
+
+        /// <summary>
+        /// Retrieves a collection of all keyboard layout identifiers defined in the CodeMaps class.
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{String}"/> containing all layout identifiers (e.g., "en-US", "he-IL").</returns>
+        public static IEnumerable<string> GetLayouts()
+        {
+            // Retrieve all public static properties from the CodeMaps class.
+            // For each property, attempt to get the KeyboardLayoutAttribute and select its Layout property.
+            // Finally, filter out any null values.
+            return typeof(CodeMaps)
+                .GetProperties(BindingFlags.Public | BindingFlags.Static)
+                .Select(i => i.GetCustomAttribute<KeyboardLayoutAttribute>()?.Layout)
+                .Where(i => i != null);
+        }
     }
 }
