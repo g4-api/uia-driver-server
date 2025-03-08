@@ -13,6 +13,7 @@ using System.Linq;
 
 using Uia.DriverServer.Domain;
 using Uia.DriverServer.Extensions;
+using Uia.DriverServer.Marshals;
 using Uia.DriverServer.Marshals.Models;
 using Uia.DriverServer.Models;
 
@@ -45,6 +46,25 @@ namespace Uia.DriverServer.Controllers
         {
             // Retrieve and return the list of keyboard layouts.
             return Ok(CodeMaps.GetLayouts());
+        }
+
+        // POST wd/hub/user32/layouts
+        // POST session/user32/layouts
+        [HttpPost]
+        [Route("/user32/layouts")]
+        [SwaggerOperation(
+            Summary = "Sets the keyboard layout.",
+            Description = "Sets the current keyboard layout to the one specified in the request body.",
+            Tags = ["User32"])]
+        [SwaggerResponse(204, "Keyboard layout set successfully.")]
+        public IActionResult SetKeyboardLayout(
+            [FromBody][SwaggerParameter(Description = "The keyboard layout model containing the layout identifier to be set.")] KeyboardLayoutModel layoutModel)
+        {
+            // Switch the keyboard layout using the provided layout identifier from the model.
+            User32.SwitchKeyboardLayout(layoutModel.Layout);
+
+            // Return a 204 No Content response indicating the keyboard layout was successfully set.
+            return NoContent();
         }
 
         // POST wd/hub/session/{session}/user32/element/{element}/copy
@@ -215,7 +235,7 @@ namespace Uia.DriverServer.Controllers
             [SwaggerRequestBody(Description = "The data containing the key scan codes to send, including the 'wScans' key with the key scan codes.")] ScanCodesInputModel keyScansData)
         {
             // Convert the scan codes from strings to the appropriate format
-            var wScans = keyScansData.ScanCodes.Select(i => i.GetScanCode());
+            var wScans = keyScansData.ScanCodes.Select(i => i.GetScanCode(layout: keyScansData.Options.KeyboardLayout));
 
             // Get the session model using the domain's session repository
             var sessionModel = _domain.SessionsRepository.GetSession(session).Session;
