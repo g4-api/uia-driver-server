@@ -10,6 +10,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 using Uia.DriverServer.Domain;
 using Uia.DriverServer.Extensions;
@@ -30,7 +31,7 @@ namespace Uia.DriverServer.Controllers
         private readonly IUiaDomain _domain = domain;
 
         [HttpGet]
-        [Route("/user32/layouts")]
+        [Route("user32/layouts")]
         [SwaggerOperation(
             Summary = "Retrieves available keyboard layouts.",
             Description = "Gets a list of available keyboard layout identifiers from the CodeMaps class.",
@@ -43,7 +44,7 @@ namespace Uia.DriverServer.Controllers
         }
 
         [HttpPost]
-        [Route("/user32/layouts")]
+        [Route("user32/layouts")]
         [SwaggerOperation(
             Summary = "Sets the keyboard layout.",
             Description = "Sets the current keyboard layout to the one specified in the request body.",
@@ -216,24 +217,16 @@ namespace Uia.DriverServer.Controllers
             [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
             [SwaggerRequestBody(Description = "The data containing the key scan codes to send, including the 'wScans' key with the key scan codes.")] ScanCodesInputModel keyScansData)
         {
-            // Convert the scan codes from strings to the appropriate format
-            var wScans = keyScansData.ScanCodes.Select(i => i.GetScanCode(layout: keyScansData.Options.KeyboardLayout));
-
             // Get the session model using the domain's session repository
             var sessionModel = _domain.SessionsRepository.GetSession(session).Session;
 
-            // Send the key scan codes to the session
-            foreach (var wScan in wScans)
-            {
-                var down = wScan.ConvertToInput(KeyEvent.KeyDown | KeyEvent.Scancode);
-                var up = wScan.ConvertToInput(KeyEvent.KeyUp | KeyEvent.Scancode);
-                sessionModel.Automation.SendInputs(down, up);
-            }
+            // Get the session model using the domain's session repository
+            var statusCode = _domain.SessionsRepository.SendUser32Keys(automation: sessionModel.Automation, keyScansData);
 
             // Return an OK response indicating the key scan codes were sent successfully
             return new JsonResult(new WebDriverResponseModel())
             {
-                StatusCode = StatusCodes.Status200OK
+                StatusCode = statusCode
             };
         }
 
