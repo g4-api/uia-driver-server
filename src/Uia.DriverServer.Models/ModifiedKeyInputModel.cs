@@ -1,9 +1,4 @@
-﻿/*
- * CHANGE LOG - keep only last 5 threads
- * 
- * RESOURCES
- */
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Uia.DriverServer.Models
 {
