@@ -7,13 +7,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 using System;
-using System.CodeDom;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net.Mime;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -21,7 +19,6 @@ using System.Threading;
 using System.Xml.Linq;
 using System.Xml.XPath;
 
-using Uia.DriverServer.Attributes;
 using Uia.DriverServer.Marshals;
 using Uia.DriverServer.Marshals.Models;
 using Uia.DriverServer.Models;

@@ -10,12 +10,10 @@ using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 using Uia.DriverServer.Domain;
 using Uia.DriverServer.Extensions;
 using Uia.DriverServer.Marshals;
-using Uia.DriverServer.Marshals.Models;
 using Uia.DriverServer.Models;
 
 namespace Uia.DriverServer.Controllers
