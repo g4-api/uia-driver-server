@@ -1,9 +1,4 @@
-﻿/*
- * CHANGE LOG - keep only last 5 threads
- * 
- * RESOURCES
- */
-using System;
+﻿using System;
 
 namespace Uia.DriverServer.Attributes
 {
