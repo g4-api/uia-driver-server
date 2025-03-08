@@ -19,10 +19,6 @@ using Uia.DriverServer.Models;
 
 namespace Uia.DriverServer.Controllers
 {
-    /// <summary>
-    /// Controller for handling User32-related actions in UI Automation.
-    /// </summary>
-    /// <param name="domain">The UIA domain interface.</param>
     [Route("wd/hub"), Route("/")]
     [ApiController]
     [SwaggerTag(
@@ -33,8 +29,6 @@ namespace Uia.DriverServer.Controllers
         // Initialize the UIA domain interface
         private readonly IUiaDomain _domain = domain;
 
-        // GET wd/hub/user32/layouts
-        // GET session/user32/layouts
         [HttpGet]
         [Route("/user32/layouts")]
         [SwaggerOperation(
@@ -48,8 +42,6 @@ namespace Uia.DriverServer.Controllers
             return Ok(CodeMaps.GetLayouts());
         }
 
-        // POST wd/hub/user32/layouts
-        // POST session/user32/layouts
         [HttpPost]
         [Route("/user32/layouts")]
         [SwaggerOperation(
@@ -67,8 +59,6 @@ namespace Uia.DriverServer.Controllers
             return NoContent();
         }
 
-        // POST wd/hub/session/{session}/user32/element/{element}/copy
-        // POST session/{session}/user32/element/{element}/copy
         [HttpPost]
         [Route("session/{session}/user32/element/{element}/copy")]
         [SwaggerOperation(
@@ -116,8 +106,6 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/session/{session}/user32/paste
-        // POST session/{session}/user32/paste
         [HttpPost]
         [Route("session/{session}/user32/paste")]
         [SwaggerOperation(
@@ -151,8 +139,6 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/session/{session}/user32/element/{element}/select
-        // POST session/{session}/user32/element/{element}/select
         [HttpPost]
         [Route("session/{session}/user32/element/{element}/select")]
         [SwaggerOperation(
@@ -186,8 +172,6 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/session/{session}/user32/value
-        // POST session/{session}/user32/value
         [HttpPost]
         [Route("session/{session}/user32/value")]
         [SwaggerOperation(
@@ -218,8 +202,6 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/session/{session}/user32/inputs
-        // POST session/{session}/user32/inputs
         [HttpPost]
         [Route("session/{session}/user32/inputs")]
         [SwaggerOperation(
@@ -255,8 +237,6 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/session/{session}/user32/modified
-        // POST session/{session}/user32/modified
         [HttpPost]
         [Route("session/{session}/user32/modified")]
         [SwaggerOperation(
@@ -284,8 +264,6 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/session/{session}/user32/element/{element}/click
-        // POST session/{session}/user32/element/{element}/click
         [HttpPost]
         [Route("session/{session}/user32/element/{element}/click")]
         [SwaggerOperation(
@@ -334,8 +312,6 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/session/{session}/user32/click
-        // POST session/{session}/user32/click
         [HttpPost]
         [Route("session/{session}/user32/click")]
         [SwaggerOperation(
@@ -362,8 +338,6 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/session/{session}/user32/dclick
-        // POST session/{session}/user32/dclick
         [HttpPost]
         [Route("session/{session}/user32/dclick")]
         [SwaggerOperation(
@@ -390,8 +364,6 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/session/{session}/user32/element/{element}/dclick
-        // POST session/{session}/user32/element/{element}/dclick
         [HttpPost]
         [Route("session/{session}/user32/element/{element}/dclick")]
         [SwaggerOperation(
@@ -441,8 +413,6 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // GET wd/hub/session/{session}/user32/element/{element}/focus
-        // GET session/{session}/user32/element/{element}/focus
         [HttpGet]
         [Route("session/{session}/user32/element/{element}/focus")]
         [SwaggerOperation(
@@ -476,8 +446,6 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/session/{session}/user32/mouse/move
-        // POST session/{session}/user32/mouse/move
         [HttpPost]
         [Route("session/{session}/user32/mouse/move")]
         [SwaggerOperation(
@@ -505,8 +473,6 @@ namespace Uia.DriverServer.Controllers
             };
         }
 
-        // POST wd/hub/session/{session}/user32/element/{element}/mouse/move
-        // POST session/{session}/user32/element/{element}/mouse/move
         [HttpPost]
         [Route("session/{session}/user32/element/{element}/mouse/move")]
         [SwaggerOperation(
