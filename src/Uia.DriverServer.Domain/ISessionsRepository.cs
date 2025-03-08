@@ -77,6 +77,13 @@ namespace Uia.DriverServer.Domain
         (int StatusCode, object Entity) NewSession(NewSessionModel newSessionModel);
 
         /// <summary>
+        /// Sends User32 key scan codes based on the provided input model.
+        /// </summary>
+        /// <param name="keyScansData">The <see cref="ScanCodesInputModel"/> containing the scan codes and options such as keyboard layout, delay, and sticky keys flag.</param>
+        /// <returns>Returns an integer status code (200 indicates success).</returns>
+        int SendUser32Keys(CUIAutomation8 automation, ScanCodesInputModel keyScansData);
+
+        /// <summary>
         /// Sets the visual state of the window for the session with the specified ID.
         /// </summary>
         /// <param name="id">The session identifier.</param>
