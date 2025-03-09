@@ -198,6 +198,24 @@ namespace Uia.DriverServer.Domain
         }
 
         /// <inheritdoc />
+        public int SendUser32Keys(CUIAutomation8 automation, TextInputModel textData)
+        {
+            // Create a new ScanCodesInputModel using the text from textData.
+            // Each character in the text is converted to a string to form the scan codes array.
+            var keyScansData = new ScanCodesInputModel
+            {
+                // Convert each character from textData.Text into a string.
+                ScanCodes = textData.Text.Select(i => $"{i}"),
+
+                // Copy the input options from textData.
+                Options = textData.Options
+            };
+
+            // Delegate the key sending operation to the overloaded SendUser32Keys method.
+            return SendUser32Keys(automation, keyScansData);
+        }
+
+        /// <inheritdoc />
         public int SendUser32Keys(CUIAutomation8 automation, ScanCodesInputModel keyScansData)
         {
             // Local method to send key inputs for non-sticky keys.
