@@ -25,6 +25,8 @@ using Uia.DriverServer.Models;
 
 using UIAutomationClient;
 
+using static Uia.DriverServer.Models.User32KeyboardInputOptions;
+
 namespace Uia.DriverServer.Extensions
 {
     public static class AutomationExtensions
@@ -135,14 +137,37 @@ namespace Uia.DriverServer.Extensions
         }
 
         /// <summary>
-        /// Converts the specified key code and keyboard event into an <see cref="Input"/> object.
+        /// Converts a ushort input into an <see cref="Input"/> object using the en-US keyboard layout and key event flags.
         /// </summary>
         /// <param name="keyCode">The key code to be converted.</param>
-        /// <param name="keyboardEvents">The keyboard event associated with the key code.</param>
+        /// <param name="keyboardEvents">The key event(s) to associate with the input (for example, <see cref="KeyEvent.KeyDown"/> or <see cref="KeyEvent.KeyUp"/>).</param>
         /// <returns>An <see cref="Input"/> object representing the specified key code and keyboard event.</returns>
         public static Input ConvertToInput(this ushort keyCode, KeyEvent keyboardEvents)
         {
             // Create a new Input object using the specified key code and keyboard event
+            return NewKeyboardInput(keyCode, keyboardEvents);
+        }
+
+        /// <summary>
+        /// Converts a string input into an <see cref="Input"/> object using the specified keyboard layout and key event flags.
+        /// </summary>
+        /// <param name="input">The key input as a string.</param>
+        /// <param name="keyboardLayout">The identifier of the keyboard layout to use (e.g., "en-US", "he-IL").</param>
+        /// <param name="keyboardEvents">The key event(s) to associate with the input (for example, <see cref="KeyEvent.KeyDown"/> or <see cref="KeyEvent.KeyUp"/>).</param>
+        /// <returns>An <see cref="Input"/> object representing the converted key input with the associated keyboard events.</returns>
+        public static Input ConvertToInput(this string input, string keyboardLayout, KeyEvent keyboardEvents)
+        {
+            // Retrieve the keyboard layout mapping dictionary for the specified layout.
+            var keyboardLayoutMap = CodeMaps.GetLayoutMap(keyboardLayout);
+
+            // Define a default value in case the key is not found in the layout map.
+            const ushort defaultValue = 0x00;
+
+            // Attempt to retrieve the scan code corresponding to the provided input key.
+            // If the key does not exist in the map, the default value (0x00) is returned.
+            var keyCode = keyboardLayoutMap.GetValueOrDefault(key: input, defaultValue);
+
+            // Create and return a new keyboard input using the resolved key code and specified keyboard events.
             return NewKeyboardInput(keyCode, keyboardEvents);
         }
 
@@ -153,6 +178,19 @@ namespace Uia.DriverServer.Extensions
         /// <param name="keyboardEvent">The keyboard event type (KeyDown, KeyUp, etc.).</param>
         /// <returns>An IEnumerable of <see cref="Input"/> representing the keyboard input events.</returns>
         public static IEnumerable<Input> ConvertToInputs(this string input, KeyEvent keyboardEvent)
+        {
+            // Call the overloaded ConvertToInputs method with the default keyboard layout.
+            return ConvertToInputs(input, keyboardLayout: "en-US", keyboardEvent);
+        }
+
+        /// <summary>
+        /// Converts a string input into a sequence of keyboard input events.
+        /// </summary>
+        /// <param name="input">The string input to be converted.</param>
+        /// <param name="keyboardLayout">The keyboard layout to use for the conversion.</param>
+        /// <param name="keyboardEvent">The keyboard event type (KeyDown, KeyUp, etc.).</param>
+        /// <returns>An IEnumerable of <see cref="Input"/> representing the keyboard input events.</returns>
+        public static IEnumerable<Input> ConvertToInputs(this string input, string keyboardLayout, KeyEvent keyboardEvent)
         {
             // Check if the input represents a modified key (e.g., Shift + key).
             var (modified, modifier, keyCode) = ConfirmModifiedKey(input);
@@ -165,8 +203,11 @@ namespace Uia.DriverServer.Extensions
                 return NewKeyboardInput(modifier, keyCode, keyboardEvent);
             }
 
+            // Get the layout map for the specified keyboard layout.
+            var keyboardLayoutMap = CodeMaps.GetLayoutMap(keyboardLayout);
+
             // Check if the input is a single key in the scan code map.
-            if (CodeMaps.EnUnitedStatesCodeMap.TryGetValue(input, out ushort keyCodeOut))
+            if (keyboardLayoutMap.TryGetValue(input, out ushort keyCodeOut))
             {
                 // Return the keyboard input events for the key using the scan code.
                 return [NewKeyboardInput(keyCode: keyCodeOut, keyboardEvent | KeyEvent.Scancode)];
@@ -183,6 +224,18 @@ namespace Uia.DriverServer.Extensions
         /// <returns>A sequence of <see cref="Input"/> structures representing the keyboard input events.</returns>
         public static IEnumerable<Input> ConvertToInputs(this string input)
         {
+            // Call the overloaded ConvertToInputs method with the default keyboard layout.
+            return ConvertToInputs(input, keyboardLayout: "en-US");
+        }
+
+        /// <summary>
+        /// Converts a string input into a sequence of keyboard input events.
+        /// </summary>
+        /// <param name="input">The string input to convert.</param>
+        /// <param name="keyboardLayout">The keyboard layout to use for the conversion.</param>
+        /// <returns>A sequence of <see cref="Input"/> structures representing the keyboard input events.</returns>
+        public static IEnumerable<Input> ConvertToInputs(this string input, string keyboardLayout)
+        {
             // Check if the input is a functional key in the scan code map.
             if (CodeMaps.NonAlphabeticCodeMap.TryGetValue(input, out ushort value))
             {
@@ -197,12 +250,16 @@ namespace Uia.DriverServer.Extensions
             // Initialize a list to store the input events.
             var inputs = new List<Input>();
 
+            // Get the layout map for the specified keyboard layout.
+            var keyboardLayoutMap = CodeMaps.GetLayoutMap(keyboardLayout);
+
             // Iterate over each character in the input string.
             foreach (var character in input)
             {
                 // Check if the character is a modified key (e.g., Shift + key).
                 var (modified, modifier, keyCode) = ConfirmModifiedKey(input: $"{character}");
 
+                // If the key was found and modified, add the keyboard input events for the modified key combination.
                 if (modified)
                 {
                     // Add the modified key input events to the list.
@@ -211,8 +268,8 @@ namespace Uia.DriverServer.Extensions
                 }
 
                 // Get the scan code for the character.
-                var wScan = CodeMaps.EnUnitedStatesCodeMap.ContainsKey($"{character}")
-                    ? CodeMaps.EnUnitedStatesCodeMap[$"{character}"]
+                var wScan = keyboardLayoutMap.ContainsKey($"{character}")
+                    ? keyboardLayoutMap[$"{character}"]
                     : (ushort)0x00;
 
                 // Add the key down and key up events for the character to the list.
