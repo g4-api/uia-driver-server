@@ -219,19 +219,19 @@ namespace Uia.DriverServer.Domain
         public int SendUser32Keys(CUIAutomation8 automation, ScanCodesInputModel keyScansData)
         {
             // Local method to send key inputs for non-sticky keys.
-            static void Send(CUIAutomation8 automation, IEnumerable<ushort> wScans, int delay)
+            static void Send(CUIAutomation8 automation, string keyboardLayout, IEnumerable<string> input, int delay)
             {
                 // Iterate over each scan code.
-                foreach (var wScan in wScans)
+                foreach (var character in input)
                 {
-                    // Convert the scan code to a "key down" input.
-                    var down = wScan.ConvertToInput(KeyEvent.KeyDown | KeyEvent.Scancode);
+                    // Convert the character to down key input.
+                    var down = character.ConvertToInputs(keyboardLayout, KeyEvent.KeyDown).ToArray();
 
-                    // Convert the scan code to a "key up" input.
-                    var up = wScan.ConvertToInput(KeyEvent.KeyUp | KeyEvent.Scancode);
+                    // Convert the character to up key input.
+                    var up = character.ConvertToInputs(keyboardLayout, KeyEvent.KeyUp).ToArray();
 
                     // Send both "down" and "up" inputs together.
-                    automation.SendInputs(down, up);
+                    automation.SendInputs([.. down, .. up]);
 
                     // Pause between each key input. If delay is 0, default to 100 milliseconds.
                     Thread.Sleep(delay == 0 ? 100 : delay);
@@ -239,7 +239,7 @@ namespace Uia.DriverServer.Domain
             }
 
             // Local method to send key inputs for sticky keys (press and hold, then release all at once).
-            static void SendSticky(CUIAutomation8 automation, IEnumerable< ushort> wScans, int delay)
+            static void SendSticky(CUIAutomation8 automation, IEnumerable<ushort> wScans, int delay)
             {
                 // Iterate over each scan code to send the "key down" actions.
                 foreach (var wScan in wScans)
@@ -278,7 +278,11 @@ namespace Uia.DriverServer.Domain
             }
             else
             {
-                Send(automation, wScans, delay: keyScansData.Options.Delay);
+                Send(
+                    automation,
+                    keyboardLayout: keyScansData.Options.KeyboardLayout,
+                    input: keyScansData.ScanCodes,
+                    delay: keyScansData.Options.Delay);
             }
 
             // Return a success status code.
