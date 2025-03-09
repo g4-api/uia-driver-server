@@ -11,9 +11,10 @@
 		<UserSecretsId>1f5fabba-72bd-4769-b41f-807b0214092b</UserSecretsId>
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 		<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<!-- https://learn.microsoft.com/en-us/dotnet/fundamentals/syslib-diagnostics/syslib1040-1049 -->
-		<NoWarn>$(NoWarn);SYSLIB1045</NoWarn>
+		<NoWarn>$(NoWarn);SYSLIB1045;MSB3305</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>

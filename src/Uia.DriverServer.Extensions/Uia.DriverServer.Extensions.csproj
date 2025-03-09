@@ -11,10 +11,10 @@
 		<LangVersion>latest</LangVersion>
 		<UseWindowsForms>true</UseWindowsForms>
 		<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<!-- https://learn.microsoft.com/en-us/dotnet/fundamentals/syslib-diagnostics/syslib1040-1049 -->
-		<NoWarn>$(NoWarn);SYSLIB1045;S3011</NoWarn>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<NoWarn>$(NoWarn);SYSLIB1045;S3011;MSB3305</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
