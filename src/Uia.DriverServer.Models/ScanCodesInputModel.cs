@@ -11,7 +11,7 @@ namespace Uia.DriverServer.Models
         /// <summary>
         /// Gets or sets the options for the scan codes operation.
         /// </summary>
-        public User32TextInputOptions Options { get; set; }
+        public User32KeyboardInputOptions Options { get; set; }
 
         /// <summary>
         /// Gets or sets the collection of scan codes.

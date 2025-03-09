@@ -10,7 +10,7 @@ namespace Uia.DriverServer.Models
         /// <summary>
         /// Gets or sets the options for the text input operation.
         /// </summary>
-        public User32TextInputOptions Options { get; set; }
+        public User32KeyboardInputOptions Options { get; set; }
 
         /// <summary>
         /// Gets or sets the text to be input.

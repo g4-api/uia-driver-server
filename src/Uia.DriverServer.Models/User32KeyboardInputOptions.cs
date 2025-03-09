@@ -3,7 +3,7 @@
     /// <summary>
     /// A class representing the options for text input operation.
     /// </summary>
-    public class User32TextInputOptions
+    public class User32KeyboardInputOptions
     {
         /// <summary>
         /// Gets or sets the delay between each key press.
