@@ -308,6 +308,7 @@ namespace Uia.DriverServer.Extensions
             ["\uE040"] = 0x29      // ZenkakuHankaku
         };
 
+        // TODO: Add more keyboard layout scan code maps here. Modified keys behavior is different for each layout especially for right-to-left languages.
         /// <summary>
         /// Gets the scan code map for keys that require a modifier. This map includes the modifier and the modified key code.
         /// </summary>
