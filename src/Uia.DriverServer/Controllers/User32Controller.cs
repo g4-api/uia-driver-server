@@ -188,16 +188,13 @@ namespace Uia.DriverServer.Controllers
             // Get the session model using the domain's session repository
             var sessionModel = _domain.SessionsRepository.GetSession(session).Session;
 
-            // Convert the text value to input commands
-            var inputs = $"{textData.Text}".ConvertToInputs().ToArray();
+            // Get the session model using the domain's session repository
+            var statusCode = _domain.SessionsRepository.SendUser32Keys(automation: sessionModel.Automation, textData);
 
-            // Send the input commands using the session's automation service
-            sessionModel.Automation.SendInputs(inputs);
-
-            // Return an OK response indicating the keystrokes were sent successfully
+            // Return an OK response indicating the key scan codes were sent successfully
             return new JsonResult(new WebDriverResponseModel())
             {
-                StatusCode = StatusCodes.Status200OK
+                StatusCode = statusCode
             };
         }
 
