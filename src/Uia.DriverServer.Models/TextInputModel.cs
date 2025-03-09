@@ -8,6 +8,11 @@ namespace Uia.DriverServer.Models
     public class TextInputModel
     {
         /// <summary>
+        /// Gets or sets the options for the text input operation.
+        /// </summary>
+        public User32TextInputOptions Options { get; set; }
+
+        /// <summary>
         /// Gets or sets the text to be input.
         /// </summary>
         /// <value>The text to be input.</value>
