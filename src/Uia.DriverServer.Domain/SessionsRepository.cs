@@ -219,7 +219,7 @@ namespace Uia.DriverServer.Domain
         public int SendUser32Keys(CUIAutomation8 automation, ScanCodesInputModel keyScansData)
         {
             // Local method to send key inputs for non-sticky keys.
-            static void Send(CUIAutomation8 automation, IEnumerable< ushort> wScans, int delay)
+            static void Send(CUIAutomation8 automation, IEnumerable<ushort> wScans, int delay)
             {
                 // Iterate over each scan code.
                 foreach (var wScan in wScans)
