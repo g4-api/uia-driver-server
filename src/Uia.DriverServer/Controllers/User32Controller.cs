@@ -9,6 +9,7 @@ using Swashbuckle.AspNetCore.Annotations;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 using Uia.DriverServer.Domain;
@@ -29,26 +30,43 @@ namespace Uia.DriverServer.Controllers
         private readonly IUiaDomain _domain = domain;
 
         [HttpGet]
-        [Route("user32/layouts")]
+        [Route("session/{session}/user32/layouts")]
         [SwaggerOperation(
             Summary = "Retrieves available keyboard layouts.",
             Description = "Gets a list of available keyboard layout identifiers from the CodeMaps class.",
             Tags = ["User32"])]
         [SwaggerResponse(200, "Keyboard layouts retrieved successfully.", typeof(IEnumerable<string>))]
-        public IActionResult GetKeyboardLayouts()
+        [SuppressMessage(
+            "Roslynator",
+            "RCS1163:Unused parameter",
+            Justification = "The 'session' parameter is required by grid convention, even though it is not used directly in this method.")]
+        [SuppressMessage(
+            "Roslynator",
+            "IDE0060:Remove unused parameter",
+            Justification = "The 'session' parameter is required by grid convention, even though it is not used directly in this method.")]
+        public IActionResult GetKeyboardLayouts([SwaggerParameter(Description = "The unique identifier for the session.")] string session)
         {
             // Retrieve and return the list of keyboard layouts.
             return Ok(CodeMaps.GetLayouts());
         }
 
         [HttpPost]
-        [Route("user32/layouts")]
+        [Route("session/{session}/user32/layouts")]
         [SwaggerOperation(
             Summary = "Sets the keyboard layout.",
             Description = "Sets the current keyboard layout to the one specified in the request body.",
             Tags = ["User32"])]
         [SwaggerResponse(204, "Keyboard layout set successfully.")]
+        [SuppressMessage(
+            "Roslynator",
+            "RCS1163:Unused parameter",
+            Justification = "The 'session' parameter is required by grid convention, even though it is not used directly in this method.")]
+        [SuppressMessage(
+            "Roslynator",
+            "IDE0060:Remove unused parameter",
+            Justification = "The 'session' parameter is required by grid convention, even though it is not used directly in this method.")]
         public IActionResult SetKeyboardLayout(
+            [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
             [FromBody][SwaggerParameter(Description = "The keyboard layout model containing the layout identifier to be set.")] KeyboardLayoutModel layoutModel)
         {
             // Switch the keyboard layout using the provided layout identifier from the model.
