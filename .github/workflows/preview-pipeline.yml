@@ -90,6 +90,7 @@ jobs:
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v2
 
+    # Set the version in the Program.cs file
     - name: Set Version v${{ env.buildVersion }}
       shell: pwsh
       run: |
