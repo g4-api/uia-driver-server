@@ -23,10 +23,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".git", ".git", "{0D3CEF05-7
 	ProjectSection(SolutionItems) = preProject
 		..\.gitignore = ..\.gitignore
 		..\LICENSE = ..\LICENSE
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".documentation", ".documentation", "{F36057B2-9E42-43A2-9B2D-185D7F08E2C7}"
-	ProjectSection(SolutionItems) = preProject
 		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
