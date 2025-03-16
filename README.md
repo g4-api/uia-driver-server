@@ -100,7 +100,7 @@ The **Windows WebDriver Automation Service** is a powerful tool that enables Web
 
 2. **Extract the Zip Artifact**:
     ```bash
-    unzip Uia.DriverServer.<version>-win-x64.zip -d uia-driver-server
+    powershell -Command "Expand-Archive -Path 'Uia.DriverServer.<version>-win-x64.zip' -DestinationPath 'uia-driver-server'"
     cd uia-driver-server
     ```
 
