@@ -31,14 +31,6 @@ namespace Uia.DriverServer.Extensions
 {
     public static class AutomationExtensions
     {
-        // A static dictionary mapping non-alphabetic key names to their corresponding scan codes.
-
-
-
-
-        // Initialize the dictionary
-        
-
         /// <summary>
         /// Clears the value of the specified UI Automation element by setting it to an empty string.
         /// </summary>
