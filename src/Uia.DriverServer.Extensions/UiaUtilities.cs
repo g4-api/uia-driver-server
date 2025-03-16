@@ -138,7 +138,7 @@ namespace Uia.DriverServer.Extensions
         /// <summary>
         /// Writes the UIA ASCII logo and related information to the console.
         /// </summary>
-        public static void WriteUiaAsciiLogo()
+        public static void WriteUiaAsciiLogo(string version)
         {
             // Write the ASCII art logo to the console
             Console.WriteLine("   _   _ _       ____       _                  ____                                      ");
@@ -152,6 +152,7 @@ namespace Uia.DriverServer.Extensions
             Console.WriteLine("                                   WebDriver Implementation for Windows Native           ");
             Console.WriteLine("                                                      Powered by IUIAutomation           ");
             Console.WriteLine("                                                                                         ");
+            Console.WriteLine("  Version:           " + version + "                                                     ");
             Console.WriteLine("  Project:           https://github.com/g4-api/uia-driver                                ");
             Console.WriteLine("  W3C Documentation: https://www.w3.org/TR/webdriver/                                    ");
             Console.WriteLine("  Documentation:     https://docs.microsoft.com/en-us/windows/win32/api/_winauto/        ");

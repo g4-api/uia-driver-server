@@ -27,7 +27,7 @@ using Uia.DriverServer.Middlewares;
 using Uia.DriverServer.Models;
 
 // Write the application logo to the console
-UiaUtilities.WriteUiaAsciiLogo();
+UiaUtilities.WriteUiaAsciiLogo(version: "0000.00.00.0000");
 
 // Initialize the web application builder
 var builder = WebApplication.CreateBuilder(args);
