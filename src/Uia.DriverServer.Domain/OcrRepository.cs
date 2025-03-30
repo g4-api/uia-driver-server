@@ -1,5 +1,5 @@
 ﻿#pragma warning disable IDE0005 // Using directive is unnecessary when using ReleaseEmgu configuration
-#if RELEASE_EMGU || DEBUG_EMGU
+#if Release_Emgu || Debug_Emgu
 using Emgu.CV;
 using Emgu.CV.OCR;
 using Emgu.CV.Structure;
@@ -21,7 +21,7 @@ namespace Uia.DriverServer.Domain
     /// </summary>
     public class OcrRepository : IOcrRepository
     {
-#if RELEASE_EMGU || DEBUG_EMGU
+#if Release_Emgu || Debug_Emgu
         /// <inheritdoc />
         public UiaElementModel FindElement(string segment)
         {
@@ -117,7 +117,7 @@ namespace Uia.DriverServer.Domain
             // Return the bitmap.
             return image;
         }
-#if RELEASE_EMGU || DEBUG_EMGU
+#if Release_Emgu || Debug_Emgu
 
         /// <inheritdoc />
         public List<Tesseract.Word> Resolve(Bitmap bitmap)

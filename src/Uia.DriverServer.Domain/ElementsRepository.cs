@@ -449,7 +449,7 @@ namespace Uia.DriverServer.Domain
             };
         }
 
-#if RELEASE_EMGU || DEBUG_EMGU
+#if Release_Emgu || Debug_Emgu
         // Finds an element using OCR (Optical Character Recognition) based on the specified segment data.
         [UiaSegmentType(type: "Ocr")]
         private static UiaElementModel ByOcr(SegmentDataModel segmentData)

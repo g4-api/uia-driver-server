@@ -1,4 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+	<!-- Ensure global properties are set early -->
+	<PropertyGroup>
+		<UseEmgu>true</UseEmgu>
+	</PropertyGroup>
+
+	<Target Name="ShowProperties" BeforeTargets="PrepareForBuild">
+		<Message Text="UseEmgu: '$(UseEmgu)'" Importance="high" />
+	</Target>
 
 	<PropertyGroup>
 		<!-- Assembly -->
@@ -29,7 +37,7 @@
 		</COMReference>
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(Configuration)'=='Release_Emgu' or '$(Configuration)'=='Debug_Emgu'">
+	<ItemGroup Condition="'$(UseEmgu)' == 'true'">
 		<PackageReference Include="Emgu.CV" Version="4.10.0.5680" />
 		<PackageReference Include="Emgu.CV.Bitmap" Version="4.10.0.5680" />
 		<PackageReference Include="Emgu.CV.runtime.windows" Version="4.10.0.5680" />

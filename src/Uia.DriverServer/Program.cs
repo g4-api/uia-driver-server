@@ -109,7 +109,7 @@ builder.Services.AddSingleton<IDictionary<string, UiaSessionResponseModel>>(new 
 builder.Services.AddTransient<IActionsRepository, ActionsRepository>();
 builder.Services.AddTransient<IDocumentRepository, DocumentRepository>();
 builder.Services.AddTransient<IElementsRepository, ElementsRepository>();
-#if RELEASE_EMGU || DEBUG_EMGU
+#if Release_Emgu || Debug_Emgu
 builder.Services.AddTransient<IOcrRepository, OcrRepository>();
 #endif
 builder.Services.AddTransient<ISessionsRepository, SessionsRepository>();

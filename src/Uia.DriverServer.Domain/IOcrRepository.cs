@@ -1,4 +1,4 @@
-﻿#if RELEASE_EMGU || DEBUG_EMGU
+﻿#if Release_Emgu || Debug_Emgu
 using Emgu.CV.OCR;
 #endif
 
@@ -14,7 +14,7 @@ namespace Uia.DriverServer.Domain
     /// </summary>
     public interface IOcrRepository
     {
-#if RELEASE_EMGU || DEBUG_EMGU
+#if Release_Emgu || Debug_Emgu
         /// <summary>
         /// Finds an element using OCR with the specified segment.
         /// </summary>
@@ -35,7 +35,7 @@ namespace Uia.DriverServer.Domain
         /// <param name="yDpi">The vertical DPI.</param>
         /// <returns>A <see cref="Bitmap"/> object representing the new bitmap.</returns>
         Bitmap NewBitmap(float xDpi, float yDpi);
-#if RELEASE_EMGU || DEBUG_EMGU
+#if Release_Emgu || Debug_Emgu
         /// <summary>
         /// Resolves text from the specified bitmap using OCR.
         /// </summary>

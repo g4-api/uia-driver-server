@@ -12,7 +12,7 @@
         IActionsRepository actionsRepository,
         IDocumentRepository documentRepository,
         IElementsRepository elementsRepository,
-#if RELEASE_EMGU || DEBUG_EMGU
+#if Release_Emgu || Debug_Emgu
         IOcrRepository ocrRepository,
 #endif
         ISessionsRepository sessionRepository) : IUiaDomain
@@ -26,7 +26,7 @@
         /// <inheritdoc />
         public IElementsRepository ElementsRepository { get; } = elementsRepository;
 
-#if RELEASE_EMGU || DEBUG_EMGU
+#if Release_Emgu || Debug_Emgu
         /// <inheritdoc />
         public IOcrRepository OcrRepository { get; } = ocrRepository;
 #endif
