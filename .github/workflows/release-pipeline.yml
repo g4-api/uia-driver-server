@@ -106,6 +106,20 @@ jobs:
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v2
 
+    # Set the version in the Program.cs file
+    - name: Set Version v${{ env.buildVersion }}
+      shell: pwsh
+      run: |
+          $tempVersion = '"0000.00.00.0000"'
+          $version     = '"${{ env.buildVersion }}"'
+
+          Get-ChildItem -Path $searchDirectory -Filter "Program.cs" -Recurse | ForEach-Object {
+              $filePath = $_.FullName
+              $content = Get-Content -Path $filePath -Raw
+              $newContent = $content -replace [regex]::Escape($tempVersion), $version
+              Set-Content -Path $filePath -Value $newContent
+          }
+
     # Step to publish the project
     - name: Publish
       shell: pwsh
