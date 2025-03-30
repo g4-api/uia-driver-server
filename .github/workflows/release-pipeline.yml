@@ -155,7 +155,7 @@ jobs:
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: drop
+        name: drop${{ matrix.suffix }}
         path: ${{ env.artifactStagingDirectory }}/*.zip
 
   # Job to create a GitHub release and tag the new version
