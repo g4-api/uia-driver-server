@@ -112,7 +112,7 @@ jobs:
     - name: Set Version v${{ env.buildVersion }}
       shell: pwsh
       run: |
-          $projectFile    = (Get-ChildItem -Path . -Recurse -Filter "Uia.DriverServer.Domain.csproj" | Select-Object -First 1).FullName
+          $projectFile    = (Get-ChildItem -Path '${{ github.workspace }}' -Recurse -Filter "Uia.DriverServer.Domain.csproj" | Select-Object -First 1).FullName
           $useEmgu        = '${{ matrix.useUmgu }}'
           [xml]$csprojXml = Get-Content $csprojPath
           $useEmguNode    = $csprojXml.SelectSingleNode("//UseEmgu")
@@ -130,7 +130,7 @@ jobs:
           $tempVersion = '"0000.00.00.0000"'
           $version     = '"${{ env.buildVersion }}"'
 
-          Get-ChildItem -Path $searchDirectory -Filter "Program.cs" -Recurse | ForEach-Object {
+          Get-ChildItem -Path '${{ github.workspace }}' -Filter "Program.cs" -Recurse | ForEach-Object {
               $filePath = $_.FullName
               $content = Get-Content -Path $filePath -Raw
               $newContent = $content -replace [regex]::Escape($tempVersion), $version
