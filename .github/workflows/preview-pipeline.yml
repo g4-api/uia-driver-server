@@ -66,8 +66,10 @@ jobs:
         include:
           - configuration: Release
             suffix: ""
+            useEmgu: false
           - configuration: Release_Emgu
             suffix: -emgu
+            useEmgu: true
 
     # Outputs of the job
     outputs:
@@ -99,6 +101,21 @@ jobs:
 
     # Set the version in the Program.cs file
     - name: Set Version v${{ env.buildVersion }}
+      shell: pwsh
+      run: |
+          $projectFile    = './Uia.DriverServer.Domain/Uia.DriverServer.Domain.csproj'
+          $useEmgu        = '${{ matrix.useUmgu }}'
+          [xml]$csprojXml = Get-Content $csprojPath
+          $useEmguNode    = $csprojXml.SelectSingleNode("//UseEmgu")
+
+          $useEmguNode.InnerText = $useEmgu
+          Write-Host "Updated <UseEmgu> node with value: $useEmgu"
+
+          $csproj.Save($csprojPath)
+          Write-Host "Saved updated csproj."
+
+    # Set the Emgu dependencies
+    - name: Set Emgu.CV Dependencies
       shell: pwsh
       run: |
           $tempVersion = '"0000.00.00.0000"'
