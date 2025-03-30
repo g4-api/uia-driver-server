@@ -112,7 +112,7 @@ jobs:
     - name: Set Version v${{ env.buildVersion }}
       shell: pwsh
       run: |
-          $projectFile    = Get-ChildItem -Path . -Recurse -Filter "Uia.DriverServer.Domain.csproj" | Select-Object -First 1
+          $projectFile    = (Get-ChildItem -Path . -Recurse -Filter "Uia.DriverServer.Domain.csproj" | Select-Object -First 1).FullName
           $useEmgu        = '${{ matrix.useUmgu }}'
           [xml]$csprojXml = Get-Content $csprojPath
           $useEmguNode    = $csprojXml.SelectSingleNode("//UseEmgu")

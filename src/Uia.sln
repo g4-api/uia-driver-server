@@ -28,7 +28,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".git", ".git", "{0D3CEF05-7
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{DC4D6FD0-6AF0-4300-856E-17BCEC4238E2}"
 	ProjectSection(SolutionItems) = preProject
-		..\.github\workflows\preview-pipeline.yml = ..\.github\workflows\preview-pipeline.yml
 		..\.github\workflows\release-pipeline.yml = ..\.github\workflows\release-pipeline.yml
 	EndProjectSection
 EndProject
