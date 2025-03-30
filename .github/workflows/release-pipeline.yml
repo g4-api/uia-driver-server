@@ -123,7 +123,7 @@ jobs:
     # Step to publish the project
     - name: Publish
       shell: pwsh
-      run: msbuild ${{ env.solutionName }}.sln /t:Publish /p:Configuration==${{ matrix.configuration }} /p:PublishDir=${{ env.binariesDirectory }}/publish${{ matrix.suffix }}/
+      run: msbuild ${{ env.solutionName }}.sln /t:Publish /p:Configuration==${{ matrix.configuration }} /p:Platform="Any CPU" /p:PublishDir=${{ env.binariesDirectory }}/publish${{ matrix.suffix }}/
 
     # Step to create a build artifact
     - name: Create Build Artifact
