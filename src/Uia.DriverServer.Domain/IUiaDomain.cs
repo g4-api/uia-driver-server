@@ -1,9 +1,4 @@
-﻿/*
- * CHANGE LOG - keep only last 5 threads
- * 
- * RESOURCES
- */
-namespace Uia.DriverServer.Domain
+﻿namespace Uia.DriverServer.Domain
 {
     /// <summary>
     /// Interface for the UI Automation domain.
@@ -25,10 +20,12 @@ namespace Uia.DriverServer.Domain
         /// </summary>
         IElementsRepository ElementsRepository { get; }
 
+        #if RELEASE_EMGU || DEBUG_EMGU
         /// <summary>
         /// Gets the OCR repository.
         /// </summary>
         IOcrRepository OcrRepository { get; }
+        #endif
 
         /// <summary>
         /// Gets the sessions repository.

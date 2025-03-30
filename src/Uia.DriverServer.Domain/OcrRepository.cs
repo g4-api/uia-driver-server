@@ -1,18 +1,16 @@
-﻿/*
- * CHANGE LOG - keep only last 5 threads
- * 
- * RESOURCES
- */
+﻿#pragma warning disable IDE0005 // Using directive is unnecessary when using ReleaseEmgu configuration
+#if RELEASE_EMGU || DEBUG_EMGU
 using Emgu.CV;
 using Emgu.CV.OCR;
 using Emgu.CV.Structure;
+#endif
 
 using System;
 using System.Collections.Generic;
+
 using System.Drawing;
 using System.Linq;
 using System.Xml.Linq;
-
 using Uia.DriverServer.Marshals;
 using Uia.DriverServer.Models;
 
@@ -23,6 +21,7 @@ namespace Uia.DriverServer.Domain
     /// </summary>
     public class OcrRepository : IOcrRepository
     {
+#if RELEASE_EMGU || DEBUG_EMGU
         /// <inheritdoc />
         public UiaElementModel FindElement(string segment)
         {
@@ -84,7 +83,7 @@ namespace Uia.DriverServer.Domain
                 Rectangle = rectangle
             };
         }
-
+#endif
         /// <inheritdoc />
         public Bitmap NewBitmap()
         {
@@ -118,6 +117,7 @@ namespace Uia.DriverServer.Domain
             // Return the bitmap.
             return image;
         }
+#if RELEASE_EMGU || DEBUG_EMGU
 
         /// <inheritdoc />
         public List<Tesseract.Word> Resolve(Bitmap bitmap)
@@ -147,5 +147,6 @@ namespace Uia.DriverServer.Domain
             // Get the words from the OCR result and return them.
             return [.. ocr.GetWords()];
         }
+#endif
     }
 }

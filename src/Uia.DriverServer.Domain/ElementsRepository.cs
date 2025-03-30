@@ -1,9 +1,4 @@
-﻿/*
- * CHANGE LOG - keep only last 5 threads
- * 
- * RESSOURCES
- */
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 
 using System;
 using System.Collections.Generic;
@@ -307,10 +302,9 @@ namespace Uia.DriverServer.Domain
             }
 
             // Clean up the hierarchy by removing trailing '/' and empty segments
-            hierarchy = hierarchy
+            hierarchy = [.. hierarchy
                 .Where(i => !string.IsNullOrEmpty(i) && !i.Equals("/"))
-                .Select(i => i.TrimEnd('/'))
-                .ToArray();
+                .Select(i => i.TrimEnd('/'))];
 
             // Replace tokens in the hierarchy with their original values
             for (int i = 0; i < hierarchy.Length; i++)
@@ -455,6 +449,7 @@ namespace Uia.DriverServer.Domain
             };
         }
 
+#if RELEASE_EMGU || DEBUG_EMGU
         // Finds an element using OCR (Optical Character Recognition) based on the specified segment data.
         [UiaSegmentType(type: "Ocr")]
         private static UiaElementModel ByOcr(SegmentDataModel segmentData)
@@ -468,7 +463,7 @@ namespace Uia.DriverServer.Domain
             // Find the element using OCR and return the result
             return ocr.FindElement(segment);
         }
-
+#endif
         // Finds an element using the UI Automation (Uia) tree.
         [UiaSegmentType(type: "Uia")]
         private static UiaElementModel ByUia(SegmentDataModel segmentData)

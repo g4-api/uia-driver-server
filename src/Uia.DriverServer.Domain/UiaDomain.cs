@@ -1,9 +1,4 @@
-﻿/*
- * CHANGE LOG - keep only last 5 threads
- * 
- * RESOURCES
- */
-namespace Uia.DriverServer.Domain
+﻿namespace Uia.DriverServer.Domain
 {
     /// <summary>
     /// Implementation of the <see cref="IUiaDomain"/> interface.
@@ -17,7 +12,9 @@ namespace Uia.DriverServer.Domain
         IActionsRepository actionsRepository,
         IDocumentRepository documentRepository,
         IElementsRepository elementsRepository,
+#if RELEASE_EMGU || DEBUG_EMGU
         IOcrRepository ocrRepository,
+#endif
         ISessionsRepository sessionRepository) : IUiaDomain
     {
         /// <inheritdoc />
@@ -29,9 +26,10 @@ namespace Uia.DriverServer.Domain
         /// <inheritdoc />
         public IElementsRepository ElementsRepository { get; } = elementsRepository;
 
+#if RELEASE_EMGU || DEBUG_EMGU
         /// <inheritdoc />
         public IOcrRepository OcrRepository { get; } = ocrRepository;
-
+#endif
         /// <inheritdoc />
         public ISessionsRepository SessionsRepository { get; } = sessionRepository;
     }
