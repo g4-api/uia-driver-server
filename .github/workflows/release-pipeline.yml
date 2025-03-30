@@ -120,7 +120,7 @@ jobs:
           $useEmguNode.InnerText = $useEmgu
           Write-Host "Updated <UseEmgu> node with value: $useEmgu"
 
-          $csproj.Save($csprojPath)
+          $csprojXml.Save($csprojPath)
           Write-Host "Saved updated csproj."
 
     # Set the Emgu dependencies
