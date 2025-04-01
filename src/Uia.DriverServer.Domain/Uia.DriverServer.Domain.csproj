@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<!-- Ensure global properties are set early -->
-	<PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)'=='DEBUG_EMGU' Or '$(Configuration)'=='RELEASE_EMGU'">
 		<UseEmgu>true</UseEmgu>
 	</PropertyGroup>
 
