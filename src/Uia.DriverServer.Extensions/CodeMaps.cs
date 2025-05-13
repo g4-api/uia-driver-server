@@ -75,6 +75,7 @@ namespace Uia.DriverServer.Extensions
             ["PrtSc"] = 0x37,     // Print Screen key
             ["Alt"] = 0x38,       // Alt key
             [" "] = 0x39,         // Spacebar key
+            ["Spacebar"] = 0x39,  // Spacebar key
             ["CapsLock"] = 0x3A,  // Caps Lock key
             ["F1"] = 0x3B,        // F1 key
             ["F2"] = 0x3C,        // F2 key
@@ -226,6 +227,7 @@ namespace Uia.DriverServer.Extensions
             ["PrtSc"] = 0x37,      // Print Screen key
             ["Alt"] = 0x38,        // Alt key
             [" "] = 0x39,          // Spacebar key
+            ["Spacebar"] = 0x39,   // Spacebar key
             ["CapsLock"] = 0x3A,   // Caps Lock key
             ["F1"] = 0x3B,         // F1 key
             ["F2"] = 0x3C,         // F2 key
