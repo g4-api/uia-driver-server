@@ -104,7 +104,6 @@ namespace Uia.DriverServer.Domain
         // Invokes a PowerShell script for the specified session.
         [ScriptType("Powershell")]
         private static string InvokePowershell(string src)
-#pragma warning restore IDE0051 // Remove unused private members
         {
             // Get the temporary directory path.
             var tempPath = Path.GetTempPath();
@@ -119,7 +118,15 @@ namespace Uia.DriverServer.Domain
             File.WriteAllText(path, src);
 
             // Prepare the process start info for running the PowerShell script.
-            var startInfo = new ProcessStartInfo("powershell", $"\"{path}\"");
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "powershell",
+                Arguments = $"\"{path}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
 
             // Create a new process to execute the PowerShell script.
             var process = new Process
@@ -127,8 +134,13 @@ namespace Uia.DriverServer.Domain
                 StartInfo = startInfo,
             };
 
-            // Start the process and wait for it to exit.
+            // Start the process.
             process.Start();
+
+            // Read all output *before* we block on WaitForExit
+            var standardOutput = process.StandardOutput.ReadToEnd();
+
+            // Wait for the process to exit to ensure the script execution is complete.
             process.WaitForExit();
 
             // Delete the file after execution is complete.
@@ -141,8 +153,9 @@ namespace Uia.DriverServer.Domain
                 // Ignore any exceptions that occur while deleting the file.
             }
 
-            // Return an empty string upon completion.
-            return string.Empty;
+            // Return the standard output from the PowerShell script execution.
+            return standardOutput.Trim();
         }
+#pragma warning restore IDE0051
     }
 }
