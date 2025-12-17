@@ -2,9 +2,9 @@
 
 	<PropertyGroup>
 		<!-- Assembly -->
-		<TargetFramework>net8.0-windows</TargetFramework>
-		<AssemblyVersion>8.0.0.0</AssemblyVersion>
-		<FileVersion>8.0.0.0</FileVersion>
+		<TargetFramework>net10.0-windows</TargetFramework>
+		<AssemblyVersion>10.0.0.0</AssemblyVersion>
+		<FileVersion>10.0.0.0</FileVersion>
 		<IsPackable>false</IsPackable>
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 		<SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>

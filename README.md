@@ -1,5 +1,6 @@
 # Windows WebDriver Automation Service
 
+[![Target](https://img.shields.io/badge/Target-.NET%2010-512BD4?logo=dotnet)](https://dotnet.microsoft.com)
 [![Build & Release Production](https://github.com/g4-api/uia-driver-server/actions/workflows/release-pipeline.yml/badge.svg)](https://github.com/g4-api/uia-driver-server/actions/workflows/release-pipeline.yml)
 
 ## Table of Contents

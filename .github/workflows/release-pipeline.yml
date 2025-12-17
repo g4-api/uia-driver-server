@@ -92,7 +92,7 @@ jobs:
     - name: Setup .NET Core SDK
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8
+        dotnet-version: 10
 
     # Step to restore packages
     - name: Restore Packages
