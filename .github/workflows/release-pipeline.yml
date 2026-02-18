@@ -181,14 +181,16 @@ jobs:
       uses: NuGet/setup-nuget@v2
 
     - name: Restore
+      working-directory: ${{ github.workspace }}/accessibility-insights
       shell: pwsh
       run: |
-        nuget restore ${{ github.workspace }}/accessibility-insights/src/AccessibilityInsights.sln
+        nuget restore /src/AccessibilityInsights.sln
 
     - name: Publish
       shell: pwsh
+      working-directory: ${{ github.workspace }}/accessibility-insights
       run: |
-        msbuild ${{ github.workspace }}/accessibility-insights/src/AccessibilityInsights/AccessibilityInsights.csproj `
+        msbuild ./src/AccessibilityInsights/AccessibilityInsights.csproj `
           /t:Publish `
           /p:Configuration=${{ env.configuration }} `
           /p:Platform="Any CPU" `
