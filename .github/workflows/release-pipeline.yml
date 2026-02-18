@@ -60,7 +60,7 @@ jobs:
         echo "valid=$($version -match '^\d+(\.\d+){3}$')" >> $env:GITHUB_OUTPUT
 
   # Job to build and publish the project
-  build:
+  new-build:
     name: Build & Publish Version ${{ needs.new-version.outputs.buildVersion }}
     runs-on: windows-latest
     needs: new-version
@@ -135,7 +135,7 @@ jobs:
     # Step to publish the project
     - name: Publish
       shell: pwsh
-      run: msbuild ${{ env.solutionName }}.sln /t:Publish /p:Configuration=${{ matrix.configuration }} /p:Platform="Any CPU" /p:PublishDir=${{ env.binariesDirectory }}/publish${{ matrix.suffix }}/
+      run: msbuild ${{ env.solutionName }}.sln /t:Publish /p:Configuration=${{ matrix.configuration }} /p:Platform="Any CPU" /p:PublishDir=${{ env.binariesDirectory }}/uia-driver-server${{ matrix.suffix }}/
 
     # Step to create a build artifact
     - name: Create Build Artifact
@@ -143,7 +143,7 @@ jobs:
       run: |
         New-Item -Path "${{ env.artifactStagingDirectory }}" -ItemType Directory
         Compress-Archive `
-            -Path ${{ env.binariesDirectory }}/publish${{ matrix.suffix }}/* `
+            -Path ${{ env.binariesDirectory }}/uia-driver-server${{ matrix.suffix }}/* `
             -DestinationPath ${{ env.artifactStagingDirectory }}/${{ env.projectName }}.${{ env.buildVersion }}-win-x64${{ matrix.suffix }}.zip 
 
     # Step to upload the build artifact
@@ -151,15 +151,72 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: drop${{ matrix.suffix }}
-        path: ${{ env.artifactStagingDirectory }}/*.zip
+        path: ${{ env.artifactStagingDirectory }}/${{ env.projectName }}.${{ env.buildVersion }}-win-x64${{ matrix.suffix }}.zip
+
+  new-accessibility-insights-artifact:
+    name: New Accessibility Insights Version
+    runs-on: windows-latest
+    needs: 
+      - new-version
+    if: success()
+
+    # Set environment variables specific to the build job
+    env:
+      buildVersion: ${{ needs.new-version.outputs.buildVersion }}
+      configuration: Release
+
+    steps:
+    - name: Checkout microsoft/accessibility-insights-windows
+      uses: actions/checkout@v4
+      with:
+        repository: microsoft/accessibility-insights-windows
+        ref: main
+        path: srcrepo
+        fetch-depth: 1
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
+
+    - name: Restore
+      shell: pwsh
+      run: |
+        nuget restore srcrepo\src\AccessibilityInsights.sln
+
+    - name: Publish
+      shell: pwsh
+      run: |
+        msbuild srcrepo\src\AccessibilityInsights\AccessibilityInsights.csproj `
+          /t:Publish `
+          /p:Configuration=${{ env.configuration }} `
+          /p:Platform="Any CPU" `
+          /p:PublishDir=${{ env.binariesDirectory }}/accessibility-insights/
+
+    - name: Compress
+      shell: pwsh
+      run: |
+        Compress-Archive `
+          -Path "${{ env.binariesDirectory }}/accessibility-insights/*" `
+          -DestinationPath "${{ env.artifactStagingDirectory }}/AccessibilityInsights.Portable.${{ env.buildVersion }}-win-x64.zip" `
+          -Force
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: drop-accessibility-insights
+        path: ${{ env.artifactStagingDirectory }}/AccessibilityInsights.Portable.${{ env.buildVersion }}-win-x64.zip
+        if-no-files-found: error
 
   # Job to create a GitHub release and tag the new version
-  create-release:
+  new-release:
     name: New GitHub Release Version ${{ needs.new-version.outputs.buildVersion }}
     runs-on: windows-latest
     needs: 
       - new-version
-      - build
+      - new-build
+      - new-accessibility-insights-artifact
     if: success()
 
     # Set environment variables specific to the release job
@@ -183,6 +240,12 @@ jobs:
       with:
         name: drop-emgu
 
+    # Step to download build artifacts
+    - name: Download Build Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: drop-accessibility-insights
+
     # Step to create a GitHub release and tag
     - name: Create GitHub Release & Tag v${{ env.buildVersion }}
       uses: softprops/action-gh-release@v2
@@ -190,6 +253,7 @@ jobs:
         files: |
           ./${{ env.projectName }}.${{ env.buildVersion }}-win-x64.zip
           ./${{ env.projectName }}.${{ env.buildVersion }}-win-x64-emgu.zip
+          ./AccessibilityInsights.Portable.${{ env.buildVersion }}-win-x64.zip
         tag_name: v${{ env.buildVersion }}
         name: ${{ env.artifactType }} v${{ env.buildVersion }}
         generate_release_notes: true
