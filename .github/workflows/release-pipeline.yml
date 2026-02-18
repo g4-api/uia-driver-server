@@ -171,7 +171,7 @@ jobs:
       with:
         repository: microsoft/accessibility-insights-windows
         ref: main
-        path: srcrepo
+        path: ${{ github.workspace }}/accessibility-insights
         fetch-depth: 1
 
     - name: Setup MSBuild
@@ -183,12 +183,12 @@ jobs:
     - name: Restore
       shell: pwsh
       run: |
-        nuget restore srcrepo\src\AccessibilityInsights.sln
+        nuget restore ${{ github.workspace }}/accessibility-insights/src/AccessibilityInsights.sln
 
     - name: Publish
       shell: pwsh
       run: |
-        msbuild srcrepo\src\AccessibilityInsights\AccessibilityInsights.csproj `
+        msbuild ${{ github.workspace }}/accessibility-insights/src/AccessibilityInsights/AccessibilityInsights.csproj `
           /t:Publish `
           /p:Configuration=${{ env.configuration }} `
           /p:Platform="Any CPU" `
