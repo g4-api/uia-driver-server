@@ -200,16 +200,18 @@ jobs:
       shell: pwsh
       working-directory: ${{ github.workspace }}/accessibility-insights
       run: |
+        New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/artifact_staging" | Out-Null
+        
         Compress-Archive `
           -Path "${{ github.workspace }}/binaries/accessibility-insights-publish/*" `
-          -DestinationPath "${{ github.workspace }}/artifact_staging/AccessibilityInsights.Portable.${{ env.buildVersion }}-win-x64.zip" `
+          -DestinationPath "${{ github.workspace }}/artifact_staging/AccessibilityInsightsPortable.${{ env.buildVersion }}-win-x64.zip" `
           -Force
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: drop-accessibility-insights
-        path: ${{ github.workspace }}/artifact_staging/AccessibilityInsights.Portable.${{ env.buildVersion }}-win-x64.zip
+        path: ${{ github.workspace }}/artifact_staging/AccessibilityInsightsPortable.${{ env.buildVersion }}-win-x64.zip
         if-no-files-found: error
 
   # Job to create a GitHub release and tag the new version
