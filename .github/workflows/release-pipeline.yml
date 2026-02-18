@@ -258,7 +258,7 @@ jobs:
         files: |
           ./${{ env.projectName }}.${{ env.buildVersion }}-win-x64.zip
           ./${{ env.projectName }}.${{ env.buildVersion }}-win-x64-emgu.zip
-          ./AccessibilityInsights.Portable.${{ env.buildVersion }}-win-x64.zip
+          ./AccessibilityInsightsPortable.${{ env.buildVersion }}-win-x64.zip
         tag_name: v${{ env.buildVersion }}
         name: ${{ env.artifactType }} v${{ env.buildVersion }}
         generate_release_notes: true
