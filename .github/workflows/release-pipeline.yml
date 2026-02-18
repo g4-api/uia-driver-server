@@ -61,7 +61,7 @@ jobs:
 
   # Job to build and publish the project
   new-build:
-    name: Build & Publish Version ${{ needs.new-version.outputs.buildVersion }}
+    name: Build & Publish Driver Server ${{ needs.new-version.outputs.buildVersion }}
     runs-on: windows-latest
     needs: new-version
     if: ${{ needs.new-version.result == 'success' && needs.new-version.outputs.validVersion == 'True' }}
