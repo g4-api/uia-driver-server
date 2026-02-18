@@ -194,22 +194,22 @@ jobs:
           /t:Publish `
           /p:Configuration=${{ env.configuration }} `
           /p:Platform="Any CPU" `
-          /p:PublishDir=${{ env.binariesDirectory }}/accessibility-insights-publish/
+          /p:PublishDir=${{ github.workspace }}/binaries/accessibility-insights-publish/
 
     - name: Compress
       shell: pwsh
       working-directory: ${{ github.workspace }}/accessibility-insights
       run: |
         Compress-Archive `
-          -Path "${{ env.binariesDirectory }}/accessibility-insights-publish/*" `
-          -DestinationPath "${{ env.artifactStagingDirectory }}/AccessibilityInsights.Portable.${{ env.buildVersion }}-win-x64.zip" `
+          -Path "${{ github.workspace }}/binaries/accessibility-insights-publish/*" `
+          -DestinationPath "${{ github.workspace }}/artifact_staging/AccessibilityInsights.Portable.${{ env.buildVersion }}-win-x64.zip" `
           -Force
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: drop-accessibility-insights
-        path: ${{ env.artifactStagingDirectory }}/AccessibilityInsights.Portable.${{ env.buildVersion }}-win-x64.zip
+        path: ${{ github.workspace }}/artifact_staging/AccessibilityInsights.Portable.${{ env.buildVersion }}-win-x64.zip
         if-no-files-found: error
 
   # Job to create a GitHub release and tag the new version
