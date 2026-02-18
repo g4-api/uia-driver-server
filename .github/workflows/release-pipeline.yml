@@ -184,7 +184,7 @@ jobs:
       working-directory: ${{ github.workspace }}/accessibility-insights
       shell: pwsh
       run: |
-        nuget restore /src/AccessibilityInsights.sln
+        nuget restore ./src/AccessibilityInsights.sln
 
     - name: Publish
       shell: pwsh
