@@ -63,7 +63,7 @@ namespace Uia.DriverServer.Domain
             catch (Exception e)
             {
                 // Log a warning if an exception occurs while killing the process
-                _logger.LogWarning(e, "Failed to kill application for session with ID {SessionId}.", id);
+                _logger?.LogWarning(e, "Failed to kill application for session with ID {SessionId}.", id);
             }
 
             // Remove the session from the sessions dictionary
@@ -159,10 +159,24 @@ namespace Uia.DriverServer.Domain
         /// <inheritdoc />
         public (int StatusCode, object Entity) NewSession(NewSessionModel newSessionModel)
         {
-            // Deserialize the AlwaysMatch capability to a dictionary
-            var matchCapabilities = newSessionModel.Capabilities.AlwaysMatch.Count == 0
-                ? newSessionModel.Capabilities.FirstMatch[0]
-                : newSessionModel.Capabilities.AlwaysMatch;
+            // Initialize a dictionary to hold the merged capabilities from "alwaysMatch" and "firstMatch".
+            var matchCapabilities = new Dictionary<string, object>();
+
+            // Check if "alwaysMatch" capabilities are empty and if "firstMatch"
+            // capabilities are not empty to determine which capabilities to use for session creation.
+            var isAlwaysMatchEmpty = newSessionModel.Capabilities.AlwaysMatch == null || newSessionModel.Capabilities.AlwaysMatch.Count == 0;
+            var isFirstMatchEmpty = newSessionModel.Capabilities.FirstMatch == null || newSessionModel.Capabilities.FirstMatch.Length == 0;
+
+            // If "alwaysMatch" capabilities are empty and "firstMatch" capabilities are not empty,
+            // use the first set of "firstMatch" capabilities for session creation.
+            if (isAlwaysMatchEmpty && !isFirstMatchEmpty)
+            {
+                matchCapabilities = newSessionModel.Capabilities.FirstMatch[0];
+            }
+            if(!isAlwaysMatchEmpty)
+            {
+                matchCapabilities = newSessionModel.Capabilities.AlwaysMatch;
+            }
 
             // Deserialize the options from the capabilities or create a new UiaOptions instance if not present
             var options = matchCapabilities.TryGetValue(key: UiaCapabilities.Options, out object optionsOut) && optionsOut != null
