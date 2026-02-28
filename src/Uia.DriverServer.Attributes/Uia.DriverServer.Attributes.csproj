@@ -12,7 +12,7 @@
 		<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
 
 		<!-- https://learn.microsoft.com/en-us/dotnet/fundamentals/syslib-diagnostics/syslib1040-1049 -->
-		<NoWarn>$(NoWarn);SYSLIB1045</NoWarn>
+		<NoWarn>$(NoWarn);SYSLIB1045;CA1873</NoWarn>
 		<Configurations>Debug;Release;Release_Emgu;Debug_Emgu</Configurations>
 	</PropertyGroup>
 
