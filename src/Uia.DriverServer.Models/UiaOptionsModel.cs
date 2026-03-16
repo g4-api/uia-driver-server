@@ -41,6 +41,11 @@ namespace Uia.DriverServer.Models
         public double ScaleRatio { get; set; } = 1.0D;
 
         /// <summary>
+        /// Gets or sets the terminal type (e.g., "cmd", "powershell", "pwsh").
+        /// </summary>
+        public string Terminal { get; set; }
+
+        /// <summary>
         /// Gets or sets the working directory.
         /// </summary>
         /// <value>The working directory as a string.</value>

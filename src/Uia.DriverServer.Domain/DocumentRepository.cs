@@ -67,23 +67,40 @@ namespace Uia.DriverServer.Domain
         }
 
         /// <inheritdoc />
-        public (int StatusCode, object Result) InvokeScript(string src)
+        public (int StatusCode, object Result) InvokeScript(string session, string src)
         {
-            const BindingFlags Flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static;
+            const BindingFlags Flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static;
             const StringComparison Compare = StringComparison.OrdinalIgnoreCase;
 
-            // Get all methods from the DocumentRepository class that have the ScriptType attribute
-            var methods = typeof(DocumentRepository)
+            // Attempt to retrieve the session from the sessions dictionary
+            if (!Sessions.TryGetValue(session, out UiaSessionResponseModel uiaSession))
+            {
+                _logger?.LogInformation("Session with ID {SessionId} not found.", session);
+                return (StatusCodes.Status404NotFound, default);
+            }
+
+            // Get all methods from the ScriptsRepository class that have the ScriptType attribute
+            var methods = typeof(ScriptsRepository)
                 .GetMethods(Flags)
                 .Where(i => i.GetCustomAttribute<ScriptTypeAttribute>() != null);
 
-            // Find the method that has the ScriptType attribute with the type "Powershell"
+            // Determine the terminal type to use for script invocation based on
+            // session options, defaulting to "Powershell" if not specified
+            var terminal = string.IsNullOrEmpty(uiaSession.Options.Terminal)
+                ? "Powershell"
+                : uiaSession.Options.Terminal;
+
+            // Find the first method that matches the specified terminal type in its ScriptType attribute
             var method = methods
-                .FirstOrDefault(i => i.GetCustomAttribute<ScriptTypeAttribute>().Type.Equals("Powershell", Compare));
+                .FirstOrDefault(i => i.GetCustomAttribute<ScriptTypeAttribute>().Type.Equals(terminal, Compare));
 
             // If no matching method is found, return a 404 status code
             if (method == default)
             {
+                _logger?.LogInformation(
+                    "Terminal implementation '{Terminal}' for session with ID {SessionId} was not found.",
+                    terminal,
+                    session);
                 return (StatusCodes.Status500InternalServerError, string.Empty);
             }
 
@@ -100,62 +117,121 @@ namespace Uia.DriverServer.Domain
             throw new NotImplementedException();
         }
 
-#pragma warning disable IDE0051 // These methods are used via reflection to handle specific locator segment types.
-        // Invokes a PowerShell script for the specified session.
-        [ScriptType("Powershell")]
-        private static string InvokePowershell(string src)
+        private sealed class ScriptsRepository
         {
-            // Get the temporary directory path.
-            var tempPath = Path.GetTempPath();
-
-            // Create the file name for the PowerShell script.
-            var fileName = $"{Guid.NewGuid()}.ps1";
-
-            // Combine the temporary path and file name to get the full path.
-            var path = Path.Combine(tempPath, fileName);
-
-            // Write the script contents to the file.
-            File.WriteAllText(path, src);
-
-            // Prepare the process start info for running the PowerShell script.
-            var startInfo = new ProcessStartInfo
+            // Writes the supplied command script to a temporary .cmd file, executes it
+            // through cmd.exe, captures its standard output, and then attempts to delete
+            // the temporary file.
+            [ScriptType("Cmd")]
+            public static string InvokeCmd(string src)
             {
-                FileName = "powershell",
-                Arguments = $"\"{path}\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+                // Resolve the system temporary directory where the transient command file will be created.
+                var tempPath = Path.GetTempPath();
 
-            // Create a new process to execute the PowerShell script.
-            var process = new Process
-            {
-                StartInfo = startInfo,
-            };
+                // Generate a unique file name to avoid collisions with other temporary command files.
+                var fileName = $"{Guid.NewGuid()}.cmd";
 
-            // Start the process.
-            process.Start();
+                // Combine the temporary directory path with the generated file name.
+                var path = Path.Combine(tempPath, fileName);
 
-            // Read all output *before* we block on WaitForExit
-            var standardOutput = process.StandardOutput.ReadToEnd();
+                // Persist the provided command script content to the temporary .cmd file.
+                File.WriteAllText(path, src);
 
-            // Wait for the process to exit to ensure the script execution is complete.
-            process.WaitForExit();
+                // Configure cmd.exe to execute the generated .cmd file and capture its output streams.
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd",
+                    Arguments = $"/c \"{path}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
 
-            // Delete the file after execution is complete.
-            try
-            {
-                File.Delete(path);
+                // Create the process instance that will run the temporary command script.
+                var process = new Process
+                {
+                    StartInfo = startInfo,
+                };
+
+                // Start executing the command script.
+                process.Start();
+
+                // Read the entire standard output stream before waiting for process completion.
+                var standardOutput = process.StandardOutput.ReadToEnd();
+
+                // Wait until the command process fully exits.
+                process.WaitForExit();
+
+                // Try to remove the temporary command file after execution completes.
+                try
+                {
+                    File.Delete(path);
+                }
+                catch
+                {
+                    // Ignore cleanup failures because they should not fail the command invocation itself.
+                }
+
+                // Return the captured standard output without leading or trailing whitespace.
+                return standardOutput.Trim();
             }
-            catch
-            {
-                // Ignore any exceptions that occur while deleting the file.
-            }
 
-            // Return the standard output from the PowerShell script execution.
-            return standardOutput.Trim();
+            // Invokes a PowerShell script for the specified session.
+            [ScriptType("Powershell")]
+            public static string InvokePowershell(string src)
+            {
+                // Get the temporary directory path.
+                var tempPath = Path.GetTempPath();
+
+                // Create the file name for the PowerShell script.
+                var fileName = $"{Guid.NewGuid()}.ps1";
+
+                // Combine the temporary path and file name to get the full path.
+                var path = Path.Combine(tempPath, fileName);
+
+                // Write the script contents to the file.
+                File.WriteAllText(path, src);
+
+                // Prepare the process start info for running the PowerShell script.
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "powershell",
+                    Arguments = $"\"{path}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                // Create a new process to execute the PowerShell script.
+                var process = new Process
+                {
+                    StartInfo = startInfo,
+                };
+
+                // Start the process.
+                process.Start();
+
+                // Read all output *before* we block on WaitForExit
+                var standardOutput = process.StandardOutput.ReadToEnd();
+
+                // Wait for the process to exit to ensure the script execution is complete.
+                process.WaitForExit();
+
+                // Delete the file after execution is complete.
+                try
+                {
+                    File.Delete(path);
+                }
+                catch
+                {
+                    // Ignore any exceptions that occur while deleting the file.
+                }
+
+                // Return the standard output from the PowerShell script execution.
+                return standardOutput.Trim();
+            }
         }
-#pragma warning restore IDE0051
     }
 }

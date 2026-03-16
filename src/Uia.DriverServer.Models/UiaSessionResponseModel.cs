@@ -112,6 +112,12 @@ namespace Uia.DriverServer.Models
         public IDictionary<string, UiaElementModel> Elements { get; set; }
 
         /// <summary>
+        /// Gets or sets the configuration options for UI automation operations.
+        /// </summary>
+        [JsonIgnore]
+        public UiaOptionsModel Options { get; set; }
+
+        /// <summary>
         /// Gets or sets the runtime IDs of the session.
         /// </summary>
         public int[] Runtime { get; set; }

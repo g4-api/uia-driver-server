@@ -74,7 +74,7 @@ namespace Uia.DriverServer.Controllers
             [SwaggerRequestBody(Description = "The script data to execute, containing the script code and any necessary parameters.")] ScriptInputModel scriptData)
         {
             // Invoke the script
-            var (statusCode, result) = _domain.DocumentRepository.InvokeScript(scriptData.Script);
+            var (statusCode, result) = _domain.DocumentRepository.InvokeScript(session, scriptData.Script);
 
             // Check if the script execution failed with an internal server error
             if(statusCode == StatusCodes.Status500InternalServerError)

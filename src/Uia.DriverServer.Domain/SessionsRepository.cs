@@ -198,6 +198,10 @@ namespace Uia.DriverServer.Domain
                 // Log the successful session creation
                 _logger.LogInformation("Session created successfully with Session ID: {SessionId}", session.SessionId);
 
+                // Set the options for the session after creation to ensure they
+                // are available for later use in the session lifecycle
+                session.Options = options;
+
                 // Add the new session to the sessions dictionary
                 Sessions[session.SessionId] = session;
             }
