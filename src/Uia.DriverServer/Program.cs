@@ -12,6 +12,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using Uia.DriverServer.Converters;
 using Uia.DriverServer.Domain;
@@ -66,10 +67,11 @@ builder.Services
     .AddControllers(i => i.InputFormatters.Add(new TextPlainInputFormatter()))
     .AddJsonOptions(i =>
     {
-        i.JsonSerializerOptions.WriteIndented = true;
-        i.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         i.JsonSerializerOptions.Converters.Add(new TypeConverter());
         i.JsonSerializerOptions.Converters.Add(new ExceptionConverter());
+        i.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        i.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        i.JsonSerializerOptions.WriteIndented = true;
     });
 
 // Add Swagger documentation generation and configuration options
