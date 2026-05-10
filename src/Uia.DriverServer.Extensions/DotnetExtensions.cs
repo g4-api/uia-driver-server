@@ -40,7 +40,7 @@ namespace Uia.DriverServer.Extensions
             stream.Seek(0, SeekOrigin.Begin);
 
             // Read the stream's contents into the byte array.
-            stream.Read(bytes, 0, (int)stream.Length);
+            stream.ReadExactly(bytes, 0, (int)stream.Length);
 
             // Convert the byte array to a Base64 string and return it.
             return Convert.ToBase64String(bytes);
