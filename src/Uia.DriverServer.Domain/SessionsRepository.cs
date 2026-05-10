@@ -286,8 +286,16 @@ namespace Uia.DriverServer.Domain
             // Set the keyboard layout to the specified layout.
             User32.SwitchKeyboardLayout(keyScansData.Options.KeyboardLayout);
 
-            // Convert each key scan string from the input model to its corresponding scan code using the provided keyboard layout.
-            var wScans = keyScansData.ScanCodes.Select(i => i.GetScanCode(layout: keyScansData.Options.KeyboardLayout));
+            // List to hold the converted scan codes as ushort values.
+            var wScans = new List<ushort>();
+
+            // Convert each scan code from the input to its corresponding ushort value
+            // based on the specified keyboard layout and add it to the list.
+            foreach (var keyScan in keyScansData.ScanCodes)
+            {
+                var scanCode = keyScan.GetScanCode(layout: keyScansData.Options.KeyboardLayout);
+                wScans.Add(scanCode);
+            }
 
             // Depending on whether sticky keys are enabled, call the appropriate sending method.
             if (keyScansData.Options.StickyKeys)
