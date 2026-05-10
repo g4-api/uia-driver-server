@@ -25,8 +25,6 @@ using Uia.DriverServer.Models;
 
 using UIAutomationClient;
 
-using static Uia.DriverServer.Models.User32KeyboardInputOptions;
-
 namespace Uia.DriverServer.Extensions
 {
     public static class AutomationExtensions
