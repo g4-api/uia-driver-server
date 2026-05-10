@@ -28,8 +28,8 @@ namespace Uia.DriverServer.Controllers
         [Route("session/{session}/actions")]
         [SwaggerOperation(
             Summary = "Sends User32 actions to the specified session.",
-            Description = "Performs User32-based actions in the session identified by the given session ID. These actions interact directly with native Windows User32 APIs.",
-            Tags = ["User32, Actions"])]
+            Description = "Performs User32-based actions in the session identified by the given session ID. These actions interact directly with native Windows User32 APIs."
+        )]
         [SwaggerResponse(200, "Actions sent successfully.")]
         [SwaggerResponse(400, "Invalid request. The provided action data is not valid.")]
         [SwaggerResponse(404, "Session not found. The session ID provided does not exist.")]
