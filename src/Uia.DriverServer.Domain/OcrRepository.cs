@@ -5,14 +5,9 @@ using Emgu.CV.OCR;
 using Emgu.CV.Structure;
 #endif
 
-using System;
-using System.Collections.Generic;
-
 using System.Drawing;
-using System.Linq;
-using System.Xml.Linq;
+
 using Uia.DriverServer.Marshals;
-using Uia.DriverServer.Models;
 
 namespace Uia.DriverServer.Domain
 {
