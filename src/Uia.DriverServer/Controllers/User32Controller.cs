@@ -38,10 +38,6 @@ namespace Uia.DriverServer.Controllers
         [SwaggerResponse(200, "Keyboard layouts retrieved successfully.", typeof(IEnumerable<string>))]
         [SuppressMessage(
             "Roslynator",
-            "RCS1163:Unused parameter",
-            Justification = "The 'session' parameter is required by grid convention, even though it is not used directly in this method.")]
-        [SuppressMessage(
-            "Roslynator",
             "IDE0060:Remove unused parameter",
             Justification = "The 'session' parameter is required by grid convention, even though it is not used directly in this method.")]
         public IActionResult GetKeyboardLayouts([SwaggerParameter(Description = "The unique identifier for the session.")] string session)
@@ -57,10 +53,6 @@ namespace Uia.DriverServer.Controllers
             Description = "Sets the current keyboard layout to the one specified in the request body.",
             Tags = ["User32"])]
         [SwaggerResponse(204, "Keyboard layout set successfully.")]
-        [SuppressMessage(
-            "Roslynator",
-            "RCS1163:Unused parameter",
-            Justification = "The 'session' parameter is required by grid convention, even though it is not used directly in this method.")]
         [SuppressMessage(
             "Roslynator",
             "IDE0060:Remove unused parameter",
