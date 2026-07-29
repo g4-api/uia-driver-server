@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uia.DriverServer", "Uia.Dri
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uia.DriverServer.Domain", "Uia.DriverServer.Domain\Uia.DriverServer.Domain.csproj", "{8819568B-39CA-4C26-989E-887DFEC8B930}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uia.DriverServer.Domain.UnitTests", "Uia.DriverServer.Domain.UnitTests\Uia.DriverServer.Domain.UnitTests.csproj", "{AE2382AA-4465-455A-A57D-EA90DCDF89D7}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uia.DriverServer.Models", "Uia.DriverServer.Models\Uia.DriverServer.Models.csproj", "{C2E334D5-DDC9-4D8D-B877-59EB955242C8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uia.DriverServer.Extensions", "Uia.DriverServer.Extensions\Uia.DriverServer.Extensions.csproj", "{FF887594-E842-4BD0-8185-3BD567A1D69A}"
@@ -61,6 +63,14 @@ Global
 		{8819568B-39CA-4C26-989E-887DFEC8B930}.Release_Emgu|Any CPU.Build.0 = Release_Emgu|Any CPU
 		{8819568B-39CA-4C26-989E-887DFEC8B930}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8819568B-39CA-4C26-989E-887DFEC8B930}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE2382AA-4465-455A-A57D-EA90DCDF89D7}.Debug_Emgu|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE2382AA-4465-455A-A57D-EA90DCDF89D7}.Debug_Emgu|Any CPU.Build.0 = Debug|Any CPU
+		{AE2382AA-4465-455A-A57D-EA90DCDF89D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE2382AA-4465-455A-A57D-EA90DCDF89D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE2382AA-4465-455A-A57D-EA90DCDF89D7}.Release_Emgu|Any CPU.ActiveCfg = Release|Any CPU
+		{AE2382AA-4465-455A-A57D-EA90DCDF89D7}.Release_Emgu|Any CPU.Build.0 = Release|Any CPU
+		{AE2382AA-4465-455A-A57D-EA90DCDF89D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE2382AA-4465-455A-A57D-EA90DCDF89D7}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C2E334D5-DDC9-4D8D-B877-59EB955242C8}.Debug_Emgu|Any CPU.ActiveCfg = Debug_Emgu|Any CPU
 		{C2E334D5-DDC9-4D8D-B877-59EB955242C8}.Debug_Emgu|Any CPU.Build.0 = Debug_Emgu|Any CPU
 		{C2E334D5-DDC9-4D8D-B877-59EB955242C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU

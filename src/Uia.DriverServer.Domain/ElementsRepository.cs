@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 
 using System;
 using System.Collections.Generic;
@@ -18,225 +18,257 @@ using UIAutomationClient;
 namespace Uia.DriverServer.Domain
 {
     /// <summary>
-    /// Represents the repository for element-related operations.
+    /// Resolves element locators against UI Automation sessions and maintains each session's element cache.
     /// </summary>
-    /// <param name="sessions">The dictionary containing session models.</param>
+    /// <remarks>
+    /// Locator resolution is compute-only until a successful result is assigned an identifier and stored in the
+    /// caller-owned session model. Missing sessions, invalid hierarchies, and unresolved elements retain the
+    /// repository's existing status-code and empty-result contracts.
+    /// </remarks>
+    /// <param name="sessions">The caller-owned session registry used for lookup and element-cache mutation.</param>
     public class ElementsRepository(IDictionary<string, UiaSessionResponseModel> sessions) : IElementsRepository
     {
-        // Initialize the sessions dictionary containing session models as a private readonly
-        // field for the repository class instance to use internally and externally as needed
-        // for element-related operations.
+        #region *** Constants    ***
+
+        private static readonly Regex CoordinateExpression = new(
+            pattern: @"(?is)(?<=Coords\().*?(?=\))",
+            options: RegexOptions.CultureInvariant
+        );
+
+        private static readonly Regex DesktopPrefixExpression = new(
+            pattern: @"(?is)^(\(+)?\/(root|desktop)",
+            options: RegexOptions.CultureInvariant
+        );
+
+        private static readonly Regex LocatorSeparatorExpression = new(
+            pattern: @"\/(?=\w+|\*)(?![^\[]*\])",
+            options: RegexOptions.CultureInvariant
+        );
+
+        private static readonly Regex ObjectModelNamespaceExpression = new(
+            pattern: @"(?<=^\/?)\w+:",
+            options: RegexOptions.CultureInvariant
+        );
+
+#if Release_Emgu || Debug_Emgu
+        private static readonly Regex OcrExpression = new(
+            pattern: @"(?is)(?<=Ocr\().*?(?=\))",
+            options: RegexOptions.CultureInvariant
+        );
+#endif
+
+        private static readonly Regex QuotedValueExpression = new(
+            pattern: "(?<==').+?(?=')",
+            options: RegexOptions.CultureInvariant
+        );
+
+        private static readonly Regex SegmentKeyExpression = new(
+            pattern: @"(?<=^\/?)\w+",
+            options: RegexOptions.CultureInvariant
+        );
+
+        #endregion
+
+        #region *** Fields       ***
+
+        // Retains the caller-owned session registry so successful lookups can update the matching element cache.
         private readonly IDictionary<string, UiaSessionResponseModel> _sessions = sessions;
 
+        #endregion
+
+        #region *** Methods      ***
+
         /// <inheritdoc />
-        public (int Status, UiaElementModel ElementModel) FindElement(string session, LocationStrategyModel locationStrategy)
+        public (int Status, UiaElementModel ElementModel) FindElement(
+            string session,
+            LocationStrategyModel locationStrategy)
         {
-            // Call the overloaded FindElement method with an empty element string
+            // Route application-root lookups through the complete overload with no cached element context.
             return FindElement(session, element: string.Empty, locationStrategy);
         }
 
         /// <inheritdoc />
-        public (int Status, UiaElementModel ElementModel) FindElement(string session, string element, LocationStrategyModel locationStrategy)
+        public (int Status, UiaElementModel ElementModel) FindElement(
+            string session,
+            string element,
+            LocationStrategyModel locationStrategy)
         {
-            // Try to retrieve the session model from the sessions dictionary
-            var isSession = _sessions.TryGetValue(session, out UiaSessionResponseModel uiaSession);
-
-            // If the session is not found, return a 404 status code
+            // Resolve the requested session before allocating UI Automation state or mutating its element cache.
+            var isSession = _sessions.TryGetValue(key: session, value: out var uiaSession);
             if (!isSession)
             {
                 return (StatusCodes.Status404NotFound, default);
             }
 
-            // If an element identifier is provided, get the element; otherwise, set it to default
-            var uiaElement = !string.IsNullOrEmpty(element)
-                ? GetElementBySession(_sessions, session, element)
+            // Preserve the application root unless the caller supplied a valid cached element context.
+            var uiaElement = !string.IsNullOrEmpty(value: element)
+                ? GetElementBySession(sessions: _sessions, session, element)
                 : default;
 
-            // Get the locator hierarchy and determine if the root is included
-            var (isRoot, hierarchy) = FormatLocatorHierarchy(locationStrategy);
-
-            // If the hierarchy is empty, return a 400 status code indicating a bad request
+            // Parse the complete locator before traversal so malformed or empty hierarchies fail as a bad request.
+            var (isFromDesktop, hierarchy) = FormatLocatorHierarchy(locationStrategy);
             if (hierarchy.Length == 0)
             {
                 return (StatusCodes.Status400BadRequest, default);
             }
 
-            // Determine the root element based on whether the root is included in the hierarchy
-            var rootElement = isRoot
-                ? new CUIAutomation8().GetRootElement()
-                : uiaSession.ApplicationRoot;
-
-            // If the element has a valid UI Automation element and the root is not included, use the element as the root
-            if (uiaElement?.UIAutomationElement != null && !isRoot)
-            {
-                rootElement = uiaElement.UIAutomationElement;
-            }
-
-            // Setup the output element model with the root element
+            // Select the caller-intended root once so every segment is resolved from the preceding result.
+            var rootElement = GetSearchRoot(uiaSession, uiaElement, isFromDesktop);
             var outputElement = new UiaElementModel
             {
                 UIAutomationElement = rootElement
             };
 
-            // Iterate through the hierarchy to find the element by each segment
+            // Traverse each segment in order so repeated selectors apply their position under the resolved parent.
             foreach (var pathSegment in hierarchy)
             {
-                // Find the element by the current segment and update the root
-                // element accordingly for the next segment search iteration
-                outputElement = FindElementBySegment(new CUIAutomation8(), outputElement.UIAutomationElement, pathSegment);
+                outputElement = FindElementBySegment(
+                    session: new CUIAutomation8(),
+                    rootElement: outputElement.UIAutomationElement,
+                    pathSegment
+                );
 
-                // Setup flags to check if the element is not found, the rectangle is not found, or the clickable point is not found
-                var notFound = outputElement?.UIAutomationElement == default;
-                var notFoundRectangle = outputElement?.Rectangle == default;
-                var notFoundClickablePoint = outputElement?.ClickablePoint == default;
+                // Stop traversal when no UIA element, rectangle, or coordinate point represents the segment result.
+                var isElementMissing = outputElement?.UIAutomationElement == default;
+                var isRectangleMissing = outputElement?.Rectangle == default;
+                var isClickablePointMissing = outputElement?.ClickablePoint == default;
+                var isResultMissing = isElementMissing && isRectangleMissing && isClickablePointMissing;
 
-                // If the root element is not found at any segment, return a 404 status code
-                if (notFound && notFoundRectangle && notFoundClickablePoint)
+                if (isResultMissing)
                 {
                     return (StatusCodes.Status404NotFound, default);
                 }
             }
 
-            // Force the output element to have a unique identifier if it does not have one
-            outputElement.Id ??= $"{Guid.NewGuid()}";
+            // Assign a stable session key before exposing the resolved element through subsequent driver commands.
+            outputElement.Id ??= Guid.NewGuid().ToString();
 
-            // Add or update the element in the session's elements dictionary
+            // Publish the successful result to the session-owned cache so later element-relative commands can reuse it.
             uiaSession.Elements[outputElement.Id] = outputElement;
 
-            // Return the status code and the found element model
             return (StatusCodes.Status200OK, outputElement);
         }
 
         /// <inheritdoc />
-        public IEnumerable<UiaElementModel> FindElements(string session, LocationStrategyModel locationStrategy)
+        public IEnumerable<UiaElementModel> FindElements(
+            string session,
+            LocationStrategyModel locationStrategy)
         {
-            // Call the overloaded FindElements method with an empty element identifier
+            // Route application-root lookups through the complete overload with no cached element context.
             return FindElements(session, element: string.Empty, locationStrategy);
         }
 
         /// <inheritdoc />
-        public IEnumerable<UiaElementModel> FindElements(string session, string element, LocationStrategyModel locationStrategy)
+        public IEnumerable<UiaElementModel> FindElements(
+            string session,
+            string element,
+            LocationStrategyModel locationStrategy)
         {
-            // Try to retrieve the session model from the sessions dictionary
-            var isSession = _sessions.TryGetValue(session, out UiaSessionResponseModel uiaSession);
-
-            // If the session is not found, return an empty list
+            // Resolve the requested session before allocating UI Automation state or mutating its element cache.
+            var isSession = _sessions.TryGetValue(key: session, value: out var uiaSession);
             if (!isSession)
             {
                 return [];
             }
 
-            // If an element identifier is provided, get the element; otherwise, set it to default
-            var uiaElement = !string.IsNullOrEmpty(element)
-                ? GetElementBySession(_sessions, session, element)
+            // Preserve the application root unless the caller supplied a valid cached element context.
+            var uiaElement = !string.IsNullOrEmpty(value: element)
+                ? GetElementBySession(sessions: _sessions, session, element)
                 : default;
 
-            // Get the locator hierarchy and determine if the root is included
-            var (isRoot, hierarchy) = FormatLocatorHierarchy(locationStrategy);
-
-            // If the hierarchy is empty, return an empty list indicating a bad request
+            // Parse the complete locator before traversal so malformed or empty hierarchies return no matches.
+            var (isFromDesktop, hierarchy) = FormatLocatorHierarchy(locationStrategy);
             if (hierarchy.Length == 0)
             {
                 return [];
             }
 
-            // Determine the root element based on whether the root is included in the hierarchy
-            var rootElement = isRoot
-                ? new CUIAutomation8().GetRootElement()
-                : uiaSession.ApplicationRoot;
-
-            // If the element has a valid UI Automation element and the root is not included, use the element as the root
-            if (uiaElement?.UIAutomationElement != null && !isRoot)
+            // Resolve every ancestor segment before evaluating all matches for the final selector.
+            var outputElement = GetSearchRoot(uiaSession, uiaElement, isFromDesktop);
+            foreach (var pathSegment in hierarchy.Take(count: hierarchy.Length - 1))
             {
-                rootElement = uiaElement.UIAutomationElement;
-            }
+                outputElement = FindElementBySegment(
+                    session: new CUIAutomation8(),
+                    rootElement: outputElement,
+                    pathSegment
+                )?.UIAutomationElement;
 
-            // Setup the output element model with the root element
-            var outputElement = rootElement;
-
-            // Iterate through the hierarchy to find the element by each segment
-            foreach (var pathSegment in hierarchy.Take(hierarchy.Length - 1))
-            {
-                // Find the element by the current segment and update the root
-                // element accordingly for the next segment search iteration
-                outputElement = FindElementBySegment(new CUIAutomation8(), outputElement, pathSegment)?.UIAutomationElement;
-
-                var notFound = outputElement == default;
-
-                // If the element is not found, return an empty list
-                if (notFound)
+                if (outputElement == default)
                 {
                     return [];
                 }
             }
 
-            // Get the last segment of the hierarchy and determine the search scope
+            // Convert the terminal selector into the exact condition and scope used to determine positional rank.
             var lastPathSegment = hierarchy[^1];
-            var scope = lastPathSegment.StartsWith('/') ? TreeScope.TreeScope_Descendants : TreeScope.TreeScope_Children;
+            var scope = lastPathSegment.StartsWith(value: '/')
+                ? TreeScope.TreeScope_Descendants
+                : TreeScope.TreeScope_Children;
+            var condition = XpathParser.ConvertToCondition(xpath: lastPathSegment);
 
-            // Initialize the condition object
-            IUIAutomationCondition condition = XpathParser.ConvertToCondition(lastPathSegment);
-
-            // If the condition is null, return an empty list
-            if(condition == null)
+            if (condition == null)
             {
                 return [];
             }
 
-            // Find all elements that match the condition within the specified scope
+            // Materialize all exact-condition matches before applying the optional 1-based terminal position.
             var elements = outputElement.FindAll(scope, condition);
-
-            // If no elements are found, return an empty list
             if (elements == null || elements.Length == 0)
             {
                 return [];
             }
 
-            // Initialize a list to store the found elements
-            var outputElements = new List<UiaElementModel>();
+            // Reject an invalid position without coercing zero or an out-of-range value to the first match.
+            var position = XpathPosition.GetSelection(
+                pathSegment: lastPathSegment,
+                matchCount: elements.Length
+            );
 
-            // Iterate through the found elements and convert them to element models
-            for (int i = 0; i < elements.Length; i++)
+            if (position.HasPosition && position.Index < 0)
             {
-                var elementModel = elements.GetElement(i).ConvertToElement();
-
-                // Assign a new GUID if the element ID is null
-                elementModel.Id ??= $"{Guid.NewGuid()}";
-
-                // Store the element model in the session's elements dictionary
-                uiaSession.Elements[elementModel.Id] = elementModel;
-
-                // Add the element model to the output list
-                outputElements.Add(elementModel);
+                return [];
             }
 
-            // Return the list of found element models
+            // Bound enumeration to the selected match when a position is present, or retain every match otherwise.
+            var outputElements = new List<UiaElementModel>();
+            var startIndex = position.HasPosition ? position.Index : 0;
+            var endIndex = position.HasPosition ? position.Index + 1 : elements.Length;
+
+            for (var index = startIndex; index < endIndex; index++)
+            {
+                // Convert and identify each returned element before publishing it to session-owned state.
+                var elementModel = elements.GetElement(index).ConvertToElement();
+                elementModel.Id ??= Guid.NewGuid().ToString();
+
+                // Keep the session cache and returned collection synchronized for every observable result.
+                uiaSession.Elements[elementModel.Id] = elementModel;
+                outputElements.Add(item: elementModel);
+            }
+
             return outputElements;
         }
 
         /// <inheritdoc />
         public UiaElementModel GetElement(string session, string element)
         {
-            return GetElementBySession(_sessions, session, element);
+            // Read the existing session cache without mutating ownership or allocating a replacement model.
+            return GetElementBySession(sessions: _sessions, session, element);
         }
 
         /// <inheritdoc />
         public (int StatusCode, string Value) GetElementAttribute(string session, string element, string name)
         {
-            // Retrieve the element object from the session elements dictionary based on the session and element identifiers
-            var elementModel = GetElementBySession(_sessions, session, element);
-
-            // If the element is not found, return a 404 status code
+            // Resolve the cached element before reading provider-backed attributes.
+            var elementModel = GetElementBySession(sessions: _sessions, session, element);
             if (elementModel == null)
             {
                 return (StatusCodes.Status404NotFound, string.Empty);
             }
 
-            // Retrieve the attribute value from the element model
+            // Normalize an absent attribute to the driver's successful empty-string response contract.
             var attribute = elementModel.GetAttribute(name);
 
-            // Return the appropriate status code and attribute value
-            return string.IsNullOrEmpty(attribute)
+            return string.IsNullOrEmpty(value: attribute)
                 ? (StatusCodes.Status200OK, string.Empty)
                 : (StatusCodes.Status200OK, attribute);
         }
@@ -244,205 +276,92 @@ namespace Uia.DriverServer.Domain
         /// <inheritdoc />
         public (int StatusCode, string Text) GetElementText(string session, string element)
         {
-            // Retrieve the element object from the session elements dictionary based on the session and element identifiers
-            var elementModel = GetElementBySession(_sessions, session, element);
-
-            // If the element is not found, return a 404 status code
+            // Resolve the cached element before reading provider-backed text.
+            var elementModel = GetElementBySession(sessions: _sessions, session, element);
             if (elementModel == null)
             {
                 return (StatusCodes.Status404NotFound, string.Empty);
             }
 
-            // Retrieve the text content from the element model
+            // Normalize absent text to the driver's successful empty-string response contract.
             var value = elementModel.GetText();
 
-            // Return the appropriate status code and text content
             return string.IsNullOrEmpty(value)
                 ? (StatusCodes.Status200OK, string.Empty)
                 : (StatusCodes.Status200OK, value);
         }
 
-        // Parses the locator strategy to determine if it starts from the desktop and extracts the hierarchy of segments.
-        private static (bool FromDesktop, string[] Hierarchy) FormatLocatorHierarchy(LocationStrategyModel locationStrategy)
-        {
-            // Extract values enclosed in single quotes
-            var values = Regex.Matches(locationStrategy.Value, "(?<==').+?(?=')").Select(i => i.Value).ToArray();
+#pragma warning disable IDE0051, S3011 // Segment handlers are discovered through UiaSegmentTypeAttribute reflection.
 
-            // Determine if the locator starts from the desktop
-            var isRoot = Regex.IsMatch(locationStrategy.Value, @"(?is)^(\(+)?\/(root|desktop)");
-
-            // Remove the desktop/root prefix from the locator value if present
-            var xpath = isRoot
-                ? Regex.Replace(locationStrategy.Value, @"(?is)^(\(+)?\/(root|desktop)", string.Empty)
-                : locationStrategy.Value;
-
-            // Create a dictionary to store tokens and their corresponding values
-            var tokens = new Dictionary<string, string>();
-            for (int i = 0; i < values.Length; i++)
-            {
-                tokens[$"value_token_{i}"] = values[i];
-                xpath = xpath.Replace(values[i], $"value_token_{i}");
-            }
-
-            // Split the xpath into segments
-            var hierarchy = Regex
-                .Split(xpath, @"\/(?=\w+|\*)(?![^\[]*\])")
-                .Where(i => !string.IsNullOrEmpty(i))
-                .ToArray();
-
-            // Adjust segments if they start with a '/'
-            for (int i = 0; i < hierarchy.Length; i++)
-            {
-                var segment = hierarchy[i];
-                if (!segment.Equals("/") && !segment.EndsWith('/'))
-                {
-                    continue;
-                }
-                hierarchy[i + 1] = $"/{hierarchy[i + 1]}";
-            }
-
-            // Clean up the hierarchy by removing trailing '/' and empty segments
-            hierarchy = [.. hierarchy
-                .Where(i => !string.IsNullOrEmpty(i) && !i.Equals("/"))
-                .Select(i => i.TrimEnd('/'))];
-
-            // Replace tokens in the hierarchy with their original values
-            for (int i = 0; i < hierarchy.Length; i++)
-            {
-                foreach (var token in tokens)
-                {
-                    hierarchy[i] = hierarchy[i].Replace(token.Key, token.Value);
-                }
-            }
-
-            // Return the flag indicating if the locator starts from the desktop and the hierarchy of segments
-            return (isRoot, hierarchy);
-        }
-
-        // Retrieves an element from the session's elements dictionary.
-        private static UiaElementModel GetElementBySession(IDictionary<string, UiaSessionResponseModel> sessions, string session, string element)
-        {
-            // Try to retrieve the session model from the sessions dictionary
-            if (!sessions.TryGetValue(session, out UiaSessionResponseModel sessionModel))
-            {
-                // Return default if the session is not found
-                return default;
-            }
-
-            // Check if the session model's elements dictionary contains the specified element
-            if (sessionModel.Elements?.ContainsKey(element) != true)
-            {
-                // Return default if the element is not found
-                return default;
-            }
-
-            // Return the found element
-            return sessionModel.Elements[element];
-        }
-
-#pragma warning disable IDE0051, S3011 // These methods are used via reflection to handle specific locator segment types.
-        // Finds an element by a specified segment in the UI Automation tree.
-        private UiaElementModel FindElementBySegment(CUIAutomation8 session, IUIAutomationElement rootElement, string pathSegment)
-        {
-            // Get all methods from the current type that have the UiaSegmentTypeAttribute
-            var segmentMethods = GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
-                .Where(i => i.GetCustomAttribute<UiaSegmentTypeAttribute>() != null)
-                .ToDictionary(i => i.GetCustomAttribute<UiaSegmentTypeAttribute>()?.Type, i => i, StringComparer.OrdinalIgnoreCase);
-
-            // Extract the segment key from the path segment using a regular expression
-            var segmentKey = Regex.Match(input: pathSegment, pattern: @"(?<=^\/?)\w+").Value;
-
-            // Try to get the method for the segment key from the dictionary
-            var isSegmentType = segmentMethods.TryGetValue(key: segmentKey, out MethodInfo method);
-
-            // If the segment key is not found, use the default method for 'Uia'
-            method = isSegmentType
-                ? method
-                : segmentMethods["Uia"];
-
-            // Invoke the method with the session, root element, and path segment as parameters
-            return (UiaElementModel)method.Invoke(null, [new SegmentDataModel()
-            {
-                PathSegment = pathSegment,
-                RootElement = rootElement,
-                Session = session
-            }]);
-        }
-
-        // Finds an element by the specified segment using the 'Cords' segment type.
+        // Resolves a coordinate segment into a point-backed element without reading or mutating session state.
+        // Invalid coordinate payloads retain the existing parsing exception behavior for the caller to surface.
         [UiaSegmentType(type: "Coords")]
-        private static UiaElementModel ByCoords(SegmentDataModel segmentData)
+        private static UiaElementModel FindElementByCoordinates(SegmentDataModel segmentData)
         {
-            // Extract the OCR segment from the path segment using a regular expression
-            var segment = Regex.Match(input: segmentData.PathSegment, pattern: @"(?is)(?<=Coords\().*?(?=\))").Value;
-            var coords = segment.Split(',').Select(int.Parse).ToArray();
-
-            // Create a clickable point from the coordinates
+            // Parse the coordinate payload into the two integer values consumed by point-based driver commands.
+            var segment = CoordinateExpression.Match(input: segmentData.PathSegment).Value;
+            var coordinates = segment.Split(separator: ',').Select(selector: int.Parse).ToArray();
             var point = new PointModel
             {
-                X = coords[0],
-                Y = coords[1]
+                X = coordinates[0],
+                Y = coordinates[1]
             };
 
-            // Generate a new ID for the UIA element
-            var id = $"{Guid.NewGuid()}";
-
-            // Create an XML representation of the OCR element with the word and rectangle information.
+            // Assign an identifier before creating the XML representation returned through the element model.
+            var identifier = Guid.NewGuid().ToString();
             var xml = "<PointElement " +
                 $"X=\"{point.X}\" " +
                 $"Y=\"{point.Y}\" " +
-                $"Id=\"{id}\" />";
+                $"Id=\"{identifier}\" />";
 
-            // Return a new UIA element model with the clickable point and a generated ID
+            // Return compute-only coordinate state; the public repository operation owns any later cache mutation.
             return new UiaElementModel
             {
                 ClickablePoint = point,
-                Id = id,
-                Node = XDocument.Parse(xml).Root
+                Id = identifier,
+                Node = XDocument.Parse(text: xml).Root
             };
         }
 
-        // Finds an element using the Object Model, converting the UI Automation tree to XML and finding by XPath.
+        // Resolves an object-model XPath through a temporary XML projection, then maps its runtime ID back to UIA.
+        // The projection remains local to this call and a missing runtime ID produces the existing null result.
         [UiaSegmentType(type: "ObjectModel")]
-        private static UiaElementModel ByObjectModel(SegmentDataModel segmentData)
+        private static UiaElementModel FindElementByObjectModel(SegmentDataModel segmentData)
         {
-            // Remove any namespace prefixes from the XPath
-            var xpath = Regex.Replace(input: segmentData.PathSegment, pattern: @"(?<=^\/?)\w+:", replacement: string.Empty);
-
-            // Normalize the XPath by adding a wildcard for the root element efficiently
-            // ignoring the previous element under which the search is performed
+            // Remove the strategy namespace and anchor the XPath below the supplied root projection.
+            var xpath = ObjectModelNamespaceExpression.Replace(
+                input: segmentData.PathSegment,
+                replacement: string.Empty
+            );
             xpath = "/*/" + xpath;
 
-            // Create a new Document Object Model (DOM) from the root element
+            // Project the current UIA subtree only for the duration of this object-model lookup.
             var objectModel = DocumentObjectModelFactory.New(
                 automation: segmentData.Session,
                 element: segmentData.RootElement,
-                addDesktop: false);
+                addDesktop: false
+            );
 
-            // Select the element by XPath and get its 'id' attribute
-            var idAttribute = objectModel.XPathSelectElement(xpath)?.Attribute("id")?.Value;
-
-            // If the 'id' attribute is not found, return default
+            // Extract the selected node's runtime ID so the result can be mapped back to a live UIA element.
+            var idAttribute = objectModel.XPathSelectElement(expression: xpath)?.Attribute(name: "id")?.Value;
             if (idAttribute == null)
             {
                 return default;
             }
 
-            // Deserialize the 'id' attribute to an integer array
-            var id = JsonSerializer.Deserialize<int[]>(idAttribute);
-
-            // Create a condition to find the element by its runtime ID
-            var condition = segmentData.Session.CreatePropertyCondition(UIA_PropertyIds.UIA_RuntimeIdPropertyId, id);
-
-            // Determine the tree scope based on the path segment
-            var treeScope = segmentData.PathSegment.StartsWith('/')
+            // Recreate the provider condition and scope that identify the selected live element.
+            var identifier = JsonSerializer.Deserialize<int[]>(json: idAttribute);
+            var condition = segmentData.Session.CreatePropertyCondition(
+                propertyId: UIA_PropertyIds.UIA_RuntimeIdPropertyId,
+                value: identifier
+            );
+            var treeScope = segmentData.PathSegment.StartsWith(value: '/')
                 ? TreeScope.TreeScope_Descendants
                 : TreeScope.TreeScope_Children;
 
-            // Find and return the first element that matches the condition within the specified scope
-            var element = segmentData.RootElement.FindFirst(treeScope, condition);
+            // Return the live element without mutating the session cache owned by the public operation.
+            var element = segmentData.RootElement.FindFirst(scope: treeScope, condition);
 
-            // Return a new UIA element model with the found element
             return new UiaElementModel
             {
                 UIAutomationElement = element
@@ -450,87 +369,232 @@ namespace Uia.DriverServer.Domain
         }
 
 #if Release_Emgu || Debug_Emgu
-        // Finds an element using OCR (Optical Character Recognition) based on the specified segment data.
+        // Resolves an OCR segment through the optional image-recognition repository without mutating session state.
+        // OCR parsing and recognition failures retain the optional provider's existing exception behavior.
         [UiaSegmentType(type: "Ocr")]
-        private static UiaElementModel ByOcr(SegmentDataModel segmentData)
+        private static UiaElementModel FindElementByOcr(SegmentDataModel segmentData)
         {
-            // Initialize the OCR repository
-            var ocr = new OcrRepository();
+            // Extract the OCR payload before delegating recognition to the optional provider.
+            var segment = OcrExpression.Match(input: segmentData.PathSegment).Value;
+            var ocrRepository = new OcrRepository();
 
-            // Extract the OCR segment from the path segment using a regular expression
-            var segment = Regex.Match(input: segmentData.PathSegment, pattern: @"(?is)(?<=Ocr\().*?(?=\))").Value;
-
-            // Find the element using OCR and return the result
-            return ocr.FindElement(segment);
+            return ocrRepository.FindElement(segment);
         }
 #endif
-        // Finds an element using the UI Automation (Uia) tree.
-        [UiaSegmentType(type: "Uia")]
-        private static UiaElementModel ByUia(SegmentDataModel segmentData)
-        {
-            // Determine if the search scope is descendants or children based on the path segment
-            var isDescendants = segmentData.PathSegment.StartsWith('/');
 
-            var treeScope = isDescendants
+        // Dispatches one locator segment to its attributed strategy while keeping handler discovery centralized.
+        // The method remains instance-bound so derived repositories retain their attributed strategy set.
+        private UiaElementModel FindElementBySegment(
+            CUIAutomation8 session,
+            IUIAutomationElement rootElement,
+            string pathSegment)
+        {
+            // Discover strategies from the runtime repository type to preserve the existing reflection contract.
+            var segmentMethods = GetType()
+                .GetMethods(bindingAttr: BindingFlags.NonPublic | BindingFlags.Static)
+                .Where(method => method.GetCustomAttribute<UiaSegmentTypeAttribute>() != null)
+                .ToDictionary(
+                    keySelector: method => method.GetCustomAttribute<UiaSegmentTypeAttribute>().Type,
+                    elementSelector: method => method,
+                    comparer: StringComparer.OrdinalIgnoreCase
+                );
+
+            // Select the attributed strategy key, falling back to standard UIA for unqualified XPath segments.
+            var segmentKey = SegmentKeyExpression.Match(input: pathSegment).Value;
+            var isKnownSegment = segmentMethods.TryGetValue(key: segmentKey, value: out var method);
+            var segmentMethod = isKnownSegment ? method : segmentMethods["Uia"];
+
+            // Package the explicit traversal context so static handlers do not depend on repository instance state.
+            var segmentData = new SegmentDataModel
+            {
+                PathSegment = pathSegment,
+                RootElement = rootElement,
+                Session = session
+            };
+
+            // Invoke the selected strategy and return its compute-only element result to the owning traversal.
+            var result = segmentMethod.Invoke(obj: null, parameters: [segmentData]);
+
+            return (UiaElementModel)result;
+        }
+
+        // Resolves a standard UIA segment and applies any terminal position to the exact condition result.
+        // The helper remains compute-only; missing conditions and invalid positions return the established null result.
+        [UiaSegmentType(type: "Uia")]
+        private static UiaElementModel FindElementByUia(SegmentDataModel segmentData)
+        {
+            // Select child or descendant scope from the segment separator before creating the provider condition.
+            var isDescendantScope = segmentData.PathSegment.StartsWith(value: '/');
+            var treeScope = isDescendantScope
                 ? TreeScope.TreeScope_Descendants
                 : TreeScope.TreeScope_Children;
+            var condition = XpathParser.ConvertToCondition(xpath: segmentData.PathSegment);
 
-            // Initialize the condition object
-            IUIAutomationCondition condition = XpathParser.ConvertToCondition(segmentData.PathSegment);
-
-            // Check if the condition is null and return default if so
-            if(condition == null)
+            if (condition == null)
             {
                 return default;
             }
 
-            // Extract the index value from the path segment
-            var indexValue = Regex.Match(input: segmentData.PathSegment, pattern: @"(?<=\[)\d+(?=])").Value;
+            // Parse the optional position first so zero and numeric overflow fail before a provider-wide search.
+            var position = XpathPosition.GetSelection(
+                pathSegment: segmentData.PathSegment,
+                matchCount: int.MaxValue
+            );
 
-            // Try to parse the index value
-            var isIndex = int.TryParse(indexValue, out int indexOut);
-
-            // Find the first element that matches the condition if no index is specified
-            if (!isIndex)
+            if (!position.HasPosition)
             {
                 return segmentData.RootElement.FindFirst(treeScope, condition)?.ConvertToElement();
             }
 
-            // Find all elements that match the condition
+            if (position.Index < 0)
+            {
+                return default;
+            }
+
+            // Materialize the exact-condition result before validating the requested 1-based collection rank.
             var elements = segmentData.RootElement.FindAll(treeScope, condition);
+            position = XpathPosition.GetSelection(
+                pathSegment: segmentData.PathSegment,
+                matchCount: elements?.Length ?? 0
+            );
 
-            // Adjust the index to be zero-based
-            var index = indexOut < 1 ? 0 : indexOut - 1;
-
-            // Return the element at the specified index or default if none found
-            return elements.Length == 0
+            // Return only a validated match so out-of-range positions never access the COM collection.
+            return position.Index < 0
                 ? default
-                : elements.GetElement(index).ConvertToElement();
+                : elements.GetElement(position.Index).ConvertToElement();
         }
+
 #pragma warning restore IDE0051, S3011
 
-        /// <summary>
-        /// Represents the data model for a segment used in UI Automation.
-        /// </summary>
+        // Parses a locator into ordered segments while preserving slashes inside quoted predicate values.
+        // This compute-only transformation reports whether traversal starts from Desktop and never mutates its input.
+        private static (bool FromDesktop, string[] Hierarchy) FormatLocatorHierarchy(
+            LocationStrategyModel locationStrategy)
+        {
+            // Protect quoted values with tokens so slash characters inside predicates do not split the hierarchy.
+            var values = QuotedValueExpression
+                .Matches(input: locationStrategy.Value)
+                .Select(match => match.Value)
+                .ToArray();
+            var isFromDesktop = DesktopPrefixExpression.IsMatch(input: locationStrategy.Value);
+            var xpath = isFromDesktop
+                ? DesktopPrefixExpression.Replace(input: locationStrategy.Value, replacement: string.Empty)
+                : locationStrategy.Value;
+            var tokens = new Dictionary<string, string>();
+
+            // Replace each quoted value with a deterministic token before evaluating hierarchy separators.
+            for (var index = 0; index < values.Length; index++)
+            {
+                var token = $"value_token_{index}";
+                tokens[token] = values[index];
+                xpath = xpath.Replace(oldValue: values[index], newValue: token);
+            }
+
+            // Split direct-child steps and retain descendant markers for the segment that follows each double slash.
+            var hierarchy = LocatorSeparatorExpression
+                .Split(input: xpath)
+                .Where(segment => !string.IsNullOrEmpty(value: segment))
+                .ToArray();
+
+            for (var index = 0; index < hierarchy.Length; index++)
+            {
+                var segment = hierarchy[index];
+                var marksDescendantScope = segment.Equals("/") || segment.EndsWith(value: '/');
+                var hasFollowingSegment = index + 1 < hierarchy.Length;
+
+                if (!marksDescendantScope || !hasFollowingSegment)
+                {
+                    continue;
+                }
+
+                hierarchy[index + 1] = $"/{hierarchy[index + 1]}";
+            }
+
+            // Remove consumed separator artifacts before restoring the original predicate values.
+            hierarchy =
+            [
+                .. hierarchy
+                    .Where(segment => !string.IsNullOrEmpty(value: segment) && !segment.Equals("/"))
+                    .Select(segment => segment.TrimEnd(trimChar: '/'))
+            ];
+
+            // Restore caller values after structural parsing so every emitted segment retains its original predicate.
+            for (var index = 0; index < hierarchy.Length; index++)
+            {
+                foreach (var (token, value) in tokens)
+                {
+                    hierarchy[index] = hierarchy[index].Replace(oldValue: token, newValue: value);
+                }
+            }
+
+            return (isFromDesktop, hierarchy);
+        }
+
+        // Reads one cached element from a caller-owned session registry without allocating or mutating state.
+        // Missing sessions, absent element dictionaries, and unknown identifiers all produce the established
+        // null result.
+        private static UiaElementModel GetElementBySession(
+            IDictionary<string, UiaSessionResponseModel> sessions,
+            string session,
+            string element)
+        {
+            // Resolve the owning session before attempting to read its element cache.
+            var isSession = sessions.TryGetValue(key: session, value: out var sessionModel);
+            if (!isSession)
+            {
+                return default;
+            }
+
+            // Preserve null and missing cache entries as the same unresolved-element outcome.
+            var hasElements = sessionModel.Elements != null;
+            if (!hasElements)
+            {
+                return default;
+            }
+
+            var isElement = sessionModel.Elements.TryGetValue(key: element, value: out var elementModel);
+
+            return isElement ? elementModel : default;
+        }
+
+        // Selects Desktop, a cached element, or the application root according to the parsed locator origin.
+        // The helper creates a UIA client only for Desktop lookup and does not mutate either supplied model.
+        private static IUIAutomationElement GetSearchRoot(
+            UiaSessionResponseModel uiaSession,
+            UiaElementModel uiaElement,
+            bool isFromDesktop)
+        {
+            // Honor an absolute locator before considering any cached element-relative context.
+            if (isFromDesktop)
+            {
+                return new CUIAutomation8().GetRootElement();
+            }
+
+            // Prefer a valid cached element for relative lookup, otherwise retain the session application root.
+            var hasCachedRoot = uiaElement?.UIAutomationElement != null;
+
+            return hasCachedRoot
+                ? uiaElement.UIAutomationElement
+                : uiaSession.ApplicationRoot;
+        }
+
+        #endregion
+
+        #region *** Nested Types ***
+
+        // Carries the complete compute-only context supplied to one reflected locator-segment strategy.
         private sealed class SegmentDataModel
         {
-            /// <summary>
-            /// Gets or sets the path segment used to locate the element.
-            /// </summary>
-            /// <value>A <see cref="string"/> representing the path segment.</value>
-            public string PathSegment { get; set; }
+            // Gets the exact path segment consumed by the selected strategy.
+            public string PathSegment { get; init; }
 
-            /// <summary>
-            /// Gets or sets the root element to start the search from.
-            /// </summary>
-            /// <value>The <see cref="IUIAutomationElement"/> representing the root element.</value>
-            public IUIAutomationElement RootElement { get; set; }
+            // Gets the UIA element that bounds child or descendant lookup for this segment.
+            public IUIAutomationElement RootElement { get; init; }
 
-            /// <summary>
-            /// Gets or sets the UI Automation session.
-            /// </summary>
-            /// <value>The <see cref="CUIAutomation8"/> instance representing the UI Automation session.</value>
-            public CUIAutomation8 Session { get; set; }
+            // Gets the UI Automation client used to create conditions and object-model projections.
+            public CUIAutomation8 Session { get; init; }
         }
+
+        #endregion
     }
 }
