@@ -44,6 +44,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<InternalsVisibleTo Include="Uia.DriverServer.Domain.UnitTests" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\Uia.DriverServer.Converters\Uia.DriverServer.Converters.csproj" />
 		<ProjectReference Include="..\Uia.DriverServer.Extensions\Uia.DriverServer.Extensions.csproj" />
 		<ProjectReference Include="..\Uia.DriverServer.Formatters\Uia.DriverServer.Formatters.csproj" />
