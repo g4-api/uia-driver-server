@@ -2,10 +2,7 @@
 using Emgu.CV.OCR;
 #endif
 
-using System.Collections.Generic;
 using System.Drawing;
-
-using Uia.DriverServer.Models;
 
 namespace Uia.DriverServer.Domain
 {
