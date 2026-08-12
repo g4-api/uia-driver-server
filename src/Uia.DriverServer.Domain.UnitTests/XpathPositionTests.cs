@@ -1,7 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-using Uia.DriverServer.Domain;
-
 namespace Uia.DriverServer.Domain.UnitTests
 {
     [TestClass]
