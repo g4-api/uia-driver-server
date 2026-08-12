@@ -1,9 +1,4 @@
-﻿/*
- * CHANGE LOG - keep only last 5 threads
- * 
- * RESSOURCES
- */
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -28,14 +23,24 @@ namespace Uia.DriverServer.Domain
         private static readonly Dictionary<string, int> s_controlTypeMapping = typeof(UIA_ControlTypeIds)
             .GetFields(BindingFlags.Public | BindingFlags.Static)
             .ToDictionary(
-                k => Regex.Match(k.Name, "(?<=UIA_)\\w+(?=ControlTypeId)").Value,
+                k => Regex.Match(
+                    input: k.Name,
+                    pattern: "(?<=UIA_)\\w+(?=ControlTypeId)",
+                    options: RegexOptions.None,
+                    matchTimeout: TimeSpan.FromSeconds(30)
+                ).Value,
                 v => (int)v.GetValue(null), s_comparer);
 
         // Mapping of property names to UI Automation property IDs
         private static readonly Dictionary<string, int> s_propertyIdMapping = typeof(UIA_PropertyIds)
             .GetFields(BindingFlags.Public | BindingFlags.Static)
             .ToDictionary(
-                k => Regex.Match(k.Name, "(?<=UIA_)\\w+(?=PropertyId)").Value,
+                k => Regex.Match(
+                    input: k.Name,
+                    pattern: "(?<=UIA_)\\w+(?=PropertyId)",
+                    options: RegexOptions.None,
+                    matchTimeout: TimeSpan.FromSeconds(30)
+                ).Value,
                 v => (int)v.GetValue(null), s_comparer);
 
         /// <summary>
@@ -53,19 +58,23 @@ namespace Uia.DriverServer.Domain
         }
 
         // Formats the given XPath string by extracting control types, logical operators, parentheses, and conditions.
-        private static List<string> FormatXpath(string xpath)
+        private static List<string> FormatXpath(string input)
         {
             // Define the regex pattern to match control types, logical operators, parentheses, and conditions
             const string pattern = @"(?<controlType>/{0,2}\w+)|(?<logical>\band\b|\bor\b|\bnot\b)|(?<parentheses>[\(\)])|(?<condition>@[\w\-]+='[^']*')";
 
             // Find matches in the xpath string based on the defined pattern
-            var matches = Regex.Matches(xpath, pattern);
+            var matches = Regex.Matches(
+                input,
+                pattern,
+                options: RegexOptions.None,
+                matchTimeout: TimeSpan.FromSeconds(30)
+            );
 
             // Convert the matches to a list of strings, trim whitespace, and filter out empty tokens
-            return matches.Cast<Match>()
+            return [.. matches.Cast<Match>()
                 .Select(match => match.Value.Trim(' ', '/'))
-                .Where(token => !string.IsNullOrEmpty(token))
-                .ToList();
+                .Where(token => !string.IsNullOrEmpty(token))];
         }
 
         // Creates a new UI Automation condition tree based on the specified segments.
@@ -81,7 +90,11 @@ namespace Uia.DriverServer.Domain
             IUIAutomationCondition controlTypeCondition = null;
 
             // Create a regular expression pattern for logical operators (and, or, not) in a case-insensitive manner
-            var logicalOperatorPattern = new Regex("(?is)^(and|or|not)$");
+            var logicalOperatorPattern = new Regex(
+                pattern: "(?is)^(and|or|not)$",
+                options: RegexOptions.None,
+                matchTimeout: TimeSpan.FromSeconds(30)
+            );
 
             // Process each segment in the list of segments from the XPath expression string
             foreach (var segment in segments)
@@ -214,7 +227,12 @@ namespace Uia.DriverServer.Domain
                 : PropertyConditionFlags.PropertyConditionFlags_None;
 
             // Remove "partial" from the property name if present
-            propertyName = Regex.Replace(input: propertyName, pattern: "(?is)^partial", replacement: string.Empty);
+            propertyName = Regex.Replace(
+                input: propertyName,
+                pattern: "(?is)^partial",
+                replacement: string.Empty, options: RegexOptions.None,
+                matchTimeout: TimeSpan.FromSeconds(30)
+            );
 
             // Check if the property name is mapped to a property ID
             var isId = s_propertyIdMapping.TryGetValue(key: propertyName, out int id);
