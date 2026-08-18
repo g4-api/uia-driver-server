@@ -67,10 +67,9 @@ namespace Uia.DriverServer.Models
             var condition = automation.CreatePropertyCondition(UIA_PropertyIds.UIA_ProcessIdPropertyId, id);
 
             // Find the application's root element using the specified tree scope and condition.
-            var applicationRoot = automation.GetRootElement().FindFirst(treeScope, condition);
-
-            // Set the ApplicationRoot property to the found root element or the overall root element if not found.
-            ApplicationRoot = applicationRoot ?? automation.GetRootElement();
+            ApplicationRoot = id == -1
+                ? automation.GetRootElement()
+                : automation.GetRootElement().FindFirst(treeScope, condition);
 
             // Assign the session ID based on the application process ID.
             SessionId = $"{id}";

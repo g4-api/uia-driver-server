@@ -101,6 +101,39 @@ namespace Uia.DriverServer.Domain.UnitTests
                 () => XpathParser.ConvertToCondition(xpath: "@NotARealProperty='x'"));
         }
 
+        [TestMethod(DisplayName = "Verify that each Notepad Save As locator prefix converts to a UIA condition")]
+        public void GetHierarchyNotepadSaveAsPathTest()
+        {
+            // Arrange: define each recorder segment so prefixes are validated in traversal order.
+            var segments = new[]
+            {
+                "/Window[@Name='*Untitled - Notepad']",
+                "/Window[@Name='Save As']",
+                "/Pane[1]",
+                "/Pane[@AutomationId='main']",
+                "/Pane[@AutomationId='FolderLayoutContainer']",
+                "/Pane[@Automation Id='BackgroundClear']",
+                "/ComboBox[@AutomationId='FileNameControlHost']",
+                "/Edit[@AutomationId='1001']"
+            };
+
+            var currentXpath = string.Empty;
+            var desktop = new CUIAutomation8().GetRootElement();
+
+            foreach (var segment in segments)
+            {
+                // Act: extend the locator by one segment and convert the current prefix.
+                currentXpath += segment;
+                var condition = XpathParser.ConvertToCondition(xpath: currentXpath);
+                var element = desktop.FindFirst(TreeScope.TreeScope_Descendants, condition);
+
+                // Assert: identify the exact prefix when conversion produces no condition.
+                Assert.IsNotNull(
+                    value: element,
+                    message: $"Failed to convert XPath prefix: {currentXpath}");
+            }
+        }
+
         // Casts the parser result to a property condition, failing the test if the result is not one.
         private static IUIAutomationPropertyCondition CastProperty(IUIAutomationCondition condition)
         {
