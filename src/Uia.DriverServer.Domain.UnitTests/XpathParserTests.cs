@@ -1,6 +1,9 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.Arm;
 
 using UIAutomationClient;
 
@@ -101,36 +104,36 @@ namespace Uia.DriverServer.Domain.UnitTests
                 () => XpathParser.ConvertToCondition(xpath: "@NotARealProperty='x'"));
         }
 
+        [Ignore(message: "For manual testing")]
         [TestMethod(DisplayName = "Verify that each Notepad Save As locator prefix converts to a UIA condition")]
         public void GetHierarchyNotepadSaveAsPathTest()
         {
             // Arrange: define each recorder segment so prefixes are validated in traversal order.
             var segments = new[]
             {
-                "/Window[@Name='*Untitled - Notepad']",
+                "/Window[@Name='Untitled - Notepad']",
                 "/Window[@Name='Save As']",
                 "/Pane[1]",
-                "/Pane[@AutomationId='main']",
-                "/Pane[@AutomationId='FolderLayoutContainer']",
-                "/Pane[@Automation Id='BackgroundClear']",
-                "/ComboBox[@AutomationId='FileNameControlHost']",
-                "/Edit[@AutomationId='1001']"
+                "/ComboBox[@Name='File name:']",
+                "/Edit[@Name='File name:']"
             };
 
-            var currentXpath = string.Empty;
-            var desktop = new CUIAutomation8().GetRootElement();
+            var element = new CUIAutomation8().GetRootElement();
 
             foreach (var segment in segments)
             {
                 // Act: extend the locator by one segment and convert the current prefix.
-                currentXpath += segment;
-                var condition = XpathParser.ConvertToCondition(xpath: currentXpath);
-                var element = desktop.FindFirst(TreeScope.TreeScope_Descendants, condition);
+                var condition = XpathParser.ConvertToCondition(xpath: segment);
+                var scope = segment.StartsWith("//")
+                    ? TreeScope.TreeScope_Descendants
+                    : TreeScope.TreeScope_Children;
+
+                element = element.FindFirst(scope, condition);
 
                 // Assert: identify the exact prefix when conversion produces no condition.
                 Assert.IsNotNull(
                     value: element,
-                    message: $"Failed to convert XPath prefix: {currentXpath}");
+                    message: $"Failed to convert XPath prefix: {segment}");
             }
         }
 
