@@ -32,39 +32,47 @@ namespace Uia.DriverServer.Domain
 
         private static readonly Regex CoordinateExpression = new(
             pattern: @"(?is)(?<=Coords\().*?(?=\))",
-            options: RegexOptions.CultureInvariant
+            options: RegexOptions.CultureInvariant,
+            matchTimeout: TimeSpan.FromSeconds(30)
         );
 
         private static readonly Regex DesktopPrefixExpression = new(
             pattern: @"(?is)^(\(+)?\/(root|desktop)",
-            options: RegexOptions.CultureInvariant
+            options: RegexOptions.CultureInvariant,
+            matchTimeout: TimeSpan.FromSeconds(30)
+
         );
 
         private static readonly Regex LocatorSeparatorExpression = new(
             pattern: @"\/(?=\w+|\*)(?![^\[]*\])",
-            options: RegexOptions.CultureInvariant
+            options: RegexOptions.CultureInvariant,
+            matchTimeout: TimeSpan.FromSeconds(30)
         );
 
         private static readonly Regex ObjectModelNamespaceExpression = new(
             pattern: @"(?<=^\/?)\w+:",
-            options: RegexOptions.CultureInvariant
+            options: RegexOptions.CultureInvariant,
+            matchTimeout: TimeSpan.FromSeconds(30)
         );
 
 #if Release_Emgu || Debug_Emgu
         private static readonly Regex OcrExpression = new(
             pattern: @"(?is)(?<=Ocr\().*?(?=\))",
-            options: RegexOptions.CultureInvariant
+            options: RegexOptions.CultureInvariant,
+            matchTimeout: TimeSpan.FromSeconds(30)
         );
 #endif
 
         private static readonly Regex QuotedValueExpression = new(
             pattern: "(?<==').+?(?=')",
-            options: RegexOptions.CultureInvariant
+            options: RegexOptions.CultureInvariant,
+            matchTimeout: TimeSpan.FromSeconds(30)
         );
 
         private static readonly Regex SegmentKeyExpression = new(
             pattern: @"(?<=^\/?)\w+",
-            options: RegexOptions.CultureInvariant
+            options: RegexOptions.CultureInvariant,
+            matchTimeout: TimeSpan.FromSeconds(30)
         );
 
         #endregion
@@ -291,8 +299,7 @@ namespace Uia.DriverServer.Domain
                 : (StatusCodes.Status200OK, value);
         }
 
-#pragma warning disable IDE0051, S3011 // Segment handlers are discovered through UiaSegmentTypeAttribute reflection.
-
+#pragma warning disable IDE0051 // Segment handlers are discovered through UiaSegmentTypeAttribute reflection.
         // Resolves a coordinate segment into a point-backed element without reading or mutating session state.
         // Invalid coordinate payloads retain the existing parsing exception behavior for the caller to surface.
         [UiaSegmentType(type: "Coords")]
@@ -464,7 +471,7 @@ namespace Uia.DriverServer.Domain
                 : elements.GetElement(position.Index).ConvertToElement();
         }
 
-#pragma warning restore IDE0051, S3011
+#pragma warning restore IDE0051
 
         // Parses a locator into ordered segments while preserving slashes inside quoted predicate values.
         // This compute-only transformation reports whether traversal starts from Desktop and never mutates its input.
