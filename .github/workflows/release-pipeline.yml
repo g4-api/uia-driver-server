@@ -177,14 +177,13 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
-    - name: Setup NuGet
-      uses: NuGet/setup-nuget@v2
-
-    - name: Restore
+    - name: Restore Accessibility Insights
       working-directory: ${{ github.workspace }}/accessibility-insights
       shell: pwsh
       run: |
-        nuget restore ./src/AccessibilityInsights.sln
+        msbuild ./src/AccessibilityInsights/AccessibilityInsights.csproj `
+          /t:Restore `
+          /p:RestoreSources=https://api.nuget.org/v3/index.json
 
     - name: Publish
       shell: pwsh
