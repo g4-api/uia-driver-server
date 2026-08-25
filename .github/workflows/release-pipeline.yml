@@ -43,7 +43,7 @@ jobs:
     steps:
     # Step to checkout the repository
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     
     # Step to parse the build version for GitHub tag
     - name: Parse Build Version for GitHub Tag
@@ -86,11 +86,11 @@ jobs:
     steps:
     # Step to checkout the repository
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       
     # Step to setup .NET Core SDK
     - name: Setup .NET Core SDK
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 10
 
@@ -167,7 +167,7 @@ jobs:
 
     steps:
     - name: Checkout microsoft/accessibility-insights-windows
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: microsoft/accessibility-insights-windows
         ref: main
@@ -177,14 +177,13 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
-    - name: Setup NuGet
-      uses: NuGet/setup-nuget@v2
-
-    - name: Restore
+    - name: Restore Accessibility Insights
       working-directory: ${{ github.workspace }}/accessibility-insights
       shell: pwsh
       run: |
-        nuget restore ./src/AccessibilityInsights.sln
+        msbuild ./src/AccessibilityInsights/AccessibilityInsights.csproj `
+          /t:Restore `
+          /p:RestoreSources=https://api.nuget.org/v3/index.json
 
     - name: Publish
       shell: pwsh
@@ -231,29 +230,29 @@ jobs:
     steps:
     # Step to checkout the repository
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     # Step to download build artifacts
     - name: Download Build Artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: drop
 
     # Step to download build artifacts
     - name: Download Build Artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: drop-emgu
 
     # Step to download build artifacts
     - name: Download Build Artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: drop-accessibility-insights
 
     # Step to create a GitHub release and tag
     - name: Create GitHub Release & Tag v${{ env.buildVersion }}
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: |
           ./${{ env.projectName }}.${{ env.buildVersion }}-win-x64.zip
