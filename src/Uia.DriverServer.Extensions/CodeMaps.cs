@@ -314,6 +314,47 @@ namespace Uia.DriverServer.Extensions
             ["\\uE040"] = 0x29      // ZenkakuHankaku
         };
 
+        /// <summary>
+        /// Gets the key names that Windows treats as extended keys, whose scan codes carry the 0xE0 prefix.
+        /// </summary>
+        /// <remarks>
+        /// A scan-code input for one of these keys must also carry the extended-key flag. Without it, Windows reads the
+        /// shared scan code as a numeric keypad key, so Up arrives as NumPad8 and types 8 while Num Lock is on, and
+        /// PrtSc arrives as the keypad Multiply key. Matching is by key name rather than by scan code because the
+        /// numeric keypad tokens, such as , share scan codes with the navigation keys and must remain keypad keys.
+        /// See https://learn.microsoft.com/windows/win32/inputdev/about-keyboard-input#extended-key-flag.
+        /// </remarks>
+        public static HashSet<string> ExtendedKeys => new(StringComparer.OrdinalIgnoreCase)
+        {
+            // Navigation cluster keys to the left of the numeric keypad.
+            "Del",
+            "Down",
+            "End",
+            "Home",
+            "Ins",
+            "Left",
+            "PgDn",
+            "PgUp",
+            "Right",
+            "Up",
+
+            // System keys.
+            "PrtSc",
+
+            // WebDriver navigation tokens (PageUp through Delete) and the Meta / Command token.
+            "\\uE00E",
+            "\\uE00F",
+            "\\uE010",
+            "\\uE011",
+            "\\uE012",
+            "\\uE013",
+            "\\uE014",
+            "\\uE015",
+            "\\uE016",
+            "\\uE017",
+            "\\uE03D"
+        };
+
         // TODO: Add more keyboard layout scan code maps here. Modified keys behavior is different for each layout especially for right-to-left languages.
         /// <summary>
         /// Gets the scan code map for keys that require a modifier. This map includes the modifier and the modified key code.

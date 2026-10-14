@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 
 using Uia.DriverServer.Attributes;
@@ -104,8 +105,8 @@ namespace Uia.DriverServer.Domain
                 return (StatusCodes.Status500InternalServerError, string.Empty);
             }
 
-            // Invoke the method with the specified session and script source
-            var result = method.Invoke(obj: null, parameters: [src]);
+            // Supply the repository logger so script diagnostics survive successful process exits as well as failures.
+            var result = method.Invoke(obj: new ScriptsRepository(logger: _logger), parameters: [src]);
 
             // Return a 200 status code with the result of the script invocation
             return (StatusCodes.Status200OK, result);
@@ -117,7 +118,7 @@ namespace Uia.DriverServer.Domain
             throw new NotImplementedException();
         }
 
-        private sealed class ScriptsRepository
+        private sealed class ScriptsRepository(ILogger logger)
         {
             // Writes the supplied command script to a temporary .cmd file, executes it
             // through cmd.exe, captures its standard output, and then attempts to delete
@@ -177,60 +178,87 @@ namespace Uia.DriverServer.Domain
                 return standardOutput.Trim();
             }
 
-            // Invokes a PowerShell script for the specified session.
+            /// <summary>
+            /// Executes script source through Windows PowerShell and returns trimmed standard output.
+            /// </summary>
+            /// <param name="src">The script source to persist in a temporary UTF-8 file with a byte-order mark.</param>
+            /// <returns>The script's standard output, excluding diagnostics written to standard error.</returns>
+            /// <remarks>
+            /// Drains both output streams concurrently and logs standard error even when the exit code is zero.
+            /// Owns the child process and temporary file, attempting file cleanup on both success and failure.
+            /// </remarks>
+            /// <exception cref="InvalidOperationException">
+            /// PowerShell exits with a nonzero code; the exception includes the code, script path, and standard error.
+            /// </exception>
             [ScriptType("Powershell")]
-            public static string InvokePowershell(string src)
+            public string InvokePowershell(string src)
             {
-                // Get the temporary directory path.
-                var tempPath = Path.GetTempPath();
+                // Isolate each request's source so concurrent invocations cannot overwrite another script.
+                var path = Path.Combine(path1: Path.GetTempPath(), path2: $"{Guid.NewGuid()}.ps1");
 
-                // Create the file name for the PowerShell script.
-                var fileName = $"{Guid.NewGuid()}.ps1";
-
-                // Combine the temporary path and file name to get the full path.
-                var path = Path.Combine(tempPath, fileName);
-
-                // Write the script contents to the file.
-                File.WriteAllText(path, src);
-
-                // Prepare the process start info for running the PowerShell script.
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = "powershell",
-                    Arguments = $"\"{path}\"",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                // Create a new process to execute the PowerShell script.
-                var process = new Process
-                {
-                    StartInfo = startInfo,
-                };
-
-                // Start the process.
-                process.Start();
-
-                // Read all output *before* we block on WaitForExit
-                var standardOutput = process.StandardOutput.ReadToEnd();
-
-                // Wait for the process to exit to ensure the script execution is complete.
-                process.WaitForExit();
-
-                // Delete the file after execution is complete.
                 try
                 {
-                    File.Delete(path);
-                }
-                catch
-                {
-                    // Ignore any exceptions that occur while deleting the file.
-                }
+                    // Identify UTF-8 explicitly for Windows PowerShell, preserving non-ASCII script literals.
+                    File.WriteAllText(path, contents: src, encoding: new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
 
-                // Return the standard output from the PowerShell script execution.
-                return standardOutput.Trim();
+                    // Pass the path as a file argument rather than command text; ArgumentList preserves spaces.
+                    // Dispose the owned process before the outer finally attempts to remove the script.
+                    using var process = new Process
+                    {
+                        StartInfo = new ProcessStartInfo
+                        {
+                            FileName = "powershell",
+                            ArgumentList = { "-File", path },
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        }
+                    };
+
+                    // Start both readers before waiting so neither redirected pipe can block the child process.
+                    process.Start();
+                    var standardOutputTask = process.StandardOutput.ReadToEndAsync();
+                    var standardErrorTask = process.StandardError.ReadToEndAsync();
+                    process.WaitForExit();
+
+                    // Complete the concurrent reads before interpreting the exit status or returning any output.
+                    var standardOutput = standardOutputTask.GetAwaiter().GetResult();
+                    var standardError = standardErrorTask.GetAwaiter().GetResult();
+
+                    // Preserve nonterminating errors and native diagnostics without changing successful output.
+                    if (!string.IsNullOrWhiteSpace(standardError))
+                    {
+                        logger?.LogWarning(
+                            "PowerShell script {ScriptPath} exited with code {ExitCode}. Standard error: {StandardError}",
+                            path,
+                            process.ExitCode,
+                            standardError);
+                    }
+
+                    // Let the existing error middleware expose the actual child failure instead of HTTP 200.
+                    if (process.ExitCode != 0)
+                    {
+                        var message = $"PowerShell script '{path}' exited with code {process.ExitCode}." +
+                            $"{Environment.NewLine}Standard error: {standardError.Trim()}";
+                        throw new InvalidOperationException(message);
+                    }
+
+                    // Preserve the existing successful response contract after validating process completion.
+                    return standardOutput.Trim();
+                }
+                finally
+                {
+                    // Attempt cleanup even after startup, stream, or script failures without masking their cause.
+                    try
+                    {
+                        File.Delete(path);
+                    }
+                    catch (Exception exception)
+                    {
+                        logger?.LogWarning(exception, "Failed to delete temporary PowerShell script {ScriptPath}.", path);
+                    }
+                }
             }
         }
     }
