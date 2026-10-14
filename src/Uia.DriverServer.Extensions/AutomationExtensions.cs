@@ -162,6 +162,31 @@ namespace Uia.DriverServer.Extensions
         }
 
         /// <summary>
+        /// Converts a key name into a single scan-code keyboard input for the specified keyboard layout.
+        /// </summary>
+        /// <param name="key">The key name to convert (e.g., "Up", "Ctrl", "A").</param>
+        /// <param name="keyboardLayout">The identifier of the keyboard layout to use (e.g., "en-US", "he-IL").</param>
+        /// <param name="keyboardEvent">
+        /// The key event to send (<see cref="KeyEvent.KeyDown"/> or <see cref="KeyEvent.KeyUp"/>).
+        /// </param>
+        /// <returns>
+        /// An <see cref="Input"/> that carries the scan-code flag and, for extended keys, the extended-key flag.
+        /// </returns>
+        /// <remarks>
+        /// Sticky key sequences use this conversion so each key can be pressed and later released on its own.
+        /// An unknown key name resolves to <see cref="ushort.MaxValue"/>, matching
+        /// <see cref="GetScanCode(string, string)"/>.
+        /// </remarks>
+        public static Input ConvertToScanCodeInput(this string key, string keyboardLayout, KeyEvent keyboardEvent)
+        {
+            // Resolve the scan code for the key name in the requested layout.
+            var scanCode = key.GetScanCode(layout: keyboardLayout);
+
+            // Build the input with the scan-code flag and, for navigation and system keys, the extended-key flag.
+            return NewKeyboardInput(scanCode, NewScanCodeKeyEvent(key, keyboardEvent));
+        }
+
+        /// <summary>
         /// Converts a string input into a sequence of keyboard input events.
         /// </summary>
         /// <param name="input">The string input to be converted.</param>
@@ -199,8 +224,8 @@ namespace Uia.DriverServer.Extensions
             // Check if the input is a single key in the scan code map.
             if (keyboardLayoutMap.TryGetValue(input, out ushort keyCodeOut))
             {
-                // Return the keyboard input events for the key using the scan code.
-                return [NewKeyboardInput(keyCode: keyCodeOut, keyboardEvent | KeyEvent.Scancode)];
+                // Return the keyboard input events for the key using the scan code, flagged as extended when required.
+                return [NewKeyboardInput(keyCode: keyCodeOut, NewScanCodeKeyEvent(key: input, keyboardEvent))];
             }
 
             // If the key was not found, no action will be taken.
@@ -229,11 +254,11 @@ namespace Uia.DriverServer.Extensions
             // Check if the input is a functional key in the scan code map.
             if (CodeMaps.NonAlphabeticCodeMap.TryGetValue(input, out ushort value))
             {
-                // Return the key down and key up events for the key.
+                // Return the key down and key up events for the key, flagged as extended when required.
                 return
                 [
-                    NewKeyboardInput(keyCode: value, KeyEvent.KeyDown | KeyEvent.Scancode),
-                    NewKeyboardInput(keyCode: value, KeyEvent.KeyUp | KeyEvent.Scancode)
+                    NewKeyboardInput(keyCode: value, NewScanCodeKeyEvent(key: input, KeyEvent.KeyDown)),
+                    NewKeyboardInput(keyCode: value, NewScanCodeKeyEvent(key: input, KeyEvent.KeyUp))
                 ];
             }
 
@@ -1960,6 +1985,21 @@ namespace Uia.DriverServer.Extensions
 
             // If the event type is not KeyDown or KeyUp, return an empty array.
             return [];
+        }
+
+        // Combines a key down or key up event with the scan-code flag and, for extended keys, the extended-key flag.
+        // The flag is decided by key name because the numeric keypad tokens share scan codes with the navigation keys.
+        // The combined value is applied only to the final input, so the KeyDown and KeyUp comparisons in the
+        // modified-key overload keep receiving the plain event.
+        private static KeyEvent NewScanCodeKeyEvent(string key, KeyEvent keyboardEvent)
+        {
+            // Mark the input as a scan-code input so wScan identifies the key and wVk is ignored.
+            var scanCodeEvent = keyboardEvent | KeyEvent.Scancode;
+
+            // Add the extended-key flag so Windows applies the 0xE0 prefix instead of reading a numeric keypad key.
+            return CodeMaps.ExtendedKeys.Contains(key)
+                ? scanCodeEvent | KeyEvent.ExtendedKey
+                : scanCodeEvent;
         }
 
         // Creates a new keyboard input event with the specified key code and keyboard events.
