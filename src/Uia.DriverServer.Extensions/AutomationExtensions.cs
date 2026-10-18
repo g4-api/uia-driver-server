@@ -1074,6 +1074,7 @@ namespace Uia.DriverServer.Extensions
             var isInvoke = element.GetCurrentPattern(UIA_PatternIds.UIA_InvokePatternId) != null;
             var isExpandCollapse = !isInvoke && element.GetCurrentPattern(UIA_PatternIds.UIA_ExpandCollapsePatternId) != null;
             var isSelectable = !isInvoke && !isExpandCollapse && element.GetCurrentPattern(UIA_PatternIds.UIA_SelectionItemPatternId) != null;
+            var isToggle = !isInvoke && !isExpandCollapse && !isSelectable && element.GetCurrentPattern(UIA_PatternIds.UIA_TogglePatternId) != null;
             var isCords = !isInvoke && !isExpandCollapse && !isSelectable;
 
             // Perform the appropriate action based on the pattern type.
@@ -1099,6 +1100,14 @@ namespace Uia.DriverServer.Extensions
                 SelectElement(element);
 
                 // Return the element after performing the selection action.
+                return element;
+            }
+            if(isToggle)
+            {
+                // Toggle the element if it supports the Toggle pattern.
+                ToggleElement(element);
+                
+                // Return the element after performing the toggle action.
                 return element;
             }
 
@@ -1581,6 +1590,16 @@ namespace Uia.DriverServer.Extensions
         public static IUIAutomationElement SwitchExpandCollapseState(this IUIAutomationElement element)
         {
             return SwitchExpandCollapse(element);
+        }
+
+        /// <summary>
+        /// Toggles the state of the specified UI Automation element that supports the Toggle pattern.
+        /// </summary>
+        /// <param name="element">The <see cref="IUIAutomationElement"/> to toggle.</param>
+        /// <returns>The same <see cref="IUIAutomationElement"/> after toggling the state.</returns>
+        public static IUIAutomationElement Toggle(this IUIAutomationElement element)
+        {
+            return ToggleElement(element);
         }
 
         /// <summary>
@@ -2119,6 +2138,36 @@ namespace Uia.DriverServer.Extensions
             }
 
             // Return the element after toggling the state.
+            return element;
+        }
+
+        // Toggles the specified element using the Toggle pattern.
+        private static IUIAutomationElement ToggleElement(IUIAutomationElement element)
+        {
+            // Attempt to get the Toggle pattern from the element.
+            var pattern = element?.GetCurrentPattern(UIA_PatternIds.UIA_TogglePatternId);
+
+            // Check if the pattern is of type IUIAutomationTogglePattern.
+            if (pattern is not IUIAutomationTogglePattern togglePattern)
+            {
+                return element;
+            }
+
+            try
+            {
+                // Set focus to the element.
+                element.SetFocus();
+
+                // Toggle the element using the Toggle pattern.
+                togglePattern.Toggle();
+            }
+            catch (Exception e)
+            {
+                // Throw the base exception if an error occurs.
+                throw e.GetBaseException();
+            }
+
+            // Return the element after toggling it.
             return element;
         }
     }
