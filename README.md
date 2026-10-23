@@ -29,6 +29,8 @@
     - [Example using `register` Command](#example-using-register-command)
     - [Example using Configuration File](#example-using-configuration-file)
     - [`register` Command `help` Switch](#register-command-help-switch)
+- [Reading Element Text](#reading-element-text)
+  - [Password fields](#password-fields)
 - [Using the OCR Locator](#using-the-ocr-locator)
   - [Overview](#overview)
   - [Passing OCR Locators as XPath or CssSelector](#passing-ocr-locators-as-xpath-or-cssselector)
@@ -1070,6 +1072,21 @@ register -b|--browserName -c|--config -ht|--host -hb|--hub -p|--hubPort -P|--hos
 ```
 
 This help information provides details about each command-line switch available for the `register` command, helping you configure the service appropriately for integration with Grid 3.
+
+## Reading Element Text
+
+`GET /session/{session}/element/{element}/text` (`element.Text` in WebDriver clients) reads text through UI Automation patterns, in this order, and returns the first non-empty result:
+
+1. **Value** pattern (edit boxes, combo boxes, address bars)
+2. **Text**, **Text2**, **TextEdit** patterns (rich-text and document controls)
+3. **TextChild** pattern (text ranges inside a text container)
+4. The element's **Name** property, when no pattern produces text
+
+A pattern that fails or is not supported is skipped, so text exposed by another pattern is still returned.
+
+### Password fields
+
+**Passwords cannot be read.** Windows deliberately hides the contents of password fields (elements where `IsPassword` is `true`, such as WPF/WinUI `PasswordBox` or a browser `<input type="password">`): the Value pattern refuses to return the value and the Text pattern returns only mask characters. For these elements the driver always returns an empty string for `.Text`, never the mask characters, and this cannot be overridden. If a flow needs a password, supply it from your own configuration or secret store instead of reading it from the screen.
 
 ## Using the OCR Locator
 

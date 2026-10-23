@@ -964,63 +964,72 @@ namespace Uia.DriverServer.Extensions
         /// Gets the text content of the specified UI Automation element.
         /// </summary>
         /// <param name="element">The <see cref="IUIAutomationElement"/> to get the text content of.</param>
-        /// <returns>The text content of the element, or an empty string if no text patterns are found.</returns>
+        /// <returns>
+        /// The text content of the element, or an empty string if no text patterns are found
+        /// or the element is a password field (passwords cannot be read through UI Automation).
+        /// </returns>
         public static string GetText(this IUIAutomationElement element)
         {
-            // Retrieves a list of supported pattern IDs for the specified UI Automation element.
-            static List<int> GetPatterns(IUIAutomationElement element)
+            // Password fields never expose their value through UI Automation: the value pattern throws and the
+            // text pattern returns only mask characters, so return an empty string instead of the mask.
+            try
             {
-                // Initialize a list to store the supported pattern IDs.
-                var patternsResult = new List<int>();
-
-                // Iterate through the fields of the UIA_PatternIds type.
-                foreach (var pattern in typeof(UIA_PatternIds).GetFields().Where(f => f.FieldType == typeof(int)))
+                if (element.CurrentIsPassword == 1)
                 {
-                    // Get the pattern ID from the field.
-                    var id = (int)pattern.GetValue(null);
+                    return string.Empty;
+                }
+            }
+            catch (COMException)
+            {
+                // Property unavailable; continue with the pattern lookup below.
+            }
 
-                    // Check if the element supports the pattern ID.
-                    if (element.GetCurrentPattern(id) == null)
+            // Text-related pattern IDs in priority order: the value pattern holds the editable/displayed
+            // value, the text patterns hold document content, and TextChild only covers a child range.
+            var textPatterns = new[]
+            {
+                UIA_PatternIds.UIA_ValuePatternId,
+                UIA_PatternIds.UIA_TextPatternId,
+                UIA_PatternIds.UIA_TextPattern2Id,
+                UIA_PatternIds.UIA_TextEditPatternId,
+                UIA_PatternIds.UIA_TextChildPatternId
+            };
+
+            foreach (var id in textPatterns)
+            {
+                try
+                {
+                    // Skip patterns the element does not support.
+                    var pattern = element.GetCurrentPattern(id);
+                    if (pattern == null)
                     {
-                        // Skip to the next pattern ID if the element does not support the current pattern ID.
                         continue;
                     }
 
-                    // Add the supported pattern ID to the result list.
-                    patternsResult.Add(id);
+                    // Return the first non-empty text; otherwise fall through to the next pattern.
+                    var text = TextPatternFactory.GetText(id, pattern);
+                    if (!string.IsNullOrEmpty(text))
+                    {
+                        return text;
+                    }
                 }
-
-                // Return the list of supported pattern IDs.
-                return patternsResult;
+                catch (Exception e) when (e is COMException or InvalidOperationException
+                    || e.InnerException is COMException or InvalidOperationException)
+                {
+                    // A provider failing on one pattern (e.g. a password box refusing its value) must not hide
+                    // text exposed by another; reflection wraps the failure in a TargetInvocationException.
+                }
             }
 
-            // Define an array of text-related pattern IDs.
-            var textPatterns = new[]
+            // No pattern produced text; fall back to the element's accessible name.
+            try
             {
-                UIA_PatternIds.UIA_TextChildPatternId,
-                UIA_PatternIds.UIA_TextEditPatternId,
-                UIA_PatternIds.UIA_TextPattern2Id,
-                UIA_PatternIds.UIA_TextPatternId,
-                UIA_PatternIds.UIA_ValuePatternId
-            };
-
-            // Get the patterns supported by the element that match the text-related pattern IDs.
-            var patterns = GetPatterns(element).Where(i => textPatterns.Contains(i));
-
-            // If no text-related patterns are found, return an empty string.
-            if (!patterns.Any())
+                return element.CurrentName ?? string.Empty;
+            }
+            catch (COMException)
             {
                 return string.Empty;
             }
-
-            // Get the first matching pattern ID.
-            var id = patterns.First();
-
-            // Get the current pattern for the element using the pattern ID.
-            var pattern = element.GetCurrentPattern(id);
-
-            // Get the text content using the TextPatternFactory.
-            return TextPatternFactory.GetText(id, pattern);
         }
 
         /// <summary>

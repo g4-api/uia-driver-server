@@ -62,7 +62,7 @@ namespace Uia.DriverServer.Extensions
             var instance = method.IsStatic ? null : typeof(TextPatternFactory);
 
             // Invoke the method and return its result as a string.
-            return method.Invoke(instance, [pattern]).ToString();
+            return method.Invoke(instance, [pattern])?.ToString() ?? string.Empty;
         }
 
         // Gets the text using the TextChild pattern.
