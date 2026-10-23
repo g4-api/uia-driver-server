@@ -48,7 +48,11 @@ namespace Uia.DriverServer.Domain.UnitTests
         [DataRow("Ins", (ushort)0x52)]
         [DataRow("Del", (ushort)0x53)]
         [DataRow("PrtSc", (ushort)0x37)]
+        [DataRow("Win", (ushort)0x5B)]
+        [DataRow("LWin", (ushort)0x5B)]
+        [DataRow("RWin", (ushort)0x5C)]
         [DataRow("up", (ushort)0x48)]
+        [DataRow("win", (ushort)0x5B)]
         #endregion
         [TestMethod(DisplayName = "Verify that navigation and system keys carry the extended-key flag " +
             "on the non-sticky path.")]
@@ -112,6 +116,8 @@ namespace Uia.DriverServer.Domain.UnitTests
         [DataRow("Enter", (ushort)0x1C)]
         [DataRow("Tab", (ushort)0x0F)]
         [DataRow("F5", (ushort)0x3F)]
+        [DataRow("F11", (ushort)0x57)]
+        [DataRow("F12", (ushort)0x58)]
         [DataRow("Center", (ushort)0x4C)]
         [DataRow("Num", (ushort)0x45)]
         [DataRow("c", (ushort)0x2E)]
@@ -180,6 +186,24 @@ namespace Uia.DriverServer.Domain.UnitTests
             // Assert: verify that the unknown key resolves to ushort.MaxValue without the extended-key flag.
             Assert.AreEqual(expected: ushort.MaxValue, actual: down.union.ki.wScan);
             Assert.AreEqual(expected: PlainKeyDownFlags, actual: down.union.ki.dwFlags);
+        }
+
+        #region *** Data Set ***
+        [DataRow("en-US")]
+        [DataRow("he-IL")]
+        #endregion
+        [TestMethod(DisplayName = "Verify that a sticky Windows key is extended on press and release " +
+            "in every keyboard layout.")]
+        public void ConvertToScanCodeInputWindowsKeyTest(string keyboardLayout)
+        {
+            // Act: convert the Windows key for the sticky press and release steps of a chord such as Win+R.
+            var down = "Win".ConvertToScanCodeInput(keyboardLayout, KeyEvent.KeyDown);
+            var up = "Win".ConvertToScanCodeInput(keyboardLayout, KeyEvent.KeyUp);
+
+            // Assert: verify that both steps send the left Windows scan code as an extended key.
+            Assert.AreEqual(expected: (ushort)0x5B, actual: down.union.ki.wScan);
+            Assert.AreEqual(expected: ExtendedKeyDownFlags, actual: down.union.ki.dwFlags);
+            Assert.AreEqual(expected: ExtendedKeyUpFlags, actual: up.union.ki.dwFlags);
         }
     }
 }

@@ -243,6 +243,8 @@ namespace Uia.DriverServer.Extensions
             ["F8"] = 0x42,          // F8 key
             ["F9"] = 0x43,          // F9 key
             ["F10"] = 0x44,         // F10 key
+            ["F11"] = 0x57,         // F11 key
+            ["F12"] = 0x58,         // F12 key
             ["Num"] = 0x45,         // Num Lock key
             ["Scroll"] = 0x46,      // Scroll Lock key
             ["Home"] = 0x47,        // Home key
@@ -256,6 +258,9 @@ namespace Uia.DriverServer.Extensions
             ["PgDn"] = 0x51,        // Page Down key
             ["Ins"] = 0x52,         // Insert key
             ["Del"] = 0x53,         // Delete key
+            ["Win"] = 0x5B,         // Windows key, played as the left Windows key
+            ["LWin"] = 0x5B,        // Left Windows key
+            ["RWin"] = 0x5C,        // Right Windows key
             ["\\uE000"] = 0x01,     // Null
             ["\\uE001"] = 0x02,     // Cancel
             ["\\uE002"] = 0x03,     // Help
@@ -338,8 +343,11 @@ namespace Uia.DriverServer.Extensions
             "Right",
             "Up",
 
-            // System keys.
+            // System keys, including the Windows keys whose scan codes exist only with the 0xE0 prefix.
+            "LWin",
             "PrtSc",
+            "RWin",
+            "Win",
 
             // WebDriver navigation tokens (PageUp through Delete) and the Meta / Command token.
             "\\uE00E",
