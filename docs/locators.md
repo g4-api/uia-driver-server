@@ -21,6 +21,39 @@ OCR locators enable the identification of UI elements based on the text content 
 
 To use OCR locators, you need to pass them using the syntax `ocr(ocrValue)` in either XPath or CssSelector. The UiaDriver Server will interpret these locators and apply the OCR logic accordingly. Multiple OCR values can be piped using the syntax `ocr(ocrValue1|ocrValue2)`, providing fallback options if the OCR tool identifies the text differently.
 
+OCR locators work only in the `-emgu` build of the server. The standard build answers every OCR locator with "no such element".
+
+### Locator Syntax
+
+| Form | Example | Meaning |
+| --- | --- | --- |
+| Single word | `ocr('Submit')` | The word "Submit". Quotes are optional: `ocr(Submit)` is the same locator. |
+| Phrase | `ocr('Save As')` | Adjacent words on one line. The element covers the whole phrase. |
+| Occurrence | `ocr('Submit')[2]` | The second "Submit" on the screen, counted line by line from the top and left to right inside a line. |
+
+Separate alternative texts with a pipe, as in `ocr('Bar'|'8ar')`. The server accepts any of them. Quote a text that contains a pipe.
+
+### Matching Rules
+
+- The server captures the primary display on every find. Text on other displays is not found.
+- A word matches only as a whole word. `ocr('Sub')` does not match "Submit".
+- The server looks for an exact-case match first. If none exists, it ignores case.
+- Without an occurrence, find element returns the first match and find elements returns every match.
+- An occurrence that does not exist, including `[0]`, returns "no such element".
+- A text may contain `/`, `(` and `)`. No escaping is needed.
+- An OCR locator must be the whole locator value. It cannot follow other path segments.
+
+### Working with an OCR Element
+
+An OCR element has no automation object, only a rectangle on the screen.
+
+| Command | Behavior |
+| --- | --- |
+| Click | Clicks the center of the rectangle with the mouse. |
+| Send keys | Clicks the center of the rectangle, then types the text with the keyboard. |
+| Get text | Returns the recognized text. |
+| Get attribute | Returns `Left`, `Top`, `Right`, `Bottom`, `Confident`, `Index` or `Locator`. |
+
 #### Example Code
 
 Below are examples of how to use OCR locators in different languages by passing them as XPath or CssSelector.
@@ -142,11 +175,15 @@ public class Main {
 
 To find the OCR value of an element, you can use the [OCR Inspector tool](https://github.com/g4-api/ocr-inspector). This tool helps you obtain the OCR value that can be passed as a locator value.
 
+The inspector runs the same recognition and matching code as the server. Its **From Driver** button reads `GET session/{session}/ocr` from a running server, so it shows the exact image and words that the server works with. Right-click a word to copy its locator, including the occurrence when the word appears more than once.
+
 ### Best Practices and Limitations
 
 - **Accuracy**: OCR technology identifies text based on image recognition, which may not always be perfect. Using multiple OCR values as fallback options increases the likelihood of correctly identifying elements.
 - **Performance**: OCR-based identification may be slower compared to direct element access. Use it only when other methods are not feasible.
 - **Fallback**: Implement fallback strategies by providing multiple OCR values. For example, "Bar" can be identified as "8ar" or "88n", so the OCR locator can be `ocr('8ar'|'88n')`.
+- **Framed text**: Text that touches a border, such as the content of a text box or a focused button, can be misread or returned with the rectangle of the frame. Check the word in the OCR Inspector before using it.
+- **Engine version**: The server and the OCR Inspector must use the same Emgu.CV version. A different version can recognize small text differently.
 
 ## Using the Coords Locator
 

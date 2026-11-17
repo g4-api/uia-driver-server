@@ -103,12 +103,12 @@ jobs:
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v2
 
-    # Set the version in the Program.cs file
+    # Set the Emgu dependencies
     - name: Set Emgu.CV Dependencies
       shell: pwsh
       run: |
           $csprojPath     = (Get-ChildItem -Path . -Recurse -Filter "Uia.DriverServer.Domain.csproj" | Select-Object -First 1).FullName
-          $useEmgu        = '${{ matrix.useUmgu }}'
+          $useEmgu        = '${{ matrix.useEmgu }}'
           [xml]$csprojXml = Get-Content $csprojPath
           $useEmguNode    = $csprojXml.SelectSingleNode("//UseEmgu")
 
@@ -118,7 +118,7 @@ jobs:
           $csprojXml.Save($csprojPath)
           Write-Host "Saved updated csproj."
 
-    # Set the Emgu dependencies
+    # Set the version in the Program.cs file
     - name: Set Version v${{ env.buildVersion }}
       shell: pwsh
       run: |
@@ -132,10 +132,11 @@ jobs:
               Set-Content -Path $filePath -Value $newContent
           }
 
-    # Step to publish the project
+    # Step to publish the project; /restore re-resolves packages for the matrix configuration,
+    # because the Emgu.CV packages are referenced only in the Emgu configurations
     - name: Publish
       shell: pwsh
-      run: msbuild ${{ env.solutionName }}.sln /t:Publish /p:Configuration=${{ matrix.configuration }} /p:Platform="Any CPU" /p:PublishDir=${{ env.binariesDirectory }}/uia-driver-server${{ matrix.suffix }}/
+      run: msbuild ${{ env.solutionName }}.sln /restore /t:Publish /p:Configuration=${{ matrix.configuration }} /p:Platform="Any CPU" /p:PublishDir=${{ env.binariesDirectory }}/uia-driver-server${{ matrix.suffix }}/
 
     # Step to create a build artifact
     - name: Create Build Artifact

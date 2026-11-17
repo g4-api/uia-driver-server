@@ -311,8 +311,16 @@ namespace Uia.DriverServer.Controllers
                 return NotFound(WebDriverResponseModel.NewStaleReferenceResponse(session));
             }
 
-            // Invoke the click action on the element
-            elementModel.UIAutomationElement.Invoke();
+            // Click an element that has no UI Automation object, such as an OCR or coordinates element,
+            // through its screen location; all other elements keep the pattern-based invoke.
+            if (elementModel.UIAutomationElement == null)
+            {
+                SendPointClick(domain: _domain, session, elementModel);
+            }
+            else
+            {
+                elementModel.UIAutomationElement.Invoke();
+            }
 
             // Return an OK response indicating the click action was successful
             return new JsonResult(new WebDriverResponseModel())
@@ -341,21 +349,81 @@ namespace Uia.DriverServer.Controllers
             // Retrieve the element using the domain's elements repository
             var elementModel = _domain.ElementsRepository.GetElement(session, element);
 
-            // Check if the element is stale
-            if (elementModel == null || elementModel.UIAutomationElement == null)
+            // Check if the element is stale; an element with neither a UI Automation object nor a screen
+            // location has nothing to receive the text
+            var isLocationMissing = elementModel?.Rectangle == null && elementModel?.ClickablePoint == null;
+            var isStale = elementModel == null || (elementModel.UIAutomationElement == null && isLocationMissing);
+
+            if (isStale)
             {
                 // Return a not found response if the element is stale
                 return NotFound(WebDriverResponseModel.NewStaleReferenceResponse(session));
             }
 
-            // Set the value of the element
-            elementModel.UIAutomationElement.SendKeys($"{textData.Text}");
+            // Type into an element that has no UI Automation object, such as an OCR or coordinates element,
+            // by focusing its screen location with a click and then sending the text as keyboard input
+            if (elementModel.UIAutomationElement == null)
+            {
+                SendPointClick(domain: _domain, session, elementModel);
+                SendPointKeys(domain: _domain, session, textData);
+            }
+            else
+            {
+                // Set the value of the element
+                elementModel.UIAutomationElement.SendKeys($"{textData.Text}");
+            }
 
             // Return an OK response indicating the value was set successfully
             return new JsonResult(new WebDriverResponseModel())
             {
                 StatusCode = StatusCodes.Status200OK
             };
+        }
+
+        // Sends a native mouse click to the screen location of an element that has no UI Automation object.
+        // An explicit clickable point wins; otherwise the click lands on the center of the element rectangle.
+        // The cursor is moved as a side effect; an element with no location is left untouched.
+        private static void SendPointClick(IUiaDomain domain, string session, UiaElementModel elementModel)
+        {
+            // Resolve the location first so an element without one causes no cursor movement.
+            var point = elementModel.ClickablePoint;
+            if (point == null && elementModel.Rectangle != null)
+            {
+                point = elementModel.GetClickablePoint(align: "MiddleCenter");
+            }
+
+            if (point == null)
+            {
+                return;
+            }
+
+            // Click through the session's automation object, the same path the User32 click endpoints use.
+            var sessionModel = domain.SessionsRepository.GetSession(id: session).Session;
+            sessionModel.Automation.SendNativeClick(point);
+        }
+
+        // Sends text as native keyboard input to whichever control currently holds the focus.
+        // The request options are honored when supplied; otherwise the en-US layout is used, because the
+        // keyboard routine requires a layout. The caller-owned request model is not mutated.
+        private static void SendPointKeys(IUiaDomain domain, string session, TextInputModel textData)
+        {
+            // Build a complete keyboard request so a W3C payload without options still types the text.
+            var options = textData.Options ?? new User32KeyboardInputOptions();
+            var keyboardLayout = options.KeyboardLayout ?? User32KeyboardInputOptions.KeyboardLayouts.EnglishUnitedStates;
+            var keysData = new TextInputModel
+            {
+                Options = new User32KeyboardInputOptions
+                {
+                    Delay = options.Delay,
+                    KeyboardLayout = keyboardLayout,
+                    StickyKeys = options.StickyKeys
+                },
+                Text = $"{textData.Text}"
+            };
+
+            // Type through the session's automation object, the same path the User32 value endpoint uses.
+            var sessionModel = domain.SessionsRepository.GetSession(id: session).Session;
+            domain.SessionsRepository.SendUser32Keys(automation: sessionModel.Automation, textData: keysData);
         }
     }
 }

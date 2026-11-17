@@ -88,7 +88,7 @@ jobs:
     - name: Setup .NET Core SDK
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8
+        dotnet-version: 10
 
     # Step to restore packages
     - name: Restore Packages
@@ -99,39 +99,40 @@ jobs:
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v2
 
-    # Set the version in the Program.cs file
-    - name: Set Version v${{ env.buildVersion }}
+    # Set the Emgu dependencies
+    - name: Set Emgu.CV Dependencies
       shell: pwsh
       run: |
-          $projectFile    = Get-ChildItem -Path . -Recurse -Filter "Uia.DriverServer.Domain.csproj" | Select-Object -First 1
-          $useEmgu        = '${{ matrix.useUmgu }}'
+          $csprojPath     = (Get-ChildItem -Path . -Recurse -Filter "Uia.DriverServer.Domain.csproj" | Select-Object -First 1).FullName
+          $useEmgu        = '${{ matrix.useEmgu }}'
           [xml]$csprojXml = Get-Content $csprojPath
           $useEmguNode    = $csprojXml.SelectSingleNode("//UseEmgu")
 
           $useEmguNode.InnerText = $useEmgu
           Write-Host "Updated <UseEmgu> node with value: $useEmgu"
 
-          $csproj.Save($csprojPath)
+          $csprojXml.Save($csprojPath)
           Write-Host "Saved updated csproj."
 
-    # Set the Emgu dependencies
-    - name: Set Emgu.CV Dependencies
+    # Set the version in the Program.cs file
+    - name: Set Version v${{ env.buildVersion }}
       shell: pwsh
       run: |
           $tempVersion = '"0000.00.00.0000"'
           $version     = '"${{ env.buildVersion }}"'
 
-          Get-ChildItem -Path $searchDirectory -Filter "Program.cs" -Recurse | ForEach-Object {
+          Get-ChildItem -Path '${{ github.workspace }}' -Filter "Program.cs" -Recurse | ForEach-Object {
               $filePath = $_.FullName
               $content = Get-Content -Path $filePath -Raw
               $newContent = $content -replace [regex]::Escape($tempVersion), $version
               Set-Content -Path $filePath -Value $newContent
           }
 
-    # Step to publish the project
+    # Step to publish the project; /restore re-resolves packages for the matrix configuration,
+    # because the Emgu.CV packages are referenced only in the Emgu configurations
     - name: Publish
       shell: pwsh
-      run: msbuild ${{ env.solutionName }}.sln /t:Publish /p:Configuration==${{ matrix.configuration }} /p:Platform="Any CPU" /p:PublishDir=${{ env.binariesDirectory }}/publish${{ matrix.suffix }}/
+      run: msbuild ${{ env.solutionName }}.sln /restore /t:Publish /p:Configuration=${{ matrix.configuration }} /p:Platform="Any CPU" /p:PublishDir=${{ env.binariesDirectory }}/publish${{ matrix.suffix }}/
 
     # Step to create a build artifact
     - name: Create Build Artifact
