@@ -55,14 +55,6 @@ namespace Uia.DriverServer.Domain
             matchTimeout: TimeSpan.FromSeconds(30)
         );
 
-#if Release_Emgu || Debug_Emgu
-        private static readonly Regex OcrExpression = new(
-            pattern: @"(?is)(?<=Ocr\().*?(?=\))",
-            options: RegexOptions.CultureInvariant,
-            matchTimeout: TimeSpan.FromSeconds(30)
-        );
-#endif
-
         private static readonly Regex QuotedValueExpression = new(
             pattern: "(?<==').+?(?=')",
             options: RegexOptions.CultureInvariant,
@@ -189,6 +181,19 @@ namespace Uia.DriverServer.Domain
             if (hierarchy.Length == 0)
             {
                 return [];
+            }
+
+            // Resolve an OCR locator against the screen instead of the UIA tree, publishing every occurrence to the
+            // session-owned cache so later element commands can address each one.
+            if (OcrLocator.TestLocator(locator: hierarchy[^1]))
+            {
+                var ocrElements = FindElementsByOcr(pathSegment: hierarchy[^1]);
+                foreach (var ocrElement in ocrElements)
+                {
+                    uiaSession.Elements[ocrElement.Id] = ocrElement;
+                }
+
+                return ocrElements;
             }
 
             // Resolve every ancestor segment before evaluating all matches for the final selector.
@@ -375,19 +380,19 @@ namespace Uia.DriverServer.Domain
             };
         }
 
-#if Release_Emgu || Debug_Emgu
         // Resolves an OCR segment through the optional image-recognition repository without mutating session state.
-        // OCR parsing and recognition failures retain the optional provider's existing exception behavior.
+        // A locator that matches no text on the screen returns null, which the caller reports as not found.
+        // Builds without the OCR engine always return null, so an OCR locator never reaches the UIA XPath parser.
         [UiaSegmentType(type: "Ocr")]
         private static UiaElementModel FindElementByOcr(SegmentDataModel segmentData)
         {
-            // Extract the OCR payload before delegating recognition to the optional provider.
-            var segment = OcrExpression.Match(input: segmentData.PathSegment).Value;
-            var ocrRepository = new OcrRepository();
-
-            return ocrRepository.FindElement(segment);
-        }
+#if RELEASE_EMGU || DEBUG_EMGU
+            // Delegate the complete locator; the repository captures the screen and applies the matching rules.
+            return new OcrRepository().FindElement(segment: segmentData.PathSegment);
+#else
+            return default;
 #endif
+        }
 
         // Dispatches one locator segment to its attributed strategy while keeping handler discovery centralized.
         // The method remains instance-bound so derived repositories retain their attributed strategy set.
@@ -473,11 +478,32 @@ namespace Uia.DriverServer.Domain
 
 #pragma warning restore IDE0051
 
+        // Resolves every screen occurrence of an OCR locator through the optional image-recognition repository.
+        // The helper is compute-only; the public operation owns publishing the results to the session cache.
+        // Builds without the OCR engine return no elements, matching their not-found result for a single element.
+        private static List<UiaElementModel> FindElementsByOcr(string pathSegment)
+        {
+#if RELEASE_EMGU || DEBUG_EMGU
+            return new OcrRepository().FindElements(segment: pathSegment);
+#else
+            return [];
+#endif
+        }
+
         // Parses a locator into ordered segments while preserving slashes inside quoted predicate values.
         // This compute-only transformation reports whether traversal starts from Desktop and never mutates its input.
         private static (bool FromDesktop, string[] Hierarchy) FormatLocatorHierarchy(
             LocationStrategyModel locationStrategy)
         {
+            // Keep a complete OCR locator as one normalized segment so slashes, quotes, and parentheses inside
+            // the recognized text are never treated as hierarchy separators or predicate values.
+            if (OcrLocator.TestLocator(locator: locationStrategy.Value))
+            {
+                var ocrSegment = OcrLocator.FormatLocator(locator: locationStrategy.Value);
+
+                return (false, [ocrSegment]);
+            }
+
             // Protect quoted values with tokens so slash characters inside predicates do not split the hierarchy.
             var values = QuotedValueExpression
                 .Matches(input: locationStrategy.Value)

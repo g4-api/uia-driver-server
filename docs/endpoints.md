@@ -82,6 +82,16 @@ Each summary is quoted from the `SwaggerOperation` attribute of the action.
 | POST | `session/{session}/user32/mouse/move` | Sets the mouse position to the specified coordinates in the given session. |
 | POST | `session/{session}/user32/element/{element}/mouse/move` | Sets the mouse position to the specified element in the given session. |
 
+### OCR (OcrController.cs)
+
+This route exists only in the `-emgu` build of the server. The standard build answers it with HTTP 404.
+
+| Verb | Route | Swagger summary |
+| --- | --- | --- |
+| GET | `session/{session}/ocr` | Captures the screen and returns it with the OCR words recognized on it. |
+
+The response value holds `screenshot`, a Base64-encoded PNG of the primary display, and `words`. Each word has `text`, `rectangle`, `confidence`, `index` and `locator`. The [OCR Inspector](https://github.com/g4-api/ocr-inspector) reads this route to show what the server recognizes. See [Locators](locators.md#using-the-ocr-locator).
+
 ### Meta (MetaController.cs)
 
 | Verb | Route | Swagger summary |

@@ -20,7 +20,7 @@
         /// </summary>
         IElementsRepository ElementsRepository { get; }
 
-        #if Release_Emgu || Debug_Emgu
+        #if RELEASE_EMGU || DEBUG_EMGU
         /// <summary>
         /// Gets the OCR repository.
         /// </summary>

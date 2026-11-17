@@ -37,10 +37,15 @@
 		</COMReference>
 	</ItemGroup>
 
+	<!-- The OCR engine depends on Emgu.CV, so it is compiled only when the Emgu packages are referenced. -->
+	<ItemGroup Condition="'$(UseEmgu)' != 'true'">
+		<Compile Remove="OcrEngine.cs" />
+	</ItemGroup>
+
 	<ItemGroup Condition="'$(UseEmgu)' == 'true'">
-		<PackageReference Include="Emgu.CV" Version="4.10.0.5680" />
-		<PackageReference Include="Emgu.CV.Bitmap" Version="4.10.0.5680" />
-		<PackageReference Include="Emgu.CV.runtime.windows" Version="4.10.0.5680" />
+		<PackageReference Include="Emgu.CV" Version="5.0.0.6584" />
+		<PackageReference Include="Emgu.CV.Bitmap" Version="5.0.0.6584" />
+		<PackageReference Include="Emgu.CV.runtime.windows" Version="5.0.0.6584" />
 	</ItemGroup>
 
 	<ItemGroup>
