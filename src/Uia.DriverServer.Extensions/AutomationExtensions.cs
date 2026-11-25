@@ -1199,15 +1199,12 @@ namespace Uia.DriverServer.Extensions
         /// <returns>An Input object representing the mouse event, or default if the element is not found.</returns>
         public static Input NewMouseInput(this UiaSessionResponseModel session, MouseEvent mouseEvent, string element)
         {
-            // Check if the element exists in the session's elements dictionary
-            if (session.Elements.ContainsKey(element))
+            // Fall back to the current cursor position when the session does not know the element,
+            // so a stale or unknown element id never throws a KeyNotFoundException.
+            if (!session.Elements.TryGetValue(element, out var elementModel))
             {
-                // Return default if the element is not found
                 return NewMouseInput(mouseEvent);
             }
-
-            // Retrieve the element model from the session's elements
-            var elementModel = session.Elements[element];
 
             // Export the clickable point for the element's bounding rectangle
             var clickablePoint = ExportClickablePoint(

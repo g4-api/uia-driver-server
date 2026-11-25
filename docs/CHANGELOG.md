@@ -8,6 +8,14 @@ without its `v` prefix.
 
 ### Fixed
 
+- A mouse input built for an element id now targets that element's top-left clickable point. The check was
+  inverted: a known element got the cursor position, and an unknown one threw `KeyNotFoundException`. An unknown
+  element now falls back to the cursor position.
+
+## 2026.11.25.44
+
+### Fixed
+
 - A W3C `pointerDown` or `pointerUp` action with button 1 presses and releases the middle button. It pressed the
   left button before. Button 2 is still right, and every other button is still left.
 
