@@ -82,6 +82,8 @@ Each summary is quoted from the `SwaggerOperation` attribute of the action.
 | POST | `session/{session}/user32/mouse/move` | Sets the mouse position to the specified coordinates in the given session. |
 | POST | `session/{session}/user32/element/{element}/mouse/move` | Sets the mouse position to the specified element in the given session. |
 
+The element mouse move takes `alignment`, `offsetX` and `offsetY`. The alignment picks a point of the element's bounding rectangle, and the offsets move that point by the given number of pixels. Every alignment applies the offsets, `MiddleCenter` included. An empty alignment means `TopLeft`. The response is the point the cursor moved to.
+
 ### OCR (OcrController.cs)
 
 This route exists only in the `-emgu` build of the server. The standard build answers it with HTTP 404.
