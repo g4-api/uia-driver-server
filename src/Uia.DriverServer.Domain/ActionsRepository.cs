@@ -98,6 +98,25 @@ namespace Uia.DriverServer.Domain
             }
         }
 
+        /// <summary>
+        /// Converts a W3C pointer button into the User32 mouse event that presses or releases it.
+        /// </summary>
+        /// <param name="button">The W3C pointer button: 0 for left, 1 for middle, and 2 for right.</param>
+        /// <param name="isPress"><see langword="true"/> for the press; <see langword="false"/> for the release.</param>
+        /// <returns>The User32 mouse event for the button and the transition.</returns>
+        /// <remarks>
+        /// Any other button, such as back (3) or forward (4), maps to the left button, as the driver always did, so
+        /// existing clients keep their behavior. The method is internal so unit tests can verify the mapping; the
+        /// reflection lookup in <c>SendInput</c> also sees it, and its name matches no W3C action type, so no action
+        /// dispatches to it.
+        /// </remarks>
+        internal static MouseEvent ConvertToMouseEvent(int button, bool isPress) => button switch
+        {
+            1 => isPress ? MouseEvent.MiddleDown : MouseEvent.MiddleUp,
+            2 => isPress ? MouseEvent.RightDown : MouseEvent.RightUp,
+            _ => isPress ? MouseEvent.LeftDown : MouseEvent.LeftUp
+        };
+
         // Sends input to the specified UI automation session based on the provided input data.
         private static void SendInput(ActionsRepository instance, UiaSessionResponseModel session, Dictionary<string, object> inputData)
         {
@@ -228,8 +247,8 @@ namespace Uia.DriverServer.Domain
             // Try to parse the button value from the input data
             _ = int.TryParse($"{value}", out int buttonOut);
 
-            // Determine the mouse event based on the button value
-            var mouseEvent = buttonOut == 2 ? MouseEvent.RightDown : MouseEvent.LeftDown;
+            // Press the button the action names: left, middle, or right
+            var mouseEvent = ConvertToMouseEvent(button: buttonOut, isPress: true);
 
             // Get the physical cursor position
             var point = User32.GetPhysicalCursorPosition();
@@ -336,8 +355,8 @@ namespace Uia.DriverServer.Domain
             // Try to parse the button value from the input data
             _ = int.TryParse($"{value}", out int buttonOut);
 
-            // Determine the mouse event based on the button value
-            var mouseEvent = buttonOut == 2 ? MouseEvent.RightUp : MouseEvent.LeftUp;
+            // Release the button the action names: left, middle, or right
+            var mouseEvent = ConvertToMouseEvent(button: buttonOut, isPress: false);
 
             // Get the physical cursor position
             var point = User32.GetPhysicalCursorPosition();
