@@ -29,6 +29,20 @@ namespace Uia.DriverServer.Extensions
 {
     public static class AutomationExtensions
     {
+        // The alignments that name an edge or a corner of an element, in upper case. Every other alignment resolves to
+        // the element center, which is why the center gets no default one-pixel offset.
+        private static readonly HashSet<string> EdgeAlignments =
+        [
+            "TOPLEFT",
+            "TOPCENTER",
+            "TOPRIGHT",
+            "MIDDLELEFT",
+            "MIDDLERIGHT",
+            "BOTTOMLEFT",
+            "BOTTOMCENTER",
+            "BOTTOMRIGHT"
+        ];
+
         /// <summary>
         /// Clears the value of the specified UI Automation element by setting it to an empty string.
         /// </summary>
@@ -607,14 +621,19 @@ namespace Uia.DriverServer.Extensions
         /// <param name="element">The <see cref="UiaElementModel"/> to get the clickable point of.</param>
         /// <param name="align">The alignment for the clickable point (e.g., TOPLEFT, TOPCENTER, etc.).</param>
         /// <returns>A <see cref="PointModel"/> representing the clickable point on the element.</returns>
+        /// <remarks>
+        /// An edge or corner alignment is nudged one pixel on both axes; the center, and any unrecognized alignment,
+        /// gets no offset, so it lands exactly on the center.
+        /// </remarks>
         public static PointModel GetClickablePoint(this UiaElementModel element, string align)
         {
-            // Call the main GetClickablePoint method with the specified alignment and default other parameters.
+            // Call the main GetClickablePoint method with the specified alignment and the alignment's default offset.
+            var defaultOffset = GetDefaultOffset(align);
             return ExportClickablePoint(
                 boundingRectangle: element.Rectangle,
                 align,
-                topOffset: 1,
-                leftOffset: 1,
+                topOffset: defaultOffset,
+                leftOffset: defaultOffset,
                 scaleRatio: 1.0D);
         }
 
@@ -625,14 +644,20 @@ namespace Uia.DriverServer.Extensions
         /// <param name="align">The alignment for the clickable point (e.g., TOPLEFT, TOPCENTER, etc.).</param>
         /// <param name="scaleRatio">The scale ratio to apply to the coordinates.</param>
         /// <returns>A <see cref="PointModel"/> representing the clickable point on the element.</returns>
+        /// <remarks>
+        /// An edge or corner alignment is nudged one pixel on both axes; the center, and any unrecognized alignment,
+        /// gets no offset, so it lands exactly on the center.
+        /// </remarks>
         public static PointModel GetClickablePoint(this UiaElementModel element, string align, double scaleRatio)
         {
-            // Call the main ExportClickablePoint method with the specified alignment, scale ratio, and default offsets.
+            // Call the main ExportClickablePoint method with the specified alignment, scale ratio, and the
+            // alignment's default offset.
+            var defaultOffset = GetDefaultOffset(align);
             return ExportClickablePoint(
                 boundingRectangle: element.Rectangle,
                 align,
-                topOffset: 1,
-                leftOffset: 1,
+                topOffset: defaultOffset,
+                leftOffset: defaultOffset,
                 scaleRatio);
         }
 
@@ -1766,10 +1791,28 @@ namespace Uia.DriverServer.Extensions
                         Y = (int)(bottom / scaleRatio) + topOffset
                     };
 
+                case "MIDDLECENTER":
                 default:
-                    // Return the center point of the element if the alignment is not recognized.
-                    return GetPoint(scaleRatio, boundingRectangle);
+                    // Calculate the center point, which is also used when the alignment is not recognized, and apply
+                    // the offsets like every other alignment does.
+                    var center = GetPoint(scaleRatio, boundingRectangle);
+                    return new PointModel
+                    {
+                        X = center.X + leftOffset,
+                        Y = center.Y + topOffset
+                    };
             }
+        }
+
+        // Gets the offset a clickable point gets when the caller names only an alignment. An edge or corner
+        // alignment is nudged one pixel, so the default top-left point lands inside the element; the center needs
+        // no nudge, so a center click without offsets lands exactly on the center.
+        private static int GetDefaultOffset(string align)
+        {
+            // Every alignment that is not an edge or a corner resolves to the center, unknown values included.
+            var alignment = align?.ToUpperInvariant() ?? string.Empty;
+            var isCenter = alignment == "MIDDLECENTER" || !EdgeAlignments.Contains(alignment);
+            return isCenter ? 0 : 1;
         }
 
         // Retrieves the root UI Automation element for the application based on the session details.
