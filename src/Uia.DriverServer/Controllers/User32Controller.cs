@@ -484,7 +484,7 @@ namespace Uia.DriverServer.Controllers
         public IActionResult SetMousePosition(
             [SwaggerParameter(Description = "The unique identifier for the session.")] string session,
             [SwaggerParameter(Description = "The unique identifier for the element.")] string element,
-            [SwaggerRequestBody(Description = "The data containing alignment and offset information.")] MousePositionInputModel poistionData)
+            [SwaggerRequestBody(Description = "The data containing alignment and offset information.")] MousePositionInputModel positionData)
         {
             // Retrieve the session based on the provided ID
             var sessionModel = _domain.SessionsRepository.GetSession(session).Session;
@@ -493,15 +493,15 @@ namespace Uia.DriverServer.Controllers
             var elementModel = _domain.ElementsRepository.GetElement(session, element);
 
             // Determine alignment of the mouse pointer (default: TopLeft)
-            var alignment = string.IsNullOrEmpty(poistionData.Alignment)
+            var alignment = string.IsNullOrEmpty(positionData.Alignment)
                 ? "TopLeft"
-                : poistionData.Alignment;
+                : positionData.Alignment;
 
-            // Determine top offset of the mouse pointer (default: 1)
-            var topOffset = poistionData.OffsetY;
+            // Use the vertical offset exactly as the request sends it; every alignment applies it
+            var topOffset = positionData.OffsetY;
 
-            // Determine left offset of the mouse pointer (default: 1)
-            var leftOffset = poistionData.OffsetX;
+            // Use the horizontal offset exactly as the request sends it; every alignment applies it
+            var leftOffset = positionData.OffsetX;
 
             // Get the clickable point on the element with the specified alignment and offsets
             var point = elementModel

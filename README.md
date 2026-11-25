@@ -46,4 +46,6 @@ The full steps are in the [quick start](docs/quick-start.md).
 
 ## Contributing and builds
 
-Build tools, test commands, version numbers, Docker images and development ports are in the [build, test and release guide](../g4-github-actions/docs/build-test-release.md).
+Build `src/Uia.sln` with Visual Studio's MSBuild and the .NET 10 SDK; the projects use COM references that the
+`dotnet` CLI cannot resolve. The release pipeline builds and publishes the release assets from `main`.
+Changes are listed in the [changelog](docs/CHANGELOG.md).
