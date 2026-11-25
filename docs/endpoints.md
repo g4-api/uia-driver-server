@@ -62,6 +62,9 @@ Each summary is quoted from the `SwaggerOperation` attribute of the action.
 | --- | --- | --- |
 | POST | `session/{session}/actions` | Sends User32 actions to the specified session. |
 
+A `pointerDown` or `pointerUp` action presses or releases the button its W3C `button` names: 0 is left, 1 is
+middle and 2 is right. Any other button, such as back (3) or forward (4), uses the left button.
+
 ### User32 extension (User32Controller.cs)
 
 | Verb | Route | Swagger summary |
