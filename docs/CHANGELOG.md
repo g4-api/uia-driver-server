@@ -4,7 +4,7 @@ All notable changes to the UI Automation (UIA) Driver Server are listed here. Th
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each version heading matches a GitHub release tag
 without its `v` prefix.
 
-## Unreleased
+## 2026.11.26.46
 
 ### Fixed
 
