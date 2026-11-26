@@ -51,14 +51,21 @@ namespace Uia.DriverServer.Domain
                 return StatusCodes.Status404NotFound;
             }
 
-            // Get the application name from the session
-            var name = session?.Application?.StartInfo.FileName;
+            // Name the application from the session options, because a mounted process was not started by the
+            // driver and reading its StartInfo throws, which failed the request and left the session behind
+            var name = session?.Options?.App;
+
+            // Leave a mounted application running: the driver attached to it and did not start it
+            var isMounted = session?.Options?.Mount == true;
 
             try
             {
-                // Attempt to kill the application process associated with the session
-                session?.Application?.Kill(entireProcessTree: true);
-                _logger?.LogInformation("Killed application for session with ID {SessionId}. Application: {ApplicationName}", id, name);
+                // Kill the application the driver started for this session, with every process it started
+                if (!isMounted)
+                {
+                    session?.Application?.Kill(entireProcessTree: true);
+                    _logger?.LogInformation("Killed application for session with ID {SessionId}. Application: {ApplicationName}", id, name);
+                }
             }
             catch (Exception e)
             {
@@ -421,6 +428,11 @@ namespace Uia.DriverServer.Domain
             {
                 return (StatusCodes.Status500InternalServerError, default, default);
             }
+
+            // Bring the application window to the front, because User32 input lands on the window on top at the
+            // cursor and an application started or mounted from a background process can sit behind the active window
+            process.Refresh();
+            User32.ShowWindowInForeground(process.MainWindowHandle);
 
             // Create a new UIA session model
             var session = new UiaSessionResponseModel(new CUIAutomation8(), process)
