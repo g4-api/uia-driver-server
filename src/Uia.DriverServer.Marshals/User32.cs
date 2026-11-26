@@ -34,6 +34,9 @@ namespace Uia.DriverServer.Marshals
             ["he-IL"] = "0002040D"  // Hebrew (Standard)
         };
 
+        // The ShowWindow command that restores a minimized window to its previous size and position (SW_RESTORE).
+        private const int RestoreWindowCommand = 9;
+
         // Delegate for the EnumWindows callback function
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
@@ -42,6 +45,18 @@ namespace Uia.DriverServer.Marshals
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool ActivateKeyboardLayout(IntPtr hkl, uint Flags);
+
+        // P/Invoke declaration for the AttachThreadInput function from user32.dll.
+        // Attaches or detaches the input processing of one thread to that of another thread.
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, [MarshalAs(UnmanagedType.Bool)] bool fAttach);
+
+        // P/Invoke declaration for the BringWindowToTop function from user32.dll.
+        // Brings the specified window to the top of the Z order.
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool BringWindowToTop(IntPtr hWnd);
 
         // Enumerates the display settings for the specified device.
         [DllImport("user32.dll")]
@@ -56,6 +71,11 @@ namespace Uia.DriverServer.Marshals
         // Retrieves the status of the specified virtual key.
         [DllImport("user32.dll")]
         private static extern short GetAsyncKeyState(int vKey);
+
+        // P/Invoke declaration for the GetCurrentThreadId function from kernel32.dll.
+        // Retrieves the thread identifier of the calling thread.
+        [DllImport("kernel32.dll")]
+        private static extern uint GetCurrentThreadId();
 
         // P/Invoke declaration for the GetDeviceCaps function from gdi32.dll.
         // Retrieves device-specific information for the specified device.
@@ -90,6 +110,12 @@ namespace Uia.DriverServer.Marshals
         // Retrieves the length of the text of the specified window's title bar (if it has one).
         [DllImport("user32.dll", SetLastError = true)]
         private static extern int GetWindowTextLength(IntPtr hWnd);
+
+        // P/Invoke declaration for the IsIconic function from user32.dll.
+        // Determines whether the specified window is minimized.
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsIconic(IntPtr hWnd);
 
         // P/Invoke declaration for the IsWindow function from user32.dll.
         // Determines whether the specified window handle identifies an existing window.
@@ -130,6 +156,12 @@ namespace Uia.DriverServer.Marshals
         // Sets the position of the mouse cursor.
         [DllImport("user32.dll")]
         private static extern bool SetPhysicalCursorPos(int x, int y);
+
+        // P/Invoke declaration for the ShowWindow function from user32.dll.
+        // Sets the specified window's show state.
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
         /// <summary>
         /// Checks if the provided window handle is valid.
@@ -462,6 +494,68 @@ namespace Uia.DriverServer.Marshals
                 // Throw an exception if the function failed to set the cursor position.
                 throw new InvalidOperationException("Failed to set cursor position.");
             }
+        }
+
+        /// <summary>
+        /// Brings a top-level window to the foreground and activates it.
+        /// </summary>
+        /// <param name="handle">The handle of the window to bring to the foreground.</param>
+        /// <returns>
+        /// <see langword="true"/> when the window is the foreground window afterwards; otherwise, <see langword="false"/>.
+        /// </returns>
+        /// <remarks>
+        /// User32 input lands on whatever window is on top at the cursor, so a session window must be in front before
+        /// the driver clicks its screen points. Windows lets only some processes move the foreground, and the driver
+        /// is usually not one of them: an application started from a background process opens behind the active
+        /// window. When the direct request is refused, the calling thread attaches its input queue to the thread of
+        /// the foreground window for the request, which Windows accepts, and detaches it again afterwards. A missing
+        /// or closed window is ignored, so a session without a window keeps working as before.
+        /// </remarks>
+        public static bool ShowWindowInForeground(IntPtr handle)
+        {
+            // Ignore a missing or closed window, because there is nothing to bring to the front.
+            if (!AssertWindow(handle))
+            {
+                return false;
+            }
+
+            // Restore a minimized window first, because activating it alone leaves it minimized.
+            if (IsIconic(handle))
+            {
+                ShowWindow(handle, RestoreWindowCommand);
+            }
+
+            // Ask for the foreground directly; this succeeds when Windows already lets the driver set it.
+            if (SetForegroundWindow(handle) && GetForegroundWindow() == handle)
+            {
+                return true;
+            }
+
+            // Share input state with the thread that owns the foreground window, so this thread may move the
+            // foreground; the thread ids decide whether an attach is possible at all.
+            var foregroundThread = GetWindowThreadProcessId(GetForegroundWindow(), IntPtr.Zero);
+            var currentThread = GetCurrentThreadId();
+            var isAttached = foregroundThread != 0
+                && foregroundThread != currentThread
+                && AttachThreadInput(currentThread, foregroundThread, fAttach: true);
+
+            try
+            {
+                // Raise the window and activate it while the input queues are shared.
+                BringWindowToTop(handle);
+                SetForegroundWindow(handle);
+            }
+            finally
+            {
+                // Detach again, so the driver thread and the foreground thread keep separate input queues.
+                if (isAttached)
+                {
+                    AttachThreadInput(currentThread, foregroundThread, fAttach: false);
+                }
+            }
+
+            // Report whether the window ended up in front, so the caller can log a refusal.
+            return GetForegroundWindow() == handle;
         }
 
         /// <summary>
