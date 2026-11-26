@@ -8,6 +8,20 @@ without its `v` prefix.
 
 ### Fixed
 
+- A new application session brings the application window to the front, whether the driver started it or mounted
+  it. An application launched from a background process could open behind the active window, and User32 clicks at
+  its screen points then landed on the window in front without an error.
+- Deleting a mounted session succeeds and removes the session. Reading the name of a process the driver did not start
+  threw, so the request failed with 500 and the session stayed. The mounted application keeps running, as before.
+
+### Changed
+
+- A push that changes only changelogs or workflow files no longer starts a release.
+
+## 2026.11.25.45
+
+### Fixed
+
 - A mouse input built for an element id now targets that element's top-left clickable point. The check was
   inverted: a known element got the cursor position, and an unknown one threw `KeyNotFoundException`. An unknown
   element now falls back to the cursor position.
