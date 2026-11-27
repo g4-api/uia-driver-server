@@ -4,6 +4,14 @@ All notable changes to the UI Automation (UIA) Driver Server are listed here. Th
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each version heading matches a GitHub release tag
 without its `v` prefix.
 
+## Unreleased
+
+### Changed
+
+- The release pipeline runs the unit tests (`TestCategory!=LocalOnly`) before it builds the driver, and publishes a
+  release only when every test passes. It can also be started by hand (`workflow_dispatch`), because pushes that change
+  only workflow files do not start it.
+
 ## 2026.11.26.46
 
 ### Fixed
