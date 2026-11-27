@@ -14,6 +14,8 @@ on:
       - 'README.md'
       - '**/CHANGELOG.md'
       - '.github/workflows/**'
+  # Allow a manual run, because pipeline-only changes are ignored by the push trigger
+  workflow_dispatch:
 
 # Set environment variables
 env:
@@ -61,12 +63,55 @@ jobs:
         $version = "${{ steps.parse-version.outputs.version }}"
         echo "valid=$($version -match '^\d+(\.\d+){3}$')" >> $env:GITHUB_OUTPUT
 
+  # Job to run the unit tests; the driver is built and released only when every test passes
+  invoke-unit-tests:
+    name: Invoke Unit Tests
+    runs-on: windows-latest
+    needs: new-version
+    if: ${{ needs.new-version.result == 'success' && needs.new-version.outputs.validVersion == 'True' }}
+
+    steps:
+    # Step to checkout the repository
+    - name: Checkout repository
+      uses: actions/checkout@v7
+
+    # Step to setup .NET Core SDK
+    - name: Setup .NET Core SDK
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: 10
+
+    # Add msbuild to PATH, because the test project's UIAutomationClient COM reference builds only with MSBuild
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    # Step to build the unit tests and the projects they reference
+    - name: Build Unit Tests
+      shell: pwsh
+      run: msbuild Uia.DriverServer.Domain.UnitTests/Uia.DriverServer.Domain.UnitTests.csproj /restore /t:Build /p:Configuration=Debug
+
+    # Step to run the unit tests; a failed test fails the step, so no build or release follows
+    - name: Invoke Unit Tests
+      shell: pwsh
+      run: dotnet test Uia.DriverServer.Domain.UnitTests/Uia.DriverServer.Domain.UnitTests.csproj --no-build --configuration Debug --filter "TestCategory!=LocalOnly" --logger "trx;LogFileName=unit-tests.trx" --results-directory ${{ github.workspace }}/test-results
+
+    # Step to upload the test results, also when a test failed
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: unit-test-results
+        path: ${{ github.workspace }}/test-results
+        if-no-files-found: ignore
+
   # Job to build and publish the project
   new-build:
     name: Build & Publish Driver Server ${{ needs.new-version.outputs.buildVersion }}
     runs-on: windows-latest
-    needs: new-version
-    if: ${{ needs.new-version.result == 'success' && needs.new-version.outputs.validVersion == 'True' }}
+    needs:
+      - new-version
+      - invoke-unit-tests
+    if: ${{ needs.invoke-unit-tests.result == 'success' && needs.new-version.outputs.validVersion == 'True' }}
     strategy:
       matrix:
         include:
